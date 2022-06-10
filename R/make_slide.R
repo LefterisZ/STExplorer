@@ -26,6 +26,6 @@ make_slide <- function(spots_x = 100, spots_y = 100) {
     
     
     ## Return
-    df
+    return(df)
     
 }

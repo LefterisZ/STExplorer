@@ -7,7 +7,8 @@
 #' \{base} function \code{file.path()}.
 #' 
 #' @param sDir the path to the folder where the \code{scalefactors_json.json} is 
-#' placed as an object generated using the \{base} function \code{file.path()}.
+#' placed. The value should be an object generated using the \{base} function 
+#' \code{file.path()}.
 #' @param scale_file a \code{string} with the scale factors file name.
 #' @param res is the resolution you used to calculate the pixel XY coordinates 
 #' for each spot. It can take as values either \code{"lowres"} or \code{"hires"}
@@ -30,5 +31,5 @@ spot_diameter <- function(sDir, scale_file, res = "lowres") {
     }
     
     ## Return
-    s_diam
+    return(s_diam)
 }

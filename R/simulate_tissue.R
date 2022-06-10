@@ -17,13 +17,13 @@ source("./R/spot_sort.R")
 #---------------------------------------------------------
 # Generate a grid of spots resembling the 10X Visium slide
 #---------------------------------------------------------
-tissue <- slide_make(spots_x = 100, spots_y = 100)
+tissue <- make_slide(spots_x = 100, spots_y = 100)
 
 
 ## plot the spots
 ggplot(tissue, aes(x=x, y=y)) + geom_point()
 
-## make the spots an sf object
+## convert the spots to an sf object
 tissue_sf <- tissue %>% 
   st_as_sf(coords = c("x", "y"))
 

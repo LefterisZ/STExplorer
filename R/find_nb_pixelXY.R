@@ -14,16 +14,11 @@ source("./R/make_bb_polygon.R")
 
 
 
+## set the file path to spaceranger's spatial folder
+spatialDir = file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/spatial")
 
-# Export spot X-Y coordinates in a df
-# xy_coord <- seurat_list[["Olfactory_Bulb_A1_Results"]]@meta.data %>%
-#   select(c("Barcode", "Spot_X", "Spot_Y")) %>% 
-#   remove_rownames() %>% 
-#   column_to_rownames(var = "Barcode") %>% 
-#   unite("X_Y", c(Spot_X, Spot_Y), remove = FALSE)
-
-# Prepare the dataset
-mob_input <- seurat_list[["Olfactory_Bulb_A1_Results"]]@meta.data
+## Prepare the dataset
+mob_input <- readSpaceranger(spatialDir, res = "low")
 
 mob_spot_position <- mob_input  %>% 
   select(c("Barcode", "pixel_x", "pixel_y")) %>% 

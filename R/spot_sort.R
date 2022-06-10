@@ -68,7 +68,7 @@ spot_sort <- function(input, x = "X", y = "Y", clockwise = TRUE) {
     
     
     ## Return
-    st_as_sf(df, coords = c("X", "Y")) %>%
-        st_combine()
+    return(st_as_sf(df, coords = c("X", "Y")) %>%
+               st_combine())
     
 }

@@ -13,5 +13,5 @@ sf_coord_as_df <- function(input) {
         select(c("X", "Y"))
     
     ## Return
-    df
+    return(df)
 }

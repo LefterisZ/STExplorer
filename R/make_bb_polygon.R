@@ -29,5 +29,5 @@ make_bb_polygon <- function(input_points, sdiameter) {
                      ncol = 2, byrow = T)
     
     ## Return
-    st_polygon(list(points))
+    return(st_polygon(list(points)))
 }

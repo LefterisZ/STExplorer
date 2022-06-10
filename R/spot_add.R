@@ -26,9 +26,9 @@ spot_add <- function(input, return = "df"){
 
     ## Return
     if (return == "df") {
-        df
+        return(df)
     } else if (return == "sfc") {
-        st_as_sf(df, coords = c("X", "Y")) %>%
-            st_combine()
+        return(st_as_sf(df, coords = c("X", "Y")) %>% 
+                   st_combine())
     }
 }

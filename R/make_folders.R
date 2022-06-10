@@ -3,7 +3,7 @@
 #----------------------------------------------------#
 
 ## Set file paths
-projDir <- file.path(getwd(), "data/")
+projDir <- file.path(getwd(), "data")
 inputDir <- file.path(projDir, "spaceranger_outs/")
 outputDir <- file.path(projDir, "rObjects/")
 csvDir <- file.path(projDir, "csvFiles/")
