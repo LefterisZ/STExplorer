@@ -5,7 +5,7 @@
 #                                                    #
 #' @author Eleftherios (Lefteris) Zormpas            #
 #                                                    #
-# This script is a replicate/ adaptation from an     #
+# This script is an adaptation from an               #
 #   original script written and provided by          #
 #   Dr Rachel Queen Newcastle University             #
 #   ---> give her the credit!                        #
@@ -71,8 +71,7 @@ pkg.check <- lapply(
 )
 
 ## 1.4 source scripts ----
-source(file.path(projDir, "scripts/annotate.R"))
-source(file.path(projDir, "scripts/read_biomart.R"))
+
 
 
 #----------------------------------------------------#
