@@ -2,14 +2,15 @@
 #   identification and weighted matrix calculation from the Spaniel sce
 #   object.
 
-#packages needed
+# packages needed
 library(spdep)
 library(sf)
 library(jsonlite)
 library(ggplot2)
 
-source(file = file.path(scriptsDir, "spot_diameter.R"))
-source(file = file.path(scriptsDir, "make_bb_polygon.R"))
+# non-package functions needed
+source("./R/spot_diameter.R")
+source("./R/make_bb_polygon.R")
 
 
 

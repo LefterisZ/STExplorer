@@ -13,7 +13,7 @@
 #' 
 #' @export
 
-slide_make <- function(spots_x = 100, spots_y = 100) {
+make_slide <- function(spots_x = 100, spots_y = 100) {
     
     ## Get slide X and Y ranges
     x <- 0:(spots_x - 1)

@@ -6,13 +6,11 @@ library(ggplot2)
 library(tidyverse)
 
 # non-package functions needed
-source(file = file.path(scriptsDir, "spot_sort.R"))
-source(file = file.path(scriptsDir, "slide_make.R"))
-source(file = file.path(scriptsDir, "spot_add.R"))
-source(file = file.path(scriptsDir, "sf_coord_as_df.R"))
-source(file = file.path(scriptsDir, "sfc_coord_as_df.R"))
-
-
+source("./R/make_slide.R")
+source("./R/sf_coord_as_df.R")
+source("./R/sfc_coord_as_df.R")
+source("./R/spot_add.R")
+source("./R/spot_sort.R")
 
 
 
