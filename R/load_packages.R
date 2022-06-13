@@ -24,7 +24,8 @@ pkg.check <- lapply(
 pkgCRAN <- c("Seurat", "cowplot", 
              "RColorBrewer",
              "harmony", "dplyr", 
-             "spdep", "sf", "jsonlite")
+             "spdep", "sf", "jsonlite",
+             "tidyverse")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
@@ -63,4 +64,4 @@ source("./R/sfc_coord_as_df.R")
 source("./R/spot_add.R")
 source("./R/spot_diameter.R")
 source("./R/spot_sort.R")
-
+source("./R/readSpaceranger.R")

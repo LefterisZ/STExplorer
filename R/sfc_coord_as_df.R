@@ -5,7 +5,7 @@
 #' @export
 
 
-sfc_coord_as_df <- function(input) {
+sfc_coord_as_df <- function(input_sfc) {
     ## convert to sf  get coordinates in a matrix and then convert to data.frame
     df <- input %>% 
         st_sf() %>% 

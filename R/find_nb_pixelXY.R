@@ -11,7 +11,7 @@ library(ggplot2)
 # non-package functions needed
 source("./R/spot_diameter.R")
 source("./R/make_bb_polygon.R")
-
+source("./R/readSpaceranger.R")
 
 
 ## set the file path to spaceranger's spatial folder
@@ -20,9 +20,10 @@ spatialDir = file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/spati
 ## Prepare the dataset
 mob_input <- readSpaceranger(spatialDir, res = "low")
 
-mob_spot_position <- mob_input  %>% 
-  select(c("Barcode", "pixel_x", "pixel_y")) %>% 
-  remove_rownames() 
+mob_spot_position <- mob_input %>% 
+    filter(Section == 1) %>% 
+    select(c("Barcode", "pixel_x", "pixel_y")) %>% 
+    remove_rownames() 
 
 mob_centroids <- mob_spot_position %>% 
   st_as_sf(coords = c("pixel_x", "pixel_y"))
@@ -78,8 +79,8 @@ plot(test_mob_voronoi, col = 0, axes = TRUE) #rough
 ggplot() +
   geom_sf(data = mob_voronoi_env, colour = "black", fill = "white") + 
   geom_sf(data = mob_centroids, colour = "red3") + 
-  xlim(boxXmin, boxXmax) + 
-  ylim(boxYmin, boxYmax) + 
+  #xlim(boxXmin, boxXmax) + 
+  #ylim(boxYmin, boxYmax) + 
   # Add titles and visually format the plot:
   labs(title = paste("Voronoi tessellation"),
        #subtitle =,

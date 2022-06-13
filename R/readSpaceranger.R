@@ -18,8 +18,7 @@
 #' 
 #' @export
 
-readSpaceranger <- function(dir, 
-                            file = "tissue_positions_list.csv", 
+readSpaceranger <- function(dir, file = "tissue_positions_list.csv", 
                             res = "low") {
     
     ## read-in the csv file and add colnames

@@ -1,6 +1,6 @@
-#' @description This function takes the coordinates of the first spot of a clockwise sorted 
-#' set of spots and adds it to the end. The input data is practically the output
-#' from \code{spot_sort()} function.
+#' @description This function takes the coordinates of the first spot of a 
+#' clockwise sorted set of spots and adds it to the end. The input data is 
+#' practically the output from \code{spot_sort()} function.
 #' 
 #' @param input an sfc object or the output from \code{spot_sort()}
 #' @param return takes one of \code{"df"} or \code{"sfc"}. D

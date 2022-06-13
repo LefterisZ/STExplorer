@@ -4,7 +4,7 @@
 #' 
 #' @export
 
-sf_coord_as_df <- function(input) {
+sf_coord_as_df <- function(input_sf) {
     
     ## convert to data.frame (make it a separate function)
     df <- input %>% 
