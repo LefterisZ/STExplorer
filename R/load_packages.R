@@ -25,7 +25,7 @@ pkgCRAN <- c("Seurat", "cowplot",
              "RColorBrewer",
              "harmony", "dplyr", 
              "spdep", "sf", "jsonlite",
-             "tidyverse", "data.table")
+             "tidyverse")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(

@@ -12,7 +12,7 @@
 #'
 #' @export
 
-add_perimenter <- function(data) {
+add_perimeter <- function(data) {
     ## add a bin column to contain the new bins and populate it with the already
     ## existing ones from "Section" column.
     positions <- data %>%
@@ -20,15 +20,13 @@ add_perimenter <- function(data) {
     
     ## create a bin_0 subset
     bin_0 <- positions %>%
-        filter(Section == 0) %>%
-        setDT()
+        filter(Section == 0)
     
     bin_1 <- positions %>%
-        filter(Section == 1) %>%
-        setDT()
+        filter(Section == 1)
     
     ## find bin_0 spots with bin_1 neighbours and add them to bin_2.
-    apply(bin_0, 1, spot_neighbours, bin.0 = bin_0, bin.1 = bin_1)
+    x <- apply(bin_0, 1, spot_neighbours, bin.1 = bin_1)
     
     return(as.data.frame(rbind(bin_0, bin_1)))
 

@@ -21,8 +21,8 @@ spatialDir = file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/spati
 mob_input <- readSpaceranger(spatialDir, res = "low")
 
 mob_spot_position <- mob_input %>% 
-    filter(new_bins == 1 | new_bins == 2) %>% 
-    select(c("Barcode", "pixel_x", "pixel_y", "new_bins")) %>% 
+    filter(bins == 1 | bins == 2) %>% 
+    select(c("Barcode", "pixel_x", "pixel_y", "bins")) %>% 
     remove_rownames() 
 
 mob_centroids <- mob_spot_position %>% 

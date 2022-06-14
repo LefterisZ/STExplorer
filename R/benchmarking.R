@@ -6,7 +6,6 @@ benchmark(
         apply(bin_0,
               1,
               spot_neighbours,
-              bin.0 = bin_0,
               bin.1 = bin_1)
     },
     # "apply_test_apply" <- {
