@@ -21,69 +21,69 @@ spatialDir = file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/spati
 mob_input <- readSpaceranger(spatialDir, res = "low")
 
 mob_spot_position <- mob_input %>% 
-    filter(Section == 1) %>% 
-    select(c("Barcode", "pixel_x", "pixel_y")) %>% 
+    filter(new_bins == 1 | new_bins == 2) %>% 
+    select(c("Barcode", "pixel_x", "pixel_y", "new_bins")) %>% 
     remove_rownames() 
 
 mob_centroids <- mob_spot_position %>% 
   st_as_sf(coords = c("pixel_x", "pixel_y"))
 
-# Each point has a separate geometry entry. 
-head(mob_centroids)
-
-# generate the bounding box
-
-  # get the folder path to the scale factors .json file
-spatialDir <- file.path(dataDir, sampleInfo$fileFolders, "spatial")
-
-  # calculate spot diameter
-spot_diam <- spot_diameter(spatialDir, "scalefactors_json.json")
-
-  # Get a polygon from boundary box
-box <- st_sfc(make_bb_polygon(mob_centroids, spot_diam))
-head(box)
-
-boxXmin <- min(box[[1]][[1]][,1])
-boxXmax <- max(box[[1]][[1]][,1])
-boxYmin <- min(box[[1]][[1]][,2])
-boxYmax <- max(box[[1]][[1]][,2])
-
+# # Each point has a separate geometry entry. 
+# head(mob_centroids)
+# 
+# # generate the bounding box
+# 
+#   # get the folder path to the scale factors .json file
+# spatialDir <- file.path(dataDir, sampleInfo$fileFolders, "spatial")
+# 
+#   # calculate spot diameter
+# spot_diam <- spot_diameter(spatialDir, "scalefactors_json.json")
+# 
+#   # Get a polygon from boundary box
+# box <- st_sfc(make_bb_polygon(mob_centroids, spot_diam))
+# head(box)
+# 
+# boxXmin <- min(box[[1]][[1]][,1])
+# boxXmax <- max(box[[1]][[1]][,1])
+# boxYmin <- min(box[[1]][[1]][,2])
+# boxYmax <- max(box[[1]][[1]][,2])
+# 
 
 # This combines the points into a multipoint geometry:
 mob <- st_union(mob_centroids)
 head(mob)
 
 # Using the union of points generate a voronoi object
-mob_voronoi <- st_voronoi(mob, bOnlyEdges = FALSE)
+mob_voronoi <- st_voronoi(mob, bOnlyEdges = TRUE)
 head(mob_voronoi)
 
 # get the line coordinates, filter them for X-Y min and X-Y max and plot them?
 # intersect the mob_voronoi with the convex hull.
 # how to find the surrounding neighbours
 
-# plot voronoi 
-plot(mob_voronoi, col = 0, axes = TRUE, xlim = c(boxXmin, boxXmax), ylim = c(boxYmin, boxYmax)) #rough
-plot(mob_centroids, col = "red", add = TRUE)
-plot(st_convex_hull(mob), border = "blue", col = rgb(1, 1, 1, 0.0), add = TRUE)
+# # plot voronoi 
+# plot(mob_voronoi, col = 0, axes = TRUE, xlim = c(boxXmin, boxXmax), ylim = c(boxYmin, boxYmax)) #rough
+# plot(mob_centroids, col = "red", add = TRUE)
+# plot(st_convex_hull(mob), border = "blue", col = rgb(1, 1, 1, 0.0), add = TRUE)
 
 # plot voronoi enveloped
 mob_voronoi_env <- st_intersection(st_cast(mob_voronoi), st_convex_hull(mob))
-plot(mob_voronoi_env, col = 0, axes = TRUE)
-plot(mob_centroids, col = "red", add = TRUE)
-plot(st_convex_hull(mob), border = "blue", col = rgb(1, 1, 1, 0.0), add = TRUE)
-
-#plot test voronoi
-plot(test_mob_voronoi, col = 0, axes = TRUE) #rough
+# plot(mob_voronoi_env, col = 0, axes = TRUE)
+# plot(mob_centroids, col = "red", add = TRUE)
+# plot(st_convex_hull(mob), border = "blue", col = rgb(1, 1, 1, 0.0), add = TRUE)
+# 
+# #plot test voronoi
+# plot(test_mob_voronoi, col = 0, axes = TRUE) #rough
 
 
 ggplot() +
   geom_sf(data = mob_voronoi_env, colour = "black", fill = "white") + 
-  geom_sf(data = mob_centroids, colour = "red3") + 
+  geom_sf(data = mob_centroids, colour = mob_centroids$new_bins) + 
   #xlim(boxXmin, boxXmax) + 
   #ylim(boxYmin, boxYmax) + 
   # Add titles and visually format the plot:
   labs(title = paste("Voronoi tessellation"),
-       #subtitle =,
+       subtitle = "test_apply()",
        colour = "black") + 
   xlab("X coordinates (pixels)") + 
   ylab("Y coordinates (pixels)") + 

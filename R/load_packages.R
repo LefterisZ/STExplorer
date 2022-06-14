@@ -25,7 +25,7 @@ pkgCRAN <- c("Seurat", "cowplot",
              "RColorBrewer",
              "harmony", "dplyr", 
              "spdep", "sf", "jsonlite",
-             "tidyverse")
+             "tidyverse", "data.table")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
@@ -39,7 +39,8 @@ pkg.check <- lapply(
 )
 
 ## 3 GitHub ----
-pkgGit <- c("RachelQueen1/SCFunctionsV3")
+pkgGit <- c("RachelQueen1/SCFunctionsV3",
+            "eddelbuettel/rbenchmark")
 
 if (!require("devtools", quietly = TRUE))
   install.packages("devtools")
@@ -64,4 +65,7 @@ source("./R/sfc_coord_as_df.R")
 source("./R/spot_add.R")
 source("./R/spot_diameter.R")
 source("./R/spot_sort.R")
+source("./R/spot_neighbours.R")
 source("./R/readSpaceranger.R")
+source("./R/add_perimeter.R")
+
