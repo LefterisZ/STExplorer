@@ -21,8 +21,8 @@ spatialDir = file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/spati
 mob_input <- readSpaceranger(spatialDir, res = "low")
 
 mob_spot_position <- mob_input %>% 
-    filter(bins == 1 | bins == 2) %>% 
-    select(c("Barcode", "pixel_x", "pixel_y", "bins")) %>% 
+    filter(new_bin == 1 | new_bin == 2) %>% 
+    select(c("Barcode", "pixel_x", "pixel_y", "new_bin")) %>% 
     remove_rownames() 
 
 mob_centroids <- mob_spot_position %>% 
@@ -78,7 +78,7 @@ mob_voronoi_env <- st_intersection(st_cast(mob_voronoi), st_convex_hull(mob))
 
 ggplot() +
   geom_sf(data = mob_voronoi_env, colour = "black", fill = "white") + 
-  geom_sf(data = mob_centroids, colour = mob_centroids$new_bins) + 
+  geom_sf(data = mob_centroids, colour = mob_centroids$new_bin) + 
   #xlim(boxXmin, boxXmax) + 
   #ylim(boxYmin, boxYmax) + 
   # Add titles and visually format the plot:

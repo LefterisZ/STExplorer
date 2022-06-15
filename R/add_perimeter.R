@@ -15,19 +15,20 @@
 add_perimeter <- function(data) {
     ## add a bin column to contain the new bins and populate it with the already
     ## existing ones from "Section" column.
-    positions <- data %>%
-        mutate(bins = Section)
+    # positions <- data %>%
+    #     mutate(bins = Section)
     
     ## create a bin_0 subset
-    bin_0 <- positions %>%
+    bin_0 <- data %>%
         filter(Section == 0)
     
-    bin_1 <- positions %>%
-        filter(Section == 1)
+    bin_1 <- data %>%
+        filter(Section == 1) %>%
+        mutate(new_bin = Section)
     
     ## find bin_0 spots with bin_1 neighbours and add them to bin_2.
-    x <- apply(bin_0, 1, spot_neighbours, bin.1 = bin_1)
+    bin_0_2 <- cbind(bin_0, "new_bin" = apply(bin_0, 1, spot_neighbours, bin_1))
     
-    return(as.data.frame(rbind(bin_0, bin_1)))
+    return(as.data.frame(rbind(bin_0_2, bin_1)))
 
 }
