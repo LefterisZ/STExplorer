@@ -41,3 +41,23 @@ benchmark(
         "sys.self"
     )
 )
+
+
+benchmark(
+    "test_perimeter" <- {
+        test_add_perimeter(test_tissue_positions)
+    },
+    "perimeter" <- {
+        add_perimeter(test_tissue_positions)
+    },
+    replications = 10,
+    columns = c(
+        "test",
+        "replications",
+        "elapsed",
+        "relative",
+        "user.self",
+        "sys.self"
+    )
+)
+

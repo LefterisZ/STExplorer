@@ -42,3 +42,17 @@ test_scaleFactors <- "scalefactors_json.json"
 ## test 10X Visium tissue_position_list.csv fille ----
 test_tissue_positions <- mob_input
 
+## test coordinates from a real tissue (in a Spot_X/ Spot_Y manner)
+xy_coord <- test_tissue_positions %>%
+  select(c("Barcode", "Spot_X", "Spot_Y", "Section")) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "Barcode") %>%
+  unite("X_Y", c(Spot_X, Spot_Y), remove = FALSE)
+
+## test coordinates from a real tissue (in a pixel_x/ pixel_y manner)
+xy_coord_p <- test_tissue_positions %>%
+    select(c("Barcode", "pixel_x", "pixel_y", "Section")) %>%
+    remove_rownames() %>%
+    column_to_rownames(var = "Barcode") %>%
+    unite("pX_pY", c(pixel_x, pixel_y), remove = FALSE)
+

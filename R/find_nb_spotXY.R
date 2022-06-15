@@ -9,10 +9,10 @@ library(sf)
 
 
 # Export spot X-Y coordinates in a df
-# xy_coord <- seurat_list[["Olfactory_Bulb_A1_Results"]]@meta.data %>%
-#   select(c("Barcode", "Spot_X", "Spot_Y")) %>% 
-#   remove_rownames() %>% 
-#   column_to_rownames(var = "Barcode") %>% 
+# xy_coord <- test_tissue_positions %>%
+#   select(c("Barcode", "Spot_X", "Spot_Y", "Section")) %>%
+#   remove_rownames() %>%
+#   column_to_rownames(var = "Barcode") %>%
 #   unite("X_Y", c(Spot_X, Spot_Y), remove = FALSE)
 
 # function to get polygon from boundary box
@@ -72,8 +72,8 @@ plot(st_intersection(st_cast(mob_voronoi), st_union(mob)), col = 1) # clip to sm
 plot(mob_centroids, add = TRUE)
 
 
-ggplot(xy_coord, aes(x = Spot_X, y = Spot_Y, label = X_Y)) +
-  geom_point(size = 10) + 
+ggplot(xy_coord, aes(x = Spot_X, y = Spot_Y, label = X_Y, colour = Section)) +
+  geom_point(size = 1) +
   xlim(15, 25) +
   ylim(30, 50) +
   geom_label()

@@ -12,78 +12,47 @@ library(ggplot2)
 source("./R/spot_diameter.R")
 source("./R/make_bb_polygon.R")
 source("./R/readSpaceranger.R")
-
+source("./R/add_perimeter.R")
+source("./R/spot_neighbours.R")
 
 ## set the file path to spaceranger's spatial folder
 spatialDir = file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/spatial")
 
-## Prepare the dataset
-mob_input <- readSpaceranger(spatialDir, res = "low")
+## Import the dataset
+input <- readSpaceranger(spatialDir, res = "low") %>% #read-in data
+    add_perimeter() #add perimeter of spots around the tissue 
 
-mob_spot_position <- mob_input %>% 
+## Select spots in bins 1 and 2
+spot_position <- input %>% 
     filter(new_bin == 1 | new_bin == 2) %>% 
     select(c("Barcode", "pixel_x", "pixel_y", "new_bin")) %>% 
     remove_rownames() 
 
-mob_centroids <- mob_spot_position %>% 
+## Convert spots to polygon centroids
+centroids <- spot_position %>% 
   st_as_sf(coords = c("pixel_x", "pixel_y"))
 
-# # Each point has a separate geometry entry. 
-# head(mob_centroids)
-# 
-# # generate the bounding box
-# 
-#   # get the folder path to the scale factors .json file
-# spatialDir <- file.path(dataDir, sampleInfo$fileFolders, "spatial")
-# 
-#   # calculate spot diameter
-# spot_diam <- spot_diameter(spatialDir, "scalefactors_json.json")
-# 
-#   # Get a polygon from boundary box
-# box <- st_sfc(make_bb_polygon(mob_centroids, spot_diam))
-# head(box)
-# 
-# boxXmin <- min(box[[1]][[1]][,1])
-# boxXmax <- max(box[[1]][[1]][,1])
-# boxYmin <- min(box[[1]][[1]][,2])
-# boxYmax <- max(box[[1]][[1]][,2])
-# 
 
-# This combines the points into a multipoint geometry:
-mob <- st_union(mob_centroids)
-head(mob)
+## Combine the points into a multipoint geometry:
+cntd_union <- st_union(centroids)
+head(cntd_union)
 
-# Using the union of points generate a voronoi object
-mob_voronoi <- st_voronoi(mob, bOnlyEdges = TRUE)
-head(mob_voronoi)
+## Use the union of points generate a voronoi object
+voronoi <- st_voronoi(cntd_union, bOnlyEdges = TRUE)
+head(voronoi)
 
-# get the line coordinates, filter them for X-Y min and X-Y max and plot them?
-# intersect the mob_voronoi with the convex hull.
-# how to find the surrounding neighbours
+## Create an enveloped voronoi tessellation around the tissue
+voronoi_env <- st_intersection(st_cast(voronoi), st_convex_hull(cntd_union))
 
-# # plot voronoi 
-# plot(mob_voronoi, col = 0, axes = TRUE, xlim = c(boxXmin, boxXmax), ylim = c(boxYmin, boxYmax)) #rough
-# plot(mob_centroids, col = "red", add = TRUE)
-# plot(st_convex_hull(mob), border = "blue", col = rgb(1, 1, 1, 0.0), add = TRUE)
-
-# plot voronoi enveloped
-mob_voronoi_env <- st_intersection(st_cast(mob_voronoi), st_convex_hull(mob))
-# plot(mob_voronoi_env, col = 0, axes = TRUE)
-# plot(mob_centroids, col = "red", add = TRUE)
-# plot(st_convex_hull(mob), border = "blue", col = rgb(1, 1, 1, 0.0), add = TRUE)
-# 
-# #plot test voronoi
-# plot(test_mob_voronoi, col = 0, axes = TRUE) #rough
-
-
+## plot the voronoi tessellation
 ggplot() +
-  geom_sf(data = mob_voronoi_env, colour = "black", fill = "white") + 
-  geom_sf(data = mob_centroids, colour = mob_centroids$new_bin) + 
+  geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
+  geom_sf(data = centroids, colour = centroids$new_bin) + 
   #xlim(boxXmin, boxXmax) + 
   #ylim(boxYmin, boxYmax) + 
   # Add titles and visually format the plot:
   labs(title = paste("Voronoi tessellation"),
-       subtitle = "test_apply()",
+       subtitle = ,
        colour = "black") + 
   xlab("X coordinates (pixels)") + 
   ylab("Y coordinates (pixels)") + 
@@ -99,17 +68,9 @@ ggplot() +
         legend.title = element_text(colour = "black", size = rel(2)),
         legend.text = element_text(colour = "black", size = rel(1.7)),
         panel.background = element_rect(fill = "white"))
-  
 
 
-# ggplot(xy_coord, aes(x = Spot_X, y = Spot_Y, label = X_Y)) +
-#   geom_point(size = 10) + 
-#   xlim(15, 25) +
-#   ylim(30, 50) +
-#   geom_label()
-# 
-
-ggsave("voronoi_tessellation_cut2.pdf",
+ggsave("voronoi_tessellation_with_perimeter.pdf",
        width = grDevices::dev.size(units = "px")[1]/96,
        height = grDevices::dev.size(units = "px")[2]/96,
        units = "in",
