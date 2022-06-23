@@ -26,12 +26,12 @@ input <- readSpaceranger(spatialDir, res = "low") %>% #read-in data
 spot_position <- input %>% 
     filter(new_bin == 1 | new_bin == 2) %>% 
     select(c("Barcode", "pixel_x", "pixel_y", "new_bin")) %>% 
-    remove_rownames() 
+    remove_rownames()
 
 ## Convert spots to polygon centroids
 centroids <- spot_position %>% 
-  st_as_sf(coords = c("pixel_x", "pixel_y"))
-
+  st_as_sf(coords = c("pixel_x", "pixel_y"), 
+           remove = FALSE)
 
 ## Combine the points into a multipoint geometry:
 cntd_union <- st_union(centroids)
@@ -76,5 +76,27 @@ ggsave("voronoi_tessellation_with_perimeter.pdf",
        units = "in",
        dpi = 400)
 
+## Generate the POLYGONS from the MULTILINESTRING and attach the barcode names 
+##  from bin_1 only
+voronoi_pol <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
+    st_cast() %>% # convert GEOMETRYCOLLECTION to multiple POLYGONS
+    st_sf() %>%  # convert sfc object to sf for st_join afterwards
+    st_join(., 
+            centroids[centroids$new_bin == 1,],
+            join = st_contains,
+            left = FALSE) # Join the centroids with the POLYGONS
+
+## Create contiguity neighbours
+neighbours <- poly2nb(voronoi_pol, snap = 0)
+
+## Get bin1 centroids and drop geometry
+cntd_bin1 <- voronoi_pol[,c("pixel_x", "pixel_y")] %>%
+    st_drop_geometry()
+
+
+plot(voronoi_pol$geometry, border = "grey60")
+plot(neighbours, cntd_bin1, col = "red", add = TRUE)
+
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#
+
