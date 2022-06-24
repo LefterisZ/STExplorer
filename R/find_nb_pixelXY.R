@@ -93,7 +93,7 @@ neighbours <- poly2nb(voronoi_pol, snap = 0)
 cntd_bin1 <- voronoi_pol[,c("pixel_x", "pixel_y")] %>%
     st_drop_geometry()
 
-
+## Plot neighbours graph
 plot(voronoi_pol$geometry, border = "grey60")
 plot(neighbours, cntd_bin1, col = "red", add = TRUE)
 
