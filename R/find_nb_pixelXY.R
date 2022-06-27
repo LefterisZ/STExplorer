@@ -105,23 +105,28 @@ nb_IDs <- nb_sf %>%
     group_by(i_ID) %>%
     nest()
 
-polygons <- right_join(polygons, nbs, by = c("Barcode" = "i_ID")) %>%
-    rename(nb_IDs = data)
+polygons <- right_join(polygons, nb_IDs, by = c("Barcode" = "i_ID")) %>%
+    rename(nb_IDs = data, geom_pol = geometry)
+
+## Update the polygon object to hold the centroid geometries as well
+polygons <- left_join(as.data.frame(polygons), as.data.frame(centroids), 
+                      by = c("Barcode" = "Barcode"), suffix = c("", ".y")) %>%
+    select(!ends_with(".y")) %>% 
+    rename(geom_cntd = geometry) %>% 
+    st_sf(sf_column_name = "geom_pol")
+
 
 ## Get a neighbours object for ggplot2 plotting
-spot_coord <- polygons[,c("pixel_x", "pixel_y")] %>%
-    st_drop_geometry() # get the spot coords as a df
-
-nb_sf <- as(nb2lines(neighbours, coords = spot_coord), "sf")
+nb_sf <- as(nb2lines(neighbours, coords = polygons$geom_cntd), "sf")
 
 ## Plot neighbours graph
 ggplot() +
-    geom_sf(data = polygons$geometry, colour = "grey30", fill = "white") +
+    geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
     geom_sf(data = nb_sf, colour = "black") + 
     geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
     # Add titles and visually format the plot:
-    scale_fill_discrete(c("#34568B", "#FF6F61", "#6B5B95", 
-                          "#88B04B", "#F7CAC9", "#92A8D1")) +
+    scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
+                                  "#FDAC53", "#F7CAC9", "#6B5B95")) +
     labs(title = paste("Contiguity neighbours"),
          subtitle = "",
          colour = "Neighbours\ncount") + 
@@ -145,6 +150,13 @@ ggsave("neighbours_graph-contiguity.pdf",
        height = grDevices::dev.size(units = "px")[2]/96,
        units = "in",
        dpi = 400)
+
+## Calculate neighbour weights with a distance decay function
+neighbours_wght <- nb2listwdist(neighbours, polygons$geom_cntd,
+                                type = "idw", style = "raw", alpha = 0)
+
+## Import gene counts
+
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#
