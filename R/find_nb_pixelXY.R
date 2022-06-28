@@ -29,7 +29,7 @@ spot_position <- input %>%
     select(c("Barcode", "pixel_x", "pixel_y", "new_bin")) %>% 
     remove_rownames()
 
-## Convert spots to polygon centroids
+## Convert spots to centroids
 centroids <- spot_position %>% 
   st_as_sf(coords = c("pixel_x", "pixel_y"), 
            remove = FALSE)
@@ -71,7 +71,7 @@ ggplot() +
         panel.background = element_rect(fill = "white"))
 
 
-ggsave("voronoi_tessellation_with_perimeter.pdf",
+ggsave("voronoi_tessellation.pdf",
        width = grDevices::dev.size(units = "px")[1]/96,
        height = grDevices::dev.size(units = "px")[2]/96,
        units = "in",
@@ -92,7 +92,7 @@ polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
 
 ## Create contiguity neighbours
 neighbours <- poly2nb(polygons, snap = 0)
-names(neighbours) = attr(neighbours, "region.id") # add names to the sublists
+names(neighbours) = attr(neighbours, "region.id") # add names to the sub-lists
 
 ## Add number of neighbours for each polygon back to the polygons object
 polygons$nb_count <- card(neighbours)
@@ -145,7 +145,7 @@ ggplot() +
           legend.text = element_text(colour = "black", size = rel(1.7)),
           panel.background = element_rect(fill = "white"))
 
-ggsave("neighbours_graph-contiguity.pdf",
+ggsave("voronoi_polygons_only.pdf",
        width = grDevices::dev.size(units = "px")[1]/96,
        height = grDevices::dev.size(units = "px")[2]/96,
        units = "in",
@@ -153,7 +153,7 @@ ggsave("neighbours_graph-contiguity.pdf",
 
 ## Calculate neighbour weights with a distance decay function
 neighbours_wght <- nb2listwdist(neighbours, polygons$geom_cntd,
-                                type = "idw", style = "raw", alpha = 0)
+                                type = "idw", style = "raw", alpha = 1)
 
 ## Import gene counts
 
