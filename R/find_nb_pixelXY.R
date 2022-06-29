@@ -25,7 +25,7 @@ input <- readSpaceranger(spatialDir, res = "low") %>% #read-in data
 
 ## Select spots in bins 1 and 2
 spot_position <- input %>% 
-    filter(new_bin == 1 | new_bin == 2) %>% 
+    #filter(new_bin == 1 | new_bin == 2) %>% 
     select(c("Barcode", "pixel_x", "pixel_y", "new_bin")) %>% 
     remove_rownames()
 
@@ -47,17 +47,18 @@ voronoi_env <- st_intersection(st_cast(voronoi), st_convex_hull(cntd_union))
 
 ## plot the voronoi tessellation
 ggplot() +
-  geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
-  geom_sf(data = centroids, colour = centroids$new_bin) + 
-  #xlim(boxXmin, boxXmax) + 
-  #ylim(boxYmin, boxYmax) + 
-  # Add titles and visually format the plot:
-  labs(title = paste("Voronoi tessellation"),
+    geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
+    geom_sf(data = centroids, colour = "red") + 
+    geom_sf(data = centroids[centroids$new_bin == 1,], colour = "skyblue") +
+    #xlim(boxXmin, boxXmax) + 
+    #ylim(boxYmin, boxYmax) + 
+    # Add titles and visually format the plot:
+    labs(title = paste("Voronoi tessellation"),
        subtitle = ,
        colour = "black") + 
-  xlab("X coordinates (pixels)") + 
-  ylab("Y coordinates (pixels)") + 
-  theme(axis.title = element_text(size = rel(2)),
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") + 
+    theme(axis.title = element_text(size = rel(2)),
         axis.line.y.left = element_line(colour = "black"),
         axis.line.x.bottom = element_line(colour = "black"),
         axis.text = element_text(colour = "black", size = rel(2)),
@@ -122,8 +123,8 @@ nb_sf <- as(nb2lines(neighbours, coords = polygons$geom_cntd), "sf")
 ## Plot neighbours graph
 ggplot() +
     geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
-    geom_sf(data = nb_sf, colour = "black") + 
-    geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
+    #geom_sf(data = nb_sf, colour = "black") + 
+    #geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
     # Add titles and visually format the plot:
     scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
                                   "#FDAC53", "#F7CAC9", "#6B5B95")) +
