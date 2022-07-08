@@ -59,13 +59,8 @@ pkg.check <- lapply(
 
 ## 4 source scripts ----
 source("./R/make_bb_polygon.R")
-source("./R/make_slide.R")
 source("./R/sf_coord_as_df.R")
 source("./R/sfc_coord_as_df.R")
-source("./R/spot_add.R")
 source("./R/spot_diameter.R")
-source("./R/spot_sort.R")
-source("./R/spot_neighbours.R")
-source("./R/readSpaceranger.R")
-source("./R/add_perimeter.R")
-
+source("./R/readSpacerangerMD.R")
+source("./R/readSpacerangerD.R")

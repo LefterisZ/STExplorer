@@ -11,23 +11,21 @@ library(ggplot2)
 # non-package functions needed
 source("./R/spot_diameter.R")
 source("./R/make_bb_polygon.R")
-source("./R/readSpaceranger.R")
-source("./R/add_perimeter.R")
-source("./R/spot_neighbours.R")
+source("./R/readSpacerangerD.R")
 source("./R/get_nb_IDs.R")
 
-## set the file path to spaceranger's spatial folder
-spatialDir = file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/spatial")
+## set the file paths to spaceranger's spatial and gene expression folders
+sampleDir <- "Olfactory_Bulb/Olfactory_Bulb_A1_Results"
+spatialDir <- file.path(inputDir, sampleDir, "spatial")
+countsDir <- file.path(inputDir, sampleDir, "filtered_feature_bc_matrix")
 
 ## Import the dataset
-input <- readSpaceranger(spatialDir, res = "low") %>% #read-in data
-    add_perimeter() #add perimeter of spots around the tissue 
+inputMD <- readSpacerangerMD(spatialDir, res = "low") #read-in MetaData
+inputD <- readSpacerangerD(countsDir) #read-in gene expression Data
 
-## Select spots in bins 1 and 2
-spot_position <- input %>% 
-    #filter(new_bin == 1 | new_bin == 2) %>% 
-    select(c("Barcode", "pixel_x", "pixel_y", "new_bin")) %>% 
-    remove_rownames()
+## Select spots in both bins (Sections) 0 and 1
+spot_position <- inputMD %>% 
+    select(c("Barcode", "pixel_x", "pixel_y", "Section"))
 
 ## Convert spots to centroids
 centroids <- spot_position %>% 
@@ -38,53 +36,53 @@ centroids <- spot_position %>%
 cntd_union <- st_union(centroids)
 head(cntd_union)
 
-## Use the union of points generate a voronoi object
+## Use the union of points to generate a voronoi object
 voronoi <- st_voronoi(cntd_union, bOnlyEdges = TRUE)
 head(voronoi)
 
 ## Create an enveloped voronoi tessellation around the tissue
 voronoi_env <- st_intersection(st_cast(voronoi), st_convex_hull(cntd_union))
+head(voronoi_env)
 
 ## plot the voronoi tessellation
 ggplot() +
     geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
-    geom_sf(data = centroids, colour = "red") + 
-    geom_sf(data = centroids[centroids$new_bin == 1,], colour = "skyblue") +
-    #xlim(boxXmin, boxXmax) + 
-    #ylim(boxYmin, boxYmax) + 
+    geom_sf(data = centroids, aes(colour = as.factor(Section)), size = 1.2) + 
     # Add titles and visually format the plot:
     labs(title = paste("Voronoi tessellation"),
-       subtitle = ,
-       colour = "black") + 
+         subtitle = ,
+         colour = "Spot\nPosition") + 
     xlab("X coordinates (pixels)") + 
-    ylab("Y coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") +
+    scale_colour_manual(values = c("0" = "#EEA47FFF", "1" = "#00539CFF"),
+                        labels = c("off-tissue", "on-tissue")) +
     theme(axis.title = element_text(size = rel(2)),
-        axis.line.y.left = element_line(colour = "black"),
-        axis.line.x.bottom = element_line(colour = "black"),
-        axis.text = element_text(colour = "black", size = rel(2)),
-        axis.ticks.length.y.left = unit(.15, "cm"),
-        axis.ticks.length.x.bottom = unit(.15, "cm"),
-        plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
-        plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
-        plot.margin = unit(c(2,3,2,3), "cm"),
-        legend.title = element_text(colour = "black", size = rel(2)),
-        legend.text = element_text(colour = "black", size = rel(1.7)),
-        panel.background = element_rect(fill = "white"))
+          axis.line.y.left = element_line(colour = "black"),
+          axis.line.x.bottom = element_line(colour = "black"),
+          axis.text = element_text(colour = "black", size = rel(2)),
+          axis.ticks.length.y.left = unit(.15, "cm"),
+          axis.ticks.length.x.bottom = unit(.15, "cm"),
+          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
+          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
+          plot.margin = unit(c(0.5,1,0.5,1), "cm"),
+          legend.title = element_text(colour = "black", size = rel(1.5)),
+          legend.text = element_text(colour = "black", size = rel(1.2)),
+          panel.background = element_rect(fill = "white"))
 
 
-ggsave("voronoi_tessellation.pdf",
-       width = grDevices::dev.size(units = "px")[1]/96,
-       height = grDevices::dev.size(units = "px")[2]/96,
+ggsave(file.path(graphDir, "voronoi_tessellation.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
 
-## Generate the POLYGONS from the MULTILINESTRING and attach the barcode names 
-##  from bin_1 only
+## Generate the POLYGONS from the MULTILINESTRING for bin_1 only and attach the  
+##  barcode names
 polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
     st_cast() %>% # convert GEOMETRYCOLLECTION to multiple POLYGONS
     st_sf() %>%  # convert sfc object to sf for st_join afterwards
     st_join(., 
-            centroids[centroids$new_bin == 1,],
+            centroids[centroids$Section == 1,],
             join = st_contains,
             left = FALSE) %>% # Join the centroids with the POLYGONS
     mutate(Barcode_rn = Barcode) %>% # duplicate the barcode column
@@ -98,18 +96,20 @@ names(neighbours) = attr(neighbours, "region.id") # add names to the sub-lists
 ## Add number of neighbours for each polygon back to the polygons object
 polygons$nb_count <- card(neighbours)
 
-## Add the neighbour IDs as a nested df in the polygons object
-nb_IDs <- nb_sf %>%
-    st_drop_geometry() %>%
-    select(i_ID, j_ID) %>%
-    rename(nb_IDs = j_ID) %>%
-    group_by(i_ID) %>%
-    nest()
+## Add the neighbour (nb) IDs as a nested df in the polygons object
+nb_IDs <- neighbours %>%
+    nb2lines(., coords = polygons$geometry) %>% #get nb connecting lines 
+    as("sf") %>% #convert to sf
+    st_drop_geometry() %>% #drop geometry column
+    select(i_ID, j_ID) %>% #select only nb ID columns
+    rename(nb_IDs = j_ID) %>% #rename the neighbours ID column
+    group_by(i_ID) %>% #group by spot
+    nest() #nest the groupings
 
 polygons <- right_join(polygons, nb_IDs, by = c("Barcode" = "i_ID")) %>%
     rename(nb_IDs = data, geom_pol = geometry)
 
-## Update the polygon object to hold the centroid geometries as well
+## Update the polygon object to keep the centroid geometries as well
 polygons <- left_join(as.data.frame(polygons), as.data.frame(centroids), 
                       by = c("Barcode" = "Barcode"), suffix = c("", ".y")) %>%
     select(!ends_with(".y")) %>% 
@@ -146,9 +146,9 @@ ggplot() +
           legend.text = element_text(colour = "black", size = rel(1.7)),
           panel.background = element_rect(fill = "white"))
 
-ggsave("voronoi_polygons_only.pdf",
-       width = grDevices::dev.size(units = "px")[1]/96,
-       height = grDevices::dev.size(units = "px")[2]/96,
+ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
 

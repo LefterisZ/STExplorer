@@ -1,0 +1,312 @@
+---
+title: "ST_explorer"
+output: html_document
+date: '2022-07-08'
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 1. Load/ install all the required packages and custom scripts
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as load_packages.R*
+
+```{r load-import pkg, eval=TRUE, message=FALSE}
+## 1 Bioconductor ----
+pkgBio <- c("Spaniel", "scater", 
+            "batchelor", "scran")
+
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+## Check if packages are installed and load them or install&load them if not.
+pkg.check <- lapply(
+  pkgBio, 
+  FUN <- function(x) {
+    if (!require(x, character.only = TRUE)) {
+      BiocManager::install(x, update = FALSE)
+      library(x, character.only = TRUE)
+    } 
+  }
+)
+
+
+## 2 Cran ----
+pkgCRAN <- c("Seurat", "cowplot", 
+             "RColorBrewer",
+             "harmony", "dplyr", 
+             "spdep", "sf", "jsonlite",
+             "tidyverse")
+
+## Check if packages are installed and load them or install&load them if not.
+pkg.check <- lapply(
+  pkgCRAN, 
+  FUN <- function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+
+## 3 GitHub ----
+pkgGit <- c("RachelQueen1/SCFunctionsV3",
+            "eddelbuettel/rbenchmark")
+
+if (!require("devtools", quietly = TRUE))
+  install.packages("devtools")
+
+## Check if packages are installed and load them or install&load them if not.
+pkg.check <- lapply(
+  pkgGit, 
+  FUN <- function(x) {
+    pkg.name <- sub(".*/", "", x)
+    if (!require(pkg.name, character.only = TRUE)) {
+      devtools::install_git(paste0("https://github.com/", x))
+      library(pkg.name, character.only = TRUE)
+    }
+  }
+)
+
+## 4 source scripts ----
+source("./R/make_bb_polygon.R")
+source("./R/sf_coord_as_df.R")
+source("./R/sfc_coord_as_df.R")
+source("./R/spot_diameter.R")
+source("./R/readSpacerangerMD.R")
+source("./R/readSpacerangerD.R")
+
+```
+
+### 2. Make the required folders
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as make_folders.R*
+
+```{r make-folder}
+## Set file paths
+projDir <- file.path(getwd(), "data")
+inputDir <- file.path(projDir, "spaceranger_outs/")
+outputDir <- file.path(projDir, "rObjects/")
+csvDir <- file.path(projDir, "csvFiles/")
+graphDir <- file.path(projDir, "graphics_out/")
+
+## Check if inputDir/ outputDir/ csvDir exist and create them if not.
+dirs <- c(inputDir, outputDir, csvDir, graphDir)
+
+dirCheck <- lapply(
+    dirs,
+    FUN = function(x){
+        if(!dir.exists(x)) {
+            dir.create(x, recursive = TRUE)
+            print(paste0("Folder: ", x, " CREATED!"))
+        } else {
+            print(paste0("Folder: ", x, " EXISTS!"))
+        }
+    }
+)
+
+```
+
+### 3. Find neighbours
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+
+#### 3.1 Import the MetaData and the Data to be used
+```{r import-data}
+## set the file paths to spaceranger's spatial and gene expression folders
+sampleDir <- "Olfactory_Bulb/Olfactory_Bulb_A1_Results"
+spatialDir <- file.path(inputDir, sampleDir, "spatial")
+countsDir <- file.path(inputDir, sampleDir, "filtered_feature_bc_matrix")
+
+## Import the dataset
+inputMD <- readSpacerangerMD(spatialDir, res = "low") #read-in MetaData
+inputD <- readSpacerangerD(countsDir) #read-in gene expression Data
+```
+
+#### 3.2 Generate an enveloped Voronoi Tessellation for the whole capture area
+As *capture area* we refer to the total number of spots that are on the slide
+
+```{r voronoi-tessellation}
+## Select spots in both bins (Sections) 0 and 1
+spot_position <- inputMD %>% 
+    select(c("Barcode", "pixel_x", "pixel_y", "Section"))
+head(spot_position, 5)
+
+## Convert spots to centroids
+centroids <- spot_position %>% 
+  st_as_sf(coords = c("pixel_x", "pixel_y"), 
+           remove = FALSE)
+head(centroids, 5)
+
+## Combine the points into a multipoint geometry:
+cntd_union <- st_union(centroids)
+head(cntd_union)
+
+## Use the union of points to generate a voronoi object
+voronoi <- st_voronoi(cntd_union, bOnlyEdges = TRUE)
+head(voronoi)
+
+## Create an enveloped voronoi tessellation around the tissue
+voronoi_env <- st_intersection(st_cast(voronoi), st_convex_hull(cntd_union))
+head(voronoi_env)
+```
+
+**Plot and save the Voronoi tessellation**
+```{r plot voronoi-tessellation, echo = FALSE, fig.height = 11, fig.width = 11}
+## plot the voronoi tessellation
+ggplot() +
+    geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
+    geom_sf(data = centroids, aes(colour = as.factor(Section)), size = 1.2) + 
+    # Add titles and visually format the plot:
+    labs(title = paste("Voronoi tessellation"),
+       subtitle = ,
+       colour = "Spot\nPosition") + 
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") +
+    scale_colour_manual(values = c("0" = "#EEA47FFF", "1" = "#00539CFF"),
+                          labels = c("off-tissue", "on-tissue")) +
+    theme(axis.title = element_text(size = rel(2)),
+        axis.line.y.left = element_line(colour = "black"),
+        axis.line.x.bottom = element_line(colour = "black"),
+        axis.text = element_text(colour = "black", size = rel(2)),
+        axis.ticks.length.y.left = unit(.15, "cm"),
+        axis.ticks.length.x.bottom = unit(.15, "cm"),
+        plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
+        plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
+        plot.margin = unit(c(0.5,1,0.5,1), "cm"),
+        legend.title = element_text(colour = "black", size = rel(1.5)),
+        legend.text = element_text(colour = "black", size = rel(1.2)),
+        panel.background = element_rect(fill = "white"))
+
+
+ggsave(file.path(graphDir, "voronoi_tessellation.pdf"),
+       width = grDevices::dev.size(units = "px")[1]/96,
+       height = grDevices::dev.size(units = "px")[2]/96,
+       units = "in",
+       dpi = 400)
+```
+
+#### 3.3 Polygonise the tessellation only for the bin_1 spots 
+As *bin_1* spots we refer to the on-tissue spots.
+
+```{r polygonise}
+## Generate the POLYGONS from the MULTILINESTRING for bin_1 only and attach the  
+##  barcode names
+polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
+    st_cast() %>% # convert GEOMETRYCOLLECTION to multiple POLYGONS
+    st_sf() %>%  # convert sfc object to sf for st_join afterwards
+    st_join(., 
+            centroids[centroids$Section == 1,],
+            join = st_contains,
+            left = FALSE) %>% # Join the centroids with the POLYGONS
+    mutate(Barcode_rn = Barcode) %>% # duplicate the barcode column
+    column_to_rownames("Barcode_rn") %>% # move duplicate column to row names
+    st_sf() # convert back to sf (mutate makes it a df)
+```
+
+#### 3.4 Find neighbours based on adjacency 
+```{r get neighbours}
+## Create contiguity neighbours
+neighbours <- poly2nb(polygons, snap = 0)
+names(neighbours) = attr(neighbours, "region.id") # add names to the sub-lists
+```
+
+#### 3.5 Make one data frame to contain all the information
+```{r save all in one data.frame}
+## Add number of neighbours for each polygon back to the polygons object
+polygons$nb_count <- card(neighbours)
+
+## Add the neighbour (nb) IDs as a nested df in the polygons object
+nb_IDs <- neighbours %>%
+    nb2lines(., coords = polygons$geometry) %>% #get nb connecting lines 
+    as("sf") %>% #convert to sf
+    st_drop_geometry() %>% #drop geometry column
+    select(i_ID, j_ID) %>% #select only nb ID columns
+    rename(nb_IDs = j_ID) %>% #rename the neighbours ID column
+    group_by(i_ID) %>% #group by spot
+    nest() #nest the groupings
+
+polygons <- right_join(polygons, nb_IDs, by = c("Barcode" = "i_ID")) %>%
+    rename(nb_IDs = data, geom_pol = geometry)
+
+
+## Update the polygon object to keep the centroid geometries as well
+polygons <- left_join(as.data.frame(polygons), as.data.frame(centroids), 
+                      by = c("Barcode" = "Barcode"), suffix = c("", ".y")) %>%
+    select(!ends_with(".y")) %>% 
+    rename(geom_cntd = geometry) %>% 
+    st_sf(sf_column_name = "geom_pol")
+
+```
+
+**Plot the polygons**
+```{r plot polygons and neighbours, echo = FALSE, fig.height = 11, fig.width = 11}
+## Plot polygons graph
+ggplot() +
+    geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
+    # Add titles and visually format the plot:
+    scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
+                                  "#FDAC53", "#F7CAC9", "#6B5B95")) +
+    labs(title = paste("Bin_1 polygons"),
+         subtitle = "",
+         colour = "") + 
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") + 
+    theme(axis.title = element_text(size = rel(2)),
+          axis.line.y.left = element_line(colour = "black"),
+          axis.line.x.bottom = element_line(colour = "black"),
+          axis.text = element_text(colour = "black", size = rel(2)),
+          axis.ticks.length.y.left = unit(.15, "cm"),
+          axis.ticks.length.x.bottom = unit(.15, "cm"),
+          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
+          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
+          plot.margin = unit(c(2,3,2,3), "cm"),
+          legend.title = element_text(colour = "black", size = rel(2)),
+          legend.text = element_text(colour = "black", size = rel(1.7)),
+          panel.background = element_rect(fill = "white"))
+
+ggsave("voronoi_polygons_only.pdf",
+       width = grDevices::dev.size(units = "px")[1]/96,
+       height = grDevices::dev.size(units = "px")[2]/96,
+       units = "in",
+       dpi = 400)
+
+## Plot neighbour relations
+ggplot() +
+    geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
+    geom_sf(data = as(nb2lines(neighbours, coords = polygons$geom_cntd), "sf"), 
+            colour = "black") + 
+    geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
+    # Add titles and visually format the plot:
+    scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
+                                  "#FDAC53", "#F7CAC9", "#6B5B95")) +
+    labs(title = paste("Contiguity neighbours"),
+         subtitle = "",
+         colour = "Neighbours\ncount") + 
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") + 
+    theme(axis.title = element_text(size = rel(2)),
+          axis.line.y.left = element_line(colour = "black"),
+          axis.line.x.bottom = element_line(colour = "black"),
+          axis.text = element_text(colour = "black", size = rel(2)),
+          axis.ticks.length.y.left = unit(.15, "cm"),
+          axis.ticks.length.x.bottom = unit(.15, "cm"),
+          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
+          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
+          plot.margin = unit(c(2,3,2,3), "cm"),
+          legend.title = element_text(colour = "black", size = rel(2)),
+          legend.text = element_text(colour = "black", size = rel(1.7)),
+          panel.background = element_rect(fill = "white"))
+
+ggsave("neighbours_graph.pdf",
+       width = grDevices::dev.size(units = "px")[1]/96,
+       height = grDevices::dev.size(units = "px")[2]/96,
+       units = "in",
+       dpi = 400)
+```
+
+#### 3.5 Calculate neighbour weights
+```{r calculate weights}
+## Calculate neighbour weights with a distance decay function
+neighbours_wght <- nb2listwdist(neighbours, polygons$geom_cntd,
+                                type = "idw", style = "raw", alpha = 1)
+head(neighbours_wght, 5)
+```
