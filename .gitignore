@@ -2,4 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-STExplorer.RData
+.DS_Store
+#STExplorer.RData

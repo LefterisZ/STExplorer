@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load-import pkg, eval=TRUE, message=FALSE}
 ## 1 Bioconductor ----
 pkgBio <- c("Spaniel", "scater", 
-            "batchelor", "scran")
+            "batchelor", "scran", "DESeq2")
 
 if (!require("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -62,17 +62,16 @@ pkg.check <- lapply(
   FUN <- function(x) {
     pkg.name <- sub(".*/", "", x)
     if (!require(pkg.name, character.only = TRUE)) {
-      devtools::install_git(paste0("https://github.com/", x))
+      devtools::install_git(paste0("https://github.com/", x),
+                            force = TRUE)
       library(pkg.name, character.only = TRUE)
     }
   }
 )
 
 ## 4 source scripts ----
-source("./R/make_bb_polygon.R")
 source("./R/sf_coord_as_df.R")
 source("./R/sfc_coord_as_df.R")
-source("./R/spot_diameter.R")
 source("./R/readSpacerangerMD.R")
 source("./R/readSpacerangerD.R")
 
@@ -83,7 +82,7 @@ source("./R/readSpacerangerD.R")
 
 ```{r make-folder}
 ## Set file paths
-projDir <- file.path(getwd(), "data")
+#projDir <- file.path(getwd(), "data")
 inputDir <- file.path(projDir, "spaceranger_outs/")
 outputDir <- file.path(projDir, "rObjects/")
 csvDir <- file.path(projDir, "csvFiles/")
@@ -106,10 +105,7 @@ dirCheck <- lapply(
 
 ```
 
-### 3. Find neighbours
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
-
-#### 3.1 Import the MetaData and the Data to be used
+### 3 Import the MetaData and the Data to be used
 ```{r import-data}
 ## set the file paths to spaceranger's spatial and gene expression folders
 sampleDir <- "Olfactory_Bulb/Olfactory_Bulb_A1_Results"
@@ -121,7 +117,11 @@ inputMD <- readSpacerangerMD(spatialDir, res = "low") #read-in MetaData
 inputD <- readSpacerangerD(countsDir) #read-in gene expression Data
 ```
 
-#### 3.2 Generate an enveloped Voronoi Tessellation for the whole capture area
+### 4. Find neighbours
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+
+
+#### 4.2 Generate an enveloped Voronoi Tessellation for the whole capture area
 As *capture area* we refer to the total number of spots that are on the slide
 
 ```{r voronoi-tessellation}
@@ -184,7 +184,7 @@ ggsave(file.path(graphDir, "voronoi_tessellation.pdf"),
        dpi = 400)
 ```
 
-#### 3.3 Polygonise the tessellation only for the bin_1 spots 
+#### 4.3 Polygonise the tessellation only for the bin_1 spots 
 As *bin_1* spots we refer to the on-tissue spots.
 
 ```{r polygonise}
@@ -202,14 +202,14 @@ polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
     st_sf() # convert back to sf (mutate makes it a df)
 ```
 
-#### 3.4 Find neighbours based on adjacency 
+#### 4.4 Find neighbours based on adjacency 
 ```{r get neighbours}
 ## Create contiguity neighbours
 neighbours <- poly2nb(polygons, snap = 0)
 names(neighbours) = attr(neighbours, "region.id") # add names to the sub-lists
 ```
 
-#### 3.5 Make one data frame to contain all the information
+#### 4.5 Make one data frame to contain all the information
 ```{r save all in one data.frame}
 ## Add number of neighbours for each polygon back to the polygons object
 polygons$nb_count <- card(neighbours)
@@ -303,10 +303,29 @@ ggsave("neighbours_graph.pdf",
        dpi = 400)
 ```
 
-#### 3.5 Calculate neighbour weights
+#### 4.5 Calculate neighbour weights
 ```{r calculate weights}
 ## Calculate neighbour weights with a distance decay function
 neighbours_wght <- nb2listwdist(neighbours, polygons$geom_cntd,
                                 type = "idw", style = "raw", alpha = 1)
-head(neighbours_wght, 5)
+head(neighbours_wght$weights, 5)
+```
+
+### 5. Normalise gene counts
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+
+```{r normalise counts}
+## Prepare for gene expression normalisation using DESeq2
+spotName <- colnames(inputD)
+spotTable <- data.frame(spotName = spotName)
+
+dds <- DESeqDataSetFromMatrix(countData = inputD,
+                              colData = spotTable,
+                              design = ~spotName)
+
+dds = estimateSizeFactors(dds) # Estimate size factors
+head(sizeFactors(dds), 10) # Print the first 10 size factors
+
+counts = counts(dds, normalized = TRUE) # export normalised counts
+head(counts, c(10,5)) # Print the first 10 gene counts
 ```

@@ -157,6 +157,19 @@ neighbours_wght <- nb2listwdist(neighbours, polygons$geom_cntd,
                                 type = "idw", style = "raw", alpha = 1)
 
 ## Import gene counts
+inputD <- readSpacerangerD(countsDir)
+
+## Prepare for gene expression normalisation using DESeq2
+spotName <- colnames(inputD)
+spotTable <- data.frame(spotName = spotName)
+
+dds <- DESeqDataSetFromMatrix(countData = inputD,
+                              colData = spotTable,
+                              design = ~spotName)
+
+dds = estimateSizeFactors(dds) # Estimate size factors
+
+counts = counts(dds, normalized = TRUE) # export normalised counts
 
 
 #---------------------TEST STUF...------------------------------#

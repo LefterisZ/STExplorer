@@ -8,9 +8,10 @@ inputDir <- file.path(projDir, "spaceranger_outs")
 outputDir <- file.path(projDir, "rObjects")
 csvDir <- file.path(projDir, "csvFiles")
 graphDir <- file.path(projDir, "graphics_out")
+countsDir <- file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results/filtered_feature_bc_matrix")
 
 ## Check if inputDir/ outputDir/ csvDir exist and create them if not.
-dirs <- c(inputDir, outputDir, csvDir, graphDir)
+dirs <- c(inputDir, outputDir, csvDir, graphDir, countsDir)
 
 dirCheck <- lapply(
     dirs,

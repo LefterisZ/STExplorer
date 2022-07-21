@@ -3,7 +3,7 @@
 #----------------------------------------------------#
 ## 1 Bioconductor ----
 pkgBio <- c("Spaniel", "scater", 
-            "batchelor", "scran")
+            "batchelor", "scran", "DESeq2")
 
 if (!require("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -51,16 +51,15 @@ pkg.check <- lapply(
   FUN <- function(x) {
     pkg.name <- sub(".*/", "", x)
     if (!require(pkg.name, character.only = TRUE)) {
-      devtools::install_git(paste0("https://github.com/", x))
+      devtools::install_git(paste0("https://github.com/", x),
+                            force = TRUE)
       library(pkg.name, character.only = TRUE)
     }
   }
 )
 
 ## 4 source scripts ----
-source("./R/make_bb_polygon.R")
 source("./R/sf_coord_as_df.R")
 source("./R/sfc_coord_as_df.R")
-source("./R/spot_diameter.R")
 source("./R/readSpacerangerMD.R")
 source("./R/readSpacerangerD.R")
