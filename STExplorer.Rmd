@@ -36,7 +36,7 @@ pkgCRAN <- c("Seurat", "cowplot",
              "RColorBrewer",
              "harmony", "dplyr", 
              "spdep", "sf", "jsonlite",
-             "tidyverse")
+             "tidyverse", "GWmodel")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
@@ -74,6 +74,7 @@ source("./R/sf_coord_as_df.R")
 source("./R/sfc_coord_as_df.R")
 source("./R/readSpacerangerMD.R")
 source("./R/readSpacerangerD.R")
+source("./R/spot_diameter.R")
 
 ```
 
@@ -318,6 +319,9 @@ head(neighbours_wght$weights, 5)
 ## Prepare for gene expression normalisation using DESeq2
 spotName <- colnames(inputD)
 spotTable <- data.frame(spotName = spotName)
+
+#filter out genes with less than 10 counts total in all spots
+inputD_filt <- inputD[!rowSums(inputD) < 10,]
 
 dds <- DESeqDataSetFromMatrix(countData = inputD,
                               colData = spotTable,

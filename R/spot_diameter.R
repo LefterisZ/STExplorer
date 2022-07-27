@@ -9,7 +9,8 @@
 #' @param sDir the path to the folder where the \code{scalefactors_json.json} is 
 #' placed. The value should be an object generated using the \{base} function 
 #' \code{file.path()}.
-#' @param scale_file a \code{string} with the scale factors file name.
+#' @param scale_file a \code{string} with the scale factors file name. Defaults
+#' to the default scale factors name from SpaceRnager Output
 #' @param res is the resolution you used to calculate the pixel XY coordinates 
 #' for each spot. It can take as values either \code{"lowres"} or \code{"hires"}
 #' but defaults to \code{"lowres"}.
@@ -17,11 +18,11 @@
 #' @export
  
 
-spot_diameter <- function(sDir, scale_file, res = "lowres") {
-    
+spot_diameter <- function(sDir, scale_file = "scalefactors_json.json", 
+                          res = "lowres") {
     ## import scale factors
     scale_f <- jsonlite::fromJSON(txt = file.path(sDir, 
-                                                  "scalefactors_json.json"))
+                                                  scale_file))
     
     ## calculate spot diameter
     if (res == "lowres") {

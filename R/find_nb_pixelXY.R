@@ -10,41 +10,42 @@ library(ggplot2)
 
 # non-package functions needed
 source("./R/spot_diameter.R")
-source("./R/make_bb_polygon.R")
+source("./R/sf_coord_as_df.R")
+source("./R/sfc_coord_as_df.R")
+source("./R/readSpacerangerMD.R")
 source("./R/readSpacerangerD.R")
-source("./R/get_nb_IDs.R")
 
-## set the file paths to spaceranger's spatial and gene expression folders
+## set the file paths to spaceranger's spatial and gene expression folders ----
 sampleDir <- "Olfactory_Bulb/Olfactory_Bulb_A1_Results"
 spatialDir <- file.path(inputDir, sampleDir, "spatial")
 countsDir <- file.path(inputDir, sampleDir, "filtered_feature_bc_matrix")
 
-## Import the dataset
+## Import the dataset ----
 inputMD <- readSpacerangerMD(spatialDir, res = "low") #read-in MetaData
 inputD <- readSpacerangerD(countsDir) #read-in gene expression Data
 
-## Select spots in both bins (Sections) 0 and 1
+## Select spots in both bins (Sections) 0 and 1 ----
 spot_position <- inputMD %>% 
     select(c("Barcode", "pixel_x", "pixel_y", "Section"))
 
-## Convert spots to centroids
+## Convert spots to centroids ----
 centroids <- spot_position %>% 
   st_as_sf(coords = c("pixel_x", "pixel_y"), 
            remove = FALSE)
 
-## Combine the points into a multipoint geometry:
+## Combine the points into a multipoint geometry: ----
 cntd_union <- st_union(centroids)
 head(cntd_union)
 
-## Use the union of points to generate a voronoi object
+## Use the union of points to generate a voronoi object ----
 voronoi <- st_voronoi(cntd_union, bOnlyEdges = TRUE)
 head(voronoi)
 
-## Create an enveloped voronoi tessellation around the tissue
+## Create an enveloped voronoi tessellation around the tissue ----
 voronoi_env <- st_intersection(st_cast(voronoi), st_convex_hull(cntd_union))
 head(voronoi_env)
 
-## plot the voronoi tessellation
+## plot the voronoi tessellation ----
 ggplot() +
     geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
     geom_sf(data = centroids, aes(colour = as.factor(Section)), size = 1.2) + 
@@ -76,7 +77,7 @@ ggsave(file.path(graphDir, "voronoi_tessellation.pdf"),
        units = "in",
        dpi = 400)
 
-## Generate the POLYGONS from the MULTILINESTRING for bin_1 only and attach the  
+## Generate the POLYGONS from the MULTILINESTRING for bin_1 only and attach the ----  
 ##  barcode names
 polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
     st_cast() %>% # convert GEOMETRYCOLLECTION to multiple POLYGONS
@@ -89,14 +90,14 @@ polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
     column_to_rownames("Barcode_rn") %>% # move duplicate column to row names
     st_sf() # convert back to sf (mutate makes it a df)
 
-## Create contiguity neighbours
+## Create contiguity neighbours ----
 neighbours <- poly2nb(polygons, snap = 0)
 names(neighbours) = attr(neighbours, "region.id") # add names to the sub-lists
 
-## Add number of neighbours for each polygon back to the polygons object
+## Add number of neighbours for each polygon back to the polygons object ----
 polygons$nb_count <- card(neighbours)
 
-## Add the neighbour (nb) IDs as a nested df in the polygons object
+## Add the neighbour (nb) IDs as a nested df in the polygons object ----
 nb_IDs <- neighbours %>%
     nb2lines(., coords = polygons$geometry) %>% #get nb connecting lines 
     as("sf") %>% #convert to sf
@@ -109,7 +110,7 @@ nb_IDs <- neighbours %>%
 polygons <- right_join(polygons, nb_IDs, by = c("Barcode" = "i_ID")) %>%
     rename(nb_IDs = data, geom_pol = geometry)
 
-## Update the polygon object to keep the centroid geometries as well
+## Update the polygon object to keep the centroid geometries as well ----
 polygons <- left_join(as.data.frame(polygons), as.data.frame(centroids), 
                       by = c("Barcode" = "Barcode"), suffix = c("", ".y")) %>%
     select(!ends_with(".y")) %>% 
@@ -117,14 +118,15 @@ polygons <- left_join(as.data.frame(polygons), as.data.frame(centroids),
     st_sf(sf_column_name = "geom_pol")
 
 
-## Get a neighbours object for ggplot2 plotting
+## Get a neighbours object for ggplot2 plotting ----
 nb_sf <- as(nb2lines(neighbours, coords = polygons$geom_cntd), "sf")
 
-## Plot neighbours graph
+## Plot neighbours graph ----
 ggplot() +
     geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
     #geom_sf(data = nb_sf, colour = "black") + 
     #geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
+    geom_circle(data = data_circle, aes(x0 = x0, y0 = y0, r = r)) +
     # Add titles and visually format the plot:
     scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
                                   "#FDAC53", "#F7CAC9", "#6B5B95")) +
@@ -152,18 +154,21 @@ ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
        units = "in",
        dpi = 400)
 
-## Calculate neighbour weights with a distance decay function
+## Calculate neighbour weights with a distance decay function ----
 neighbours_wght <- nb2listwdist(neighbours, polygons$geom_cntd,
                                 type = "idw", style = "raw", alpha = 1)
 
-## Import gene counts
+## Import gene counts ----
 inputD <- readSpacerangerD(countsDir)
 
-## Prepare for gene expression normalisation using DESeq2
+## Prepare for gene expression normalisation using DESeq2 ----
 spotName <- colnames(inputD)
 spotTable <- data.frame(spotName = spotName)
 
-dds <- DESeqDataSetFromMatrix(countData = inputD,
+#filter out genes with less than 10 counts total in all spots
+inputD_filt <- inputD[!rowSums(inputD) < 10,]
+
+dds <- DESeqDataSetFromMatrix(countData = inputD_filt,
                               colData = spotTable,
                               design = ~spotName)
 
@@ -171,6 +176,24 @@ dds = estimateSizeFactors(dds) # Estimate size factors
 
 counts = counts(dds, normalized = TRUE) # export normalised counts
 
+## Prepare for Geographically Weighted PCA (GWPCA) ----
+# Transform counts to vst
+vst <- varianceStabilizingTransformation(dds)
+vst_df <- as.data.frame(t(assay(vst))) # transpose and transform to df
+
+# Get the coordinates
+coords <- polygons[, c("Barcode", "pixel_x", "pixel_y")] %>%
+    st_drop_geometry() %>% 
+    column_to_rownames(var = "Barcode")
+
+# Get the data into a SpatialPointsDataFrame object
+inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
+
+# Run GWPCA
+pca_gw <- gwpca(inputPCAgw, 
+                vars = colnames(inputPCAgw@data), 
+                bw = 6*spot_diameter(spatialDir),
+                k = ncol(inputPCAgw))
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#
