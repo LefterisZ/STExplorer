@@ -4,3 +4,6 @@
 .Ruserdata
 .DS_Store
 STExplorer.RData
+fgwc.R
+gwpca.R
+visualize.R

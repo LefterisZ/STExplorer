@@ -7,9 +7,9 @@
 sf_coord_as_df <- function(input_sf) {
     
     ## convert to data.frame (make it a separate function)
-    df <- input %>% 
+    df <- input_sf %>% 
         st_coordinates() %>% 
-        as.data.frame(input) %>%
+        as.data.frame(input_sf) %>%
         select(c("X", "Y"))
     
     ## Return

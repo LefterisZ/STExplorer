@@ -189,11 +189,41 @@ coords <- polygons[, c("Barcode", "pixel_x", "pixel_y")] %>%
 # Get the data into a SpatialPointsDataFrame object
 inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
 
-# Run GWPCA
+# Identify the most variable genes equal to the number of spots.
+# gwpca uses princomp to run the PCAs and this does not accept the number of
+# variables (genes) being more than the number of samples (spots).
+row_vars <- rowVars(assay(dds))
+select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
+inputPCAgw <- inputPCAgw[select]
+vars <- colnames(inputPCAgw@data)
+bw <- 6*spot_diameter(spatialDir)
+k <- 20
+
+## Run GWPCA ----
 pca_gw <- gwpca(inputPCAgw, 
-                vars = colnames(inputPCAgw@data), 
-                bw = 6*spot_diameter(spatialDir),
-                k = ncol(inputPCAgw))
+                vars = vars, 
+                bw = bw,
+                k = k,
+                kernel = "gaussian")
+
+## Prepare for Fuzzy Geographically Weighted Clustering (FGWC) ----
+# Calculate the weighted distance matrix
+dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw), 
+                   rp.locat = coordinates(inputPCAgw))
+
+# Generate a population matrix
+pop <- as.data.frame(rep(1, nrow(vst_df)))
+
+## Run FGWC ----
+fgwc <- fgwc(X = vst_df, population = pop, distance = dist.Mat,
+             K = 10, 
+             m = 2, 
+             beta = 0.5, 
+             a = 1, 
+             b = 1,
+             max.iteration = 100, 
+             threshold = 10^-5, 
+             RandomNumber = 0)
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#
