@@ -4,3 +4,7 @@
 .Ruserdata
 .DS_Store
 STExplorer.RData
+ssh_to_git_from_Rserver.R
+gwpca.R
+gwpca_mod.R
+gwpca.cv.contrib.R

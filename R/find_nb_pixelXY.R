@@ -7,6 +7,8 @@ library(spdep)
 library(sf)
 library(jsonlite)
 library(ggplot2)
+library(naspaclust)
+library(rlist)
 
 # non-package functions needed
 source("./R/spot_diameter.R")
@@ -189,11 +191,107 @@ coords <- polygons[, c("Barcode", "pixel_x", "pixel_y")] %>%
 # Get the data into a SpatialPointsDataFrame object
 inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
 
-# Run GWPCA
+# Identify the most variable genes equal to the number of spots.
+# gwpca uses princomp to run the PCAs and this does not accept the number of
+# variables (genes) being more than the number of samples (spots).
+row_vars <- rowVars(assay(vst))
+select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
+inputPCAgw <- inputPCAgw[select]
+vars <- colnames(inputPCAgw@data)
+bw <- 6*spot_diameter(spatialDir)
+k <- 20
+
+## Run GWPCA ----
 pca_gw <- gwpca(inputPCAgw, 
-                vars = colnames(inputPCAgw@data), 
-                bw = 6*spot_diameter(spatialDir),
-                k = ncol(inputPCAgw))
+                vars = vars, 
+                bw = bw,
+                k = k,
+                kernel = "gaussian")
+
+#### RUN MULTIPLE GWPCAs ####
+#function to generate a parameters combo df
+param.combo <- function(...){
+    data <- expand.grid(..., stringsAsFactors = FALSE)
+    data$kernl <- substring(data$kernel, 1, 3)
+    data$obj <- paste0("pca_gw.", data$var, ".", data$k, ".", data$kernl)
+    data$kernl <-NULL
+    print(head(data, 3))
+    
+    return(data)
+}
+
+# function to run gwpca
+gwpca.param.combo <- function(var.no, k, kernel){
+    inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
+    print(var.no)
+    select <- order(row_vars, decreasing = TRUE)[seq_len(var.no)]
+    inputPCAgw <- inputPCAgw[select]
+    vars <- colnames(inputPCAgw@data)
+    bw <- 6*spot_diameter(spatialDir)
+    k <- k
+    obj <- gwpca(inputPCAgw, 
+                 vars = vars, 
+                 bw = bw,
+                 k = k,
+                 kernel = kernel)
+    
+    return(obj)
+}
+
+# function that wraps gwpca.param.combo and outputs objects in a list
+gwpca.combo <- function(var.no, k, kernel, list) {
+    list <- list.append(list, gwpca.param.combo(var.no, k, kernel))
+    return(list)
+}
+
+# function to extract parameters
+get.params <- function(gwpca.out, obj){
+    obj <- data.frame("vars" = length(gwpca.out$GW.arguments$vars),
+                      "spots" = gwpca.out$GW.arguments$dp.n,
+                      "PCs" = gwpca.out$GW.arguments$k,
+                      "kernel" = gwpca.out$GW.arguments$kernel,
+                      "minutes" = gwpca.out$timings$stop - gwpca.out$timings$start)
+    
+    return(obj)
+}
+
+
+data.in <- param.combo(var.no = c(500, 750, 1000),
+                       k = c(20, 50, 100),
+                       kernel = c("gaussian", "exponential"))
+
+pca_gw.list <- list()
+
+pca_gw.list <- with(data.in,
+                    mapply(gwpca.combo, 
+                           var.no, k, kernel, 
+                           MoreArgs = list(list = pca_gw.list)))
+
+pca_gw.list <- setNames(pca_gw.list, data.in$obj)
+
+
+## Prepare for Fuzzy Geographically Weighted Clustering (FGWC) ----
+# Calculate the weighted distance matrix
+dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw), 
+                   rp.locat = coordinates(inputPCAgw))
+
+# Generate a population matrix
+pop <- as.data.frame(rep(1, nrow(vst_df)))
+
+# Select only the top variable genes to drive the clustering
+inputFGWC <- vst_df[select]
+
+# Set FGWC parameters
+fgwc_param <- c(kind = 'u', ncluster = 10, m = 1.2, distance = 'euclidean', 
+                order = 2, alpha = 0.5, a = 1, b = 1, max.iter = 500, 
+                error = 1e-5, randomN = 1)
+
+## Run FGWC ----
+fgwc <- naspaclust::fgwc(data = inputFGWC, 
+                         pop = pop, 
+                         distmat = dist.Mat,
+                         algorithm = "classic",
+                         fgwc_param = fgwc_param)
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#
