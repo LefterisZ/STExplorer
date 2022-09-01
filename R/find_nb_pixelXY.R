@@ -194,7 +194,11 @@ inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
 # Identify the most variable genes equal to the number of spots.
 # gwpca uses princomp to run the PCAs and this does not accept the number of
 # variables (genes) being more than the number of samples (spots).
+<<<<<<< HEAD
 row_vars <- rowVars(assay(vst))
+=======
+row_vars <- rowVars(assay(dds))
+>>>>>>> 2e16f269c6257ff18ea51a90ea8fc150e3d8330f
 select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
 inputPCAgw <- inputPCAgw[select]
 vars <- colnames(inputPCAgw@data)
@@ -208,6 +212,7 @@ pca_gw <- gwpca(inputPCAgw,
                 k = k,
                 kernel = "gaussian")
 
+<<<<<<< HEAD
 #### RUN MULTIPLE GWPCAs ####
 #function to generate a parameters combo df
 param.combo <- function(...){
@@ -270,6 +275,8 @@ pca_gw.list <- with(data.in,
 pca_gw.list <- setNames(pca_gw.list, data.in$obj)
 
 
+=======
+>>>>>>> 2e16f269c6257ff18ea51a90ea8fc150e3d8330f
 ## Prepare for Fuzzy Geographically Weighted Clustering (FGWC) ----
 # Calculate the weighted distance matrix
 dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw), 
@@ -278,6 +285,7 @@ dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw),
 # Generate a population matrix
 pop <- as.data.frame(rep(1, nrow(vst_df)))
 
+<<<<<<< HEAD
 # Select only the top variable genes to drive the clustering
 inputFGWC <- vst_df[select]
 
@@ -292,6 +300,18 @@ fgwc <- naspaclust::fgwc(data = inputFGWC,
                          distmat = dist.Mat,
                          algorithm = "classic",
                          fgwc_param = fgwc_param)
+=======
+## Run FGWC ----
+fgwc <- fgwc(X = vst_df, population = pop, distance = dist.Mat,
+             K = 10, 
+             m = 2, 
+             beta = 0.5, 
+             a = 1, 
+             b = 1,
+             max.iteration = 100, 
+             threshold = 10^-5, 
+             RandomNumber = 0)
+>>>>>>> 2e16f269c6257ff18ea51a90ea8fc150e3d8330f
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#

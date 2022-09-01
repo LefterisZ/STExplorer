@@ -4,7 +4,13 @@
 .Ruserdata
 .DS_Store
 STExplorer.RData
+<<<<<<< HEAD
 ssh_to_git_from_Rserver.R
 gwpca.R
 gwpca_mod.R
 gwpca.cv.contrib.R
+=======
+fgwc.R
+gwpca.R
+visualize.R
+>>>>>>> 2e16f269c6257ff18ea51a90ea8fc150e3d8330f
