@@ -194,11 +194,7 @@ inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
 # Identify the most variable genes equal to the number of spots.
 # gwpca uses princomp to run the PCAs and this does not accept the number of
 # variables (genes) being more than the number of samples (spots).
-<<<<<<< HEAD
 row_vars <- rowVars(assay(vst))
-=======
-row_vars <- rowVars(assay(dds))
->>>>>>> 2e16f269c6257ff18ea51a90ea8fc150e3d8330f
 select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
 inputPCAgw <- inputPCAgw[select]
 vars <- colnames(inputPCAgw@data)
@@ -212,7 +208,7 @@ pca_gw <- gwpca(inputPCAgw,
                 k = k,
                 kernel = "gaussian")
 
-<<<<<<< HEAD
+
 #### RUN MULTIPLE GWPCAs ####
 #function to generate a parameters combo df
 param.combo <- function(...){
@@ -249,13 +245,15 @@ gwpca.combo <- function(var.no, k, kernel, list) {
     return(list)
 }
 
-# function to extract parameters
+# function to extract parameters with lapply
 get.params <- function(gwpca.out, obj){
     obj <- data.frame("vars" = length(gwpca.out$GW.arguments$vars),
                       "spots" = gwpca.out$GW.arguments$dp.n,
                       "PCs" = gwpca.out$GW.arguments$k,
                       "kernel" = gwpca.out$GW.arguments$kernel,
-                      "minutes" = gwpca.out$timings$stop - gwpca.out$timings$start)
+                      "minutes" = difftime(gwpca.out$timings$stop, 
+                                           gwpca.out$timings$start,
+                                           units = "mins"))
     
     return(obj)
 }
@@ -274,9 +272,12 @@ pca_gw.list <- with(data.in,
 
 pca_gw.list <- setNames(pca_gw.list, data.in$obj)
 
+pca_params <- cbind(sapply(pca_gw.list, get.params)) %>%
+    t() %>%
+    as.data.frame() %>%
+    mutate(minutes = round(as.numeric(minutes), 2))
 
-=======
->>>>>>> 2e16f269c6257ff18ea51a90ea8fc150e3d8330f
+
 ## Prepare for Fuzzy Geographically Weighted Clustering (FGWC) ----
 # Calculate the weighted distance matrix
 dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw), 
@@ -285,7 +286,7 @@ dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw),
 # Generate a population matrix
 pop <- as.data.frame(rep(1, nrow(vst_df)))
 
-<<<<<<< HEAD
+
 # Select only the top variable genes to drive the clustering
 inputFGWC <- vst_df[select]
 
@@ -300,7 +301,7 @@ fgwc <- naspaclust::fgwc(data = inputFGWC,
                          distmat = dist.Mat,
                          algorithm = "classic",
                          fgwc_param = fgwc_param)
-=======
+
 ## Run FGWC ----
 fgwc <- fgwc(X = vst_df, population = pop, distance = dist.Mat,
              K = 10, 
@@ -311,7 +312,7 @@ fgwc <- fgwc(X = vst_df, population = pop, distance = dist.Mat,
              max.iteration = 100, 
              threshold = 10^-5, 
              RandomNumber = 0)
->>>>>>> 2e16f269c6257ff18ea51a90ea8fc150e3d8330f
+
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#
