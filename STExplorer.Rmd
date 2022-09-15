@@ -333,3 +333,63 @@ head(sizeFactors(dds), 10) # Print the first 10 size factors
 counts = counts(dds, normalized = TRUE) # export normalised counts
 head(counts, c(10,5)) # Print the first 10 gene counts
 ```
+
+### 6. Perform Geographically Weighted PCA (GWPCA)
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+
+#### 6.1 Data prearation and single GWPCA run
+```{r gwpca single}
+## Prepare for Geographically Weighted PCA (GWPCA)
+# Transform counts to vst
+vst <- varianceStabilizingTransformation(dds)
+vst_df <- as.data.frame(t(assay(vst))) # transpose and transform to df
+
+# Get the coordinates
+coords <- polygons[, c("Barcode", "pixel_x", "pixel_y")] %>%
+    st_drop_geometry() %>% 
+    column_to_rownames(var = "Barcode")
+
+# Get the data into a SpatialPointsDataFrame object
+inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
+
+# Identify the most variable genes equal to the number of spots.
+# gwpca uses princomp to run the PCAs and this does not accept the number of
+# variables (genes) being more than the number of samples (spots).
+row_vars <- rowVars(assay(vst))
+select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
+inputPCAgw <- inputPCAgw[select]
+vars <- colnames(inputPCAgw@data)
+bw <- 6*spot_diameter(spatialDir)
+k <- 20
+
+## Run GWPCA
+pca_gw <- gwpca(inputPCAgw, 
+                vars = vars, 
+                bw = bw,
+                k = k,
+                kernel = "gaussian")
+```
+
+#### 6.2 Data prearation and single GWPCA run
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+*The functions used can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R/side_extras/gwpca) GitHub repo*
+```{r gwpca multiple}
+#### RUN MULTIPLE GWPCAs ####
+# Generate a df with combinations of parameters
+data.in <- param.combo(var.no = c(500, 750, 1000),
+                       k = c(20, 50, 100),
+                       kernel = c("gaussian", "exponential"))
+
+# Initialise an empty list
+pca_gw.list <- list()
+
+# Run multiple GWPCAs and output them into the list
+pca_gw.list <- gwpca.combo(data.in)
+
+# Get the parameters in a table
+pca_params <- cbind(sapply(pca_gw.list, get.params)) %>%
+    t() %>%
+    as.data.frame() %>%
+    mutate(minutes = round(as.numeric(minutes), 2))
+```
+

@@ -259,11 +259,25 @@ ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
        units = "in",
        dpi = 400)
 
-local.loadings <- pca_gw.list$pca_gw.500.20.gau$loadings[,,1]
+local.loadings <- pca_gw.list$pca_gw.500.20.gau$loadings[,,2]
 lead.item <- colnames(local.loadings)[max.col(abs(local.loadings))]
 unique(lead.item)
+lead.item <- data.frame(PC2 = lead.item) %>%
+    mutate(pixel_x = polygons$pixel_x,
+           pixel_y = polygons$pixel_y)
 
+ggplot(lead.item, aes(x = pixel_x, y = pixel_y, colour = PC2)) + 
+    geom_point(size=1)+
+    xlab("X coordinates (pixels)") +
+    ylab("Y coordinates (pixels)") +
+    ggtitle("Leading Gene on PC2") +
+    my_theme
 
+ggsave(file.path(graphDir, "gwpca_.500.20.gau_leadingGene_PC2.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 ## Prepare for Fuzzy Geographically Weighted Clustering (FGWC) ----
 # Calculate the weighted distance matrix
