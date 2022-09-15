@@ -126,9 +126,9 @@ nb_sf <- as(nb2lines(neighbours, coords = polygons$geom_cntd), "sf")
 ## Plot neighbours graph ----
 ggplot() +
     geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
-    #geom_sf(data = nb_sf, colour = "black") + 
-    #geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
-    geom_circle(data = data_circle, aes(x0 = x0, y0 = y0, r = r)) +
+    geom_sf(data = nb_sf, colour = "black") + 
+    geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
+    #geom_circle(data = data_circle, aes(x0 = x0, y0 = y0, r = r)) +
     # Add titles and visually format the plot:
     scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
                                   "#FDAC53", "#F7CAC9", "#6B5B95")) +
@@ -210,72 +210,59 @@ pca_gw <- gwpca(inputPCAgw,
 
 
 #### RUN MULTIPLE GWPCAs ####
-#function to generate a parameters combo df
-param.combo <- function(...){
-    data <- expand.grid(..., stringsAsFactors = FALSE)
-    data$kernl <- substring(data$kernel, 1, 3)
-    data$obj <- paste0("pca_gw.", data$var, ".", data$k, ".", data$kernl)
-    data$kernl <-NULL
-    print(head(data, 3))
-    
-    return(data)
-}
-
-# function to run gwpca
-gwpca.param.combo <- function(var.no, k, kernel){
-    inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
-    print(var.no)
-    select <- order(row_vars, decreasing = TRUE)[seq_len(var.no)]
-    inputPCAgw <- inputPCAgw[select]
-    vars <- colnames(inputPCAgw@data)
-    bw <- 6*spot_diameter(spatialDir)
-    k <- k
-    obj <- gwpca(inputPCAgw, 
-                 vars = vars, 
-                 bw = bw,
-                 k = k,
-                 kernel = kernel)
-    
-    return(obj)
-}
-
-# function that wraps gwpca.param.combo and outputs objects in a list
-gwpca.combo <- function(var.no, k, kernel, list) {
-    list <- list.append(list, gwpca.param.combo(var.no, k, kernel))
-    return(list)
-}
-
-# function to extract parameters with lapply
-get.params <- function(gwpca.out, obj){
-    obj <- data.frame("vars" = length(gwpca.out$GW.arguments$vars),
-                      "spots" = gwpca.out$GW.arguments$dp.n,
-                      "PCs" = gwpca.out$GW.arguments$k,
-                      "kernel" = gwpca.out$GW.arguments$kernel,
-                      "minutes" = difftime(gwpca.out$timings$stop, 
-                                           gwpca.out$timings$start,
-                                           units = "mins"))
-    
-    return(obj)
-}
-
-
+# Generate a df with combinations of parameters
 data.in <- param.combo(var.no = c(500, 750, 1000),
                        k = c(20, 50, 100),
                        kernel = c("gaussian", "exponential"))
 
+# Initialise an empty list
 pca_gw.list <- list()
 
-pca_gw.list <- with(data.in,
-                    mapply(gwpca.combo, 
-                           var.no, k, kernel, 
-                           MoreArgs = list(list = pca_gw.list)))
+# Run multiple GWPCAs and output them into the list
+pca_gw.list <- gwpca.combo(data.in)
 
-pca_gw.list <- setNames(pca_gw.list, data.in$obj)
-
+# Get the parameters in a table
 pca_params <- cbind(sapply(pca_gw.list, get.params)) %>%
     t() %>%
     as.data.frame() %>%
     mutate(minutes = round(as.numeric(minutes), 2))
+
+## Plot global PCA results ----
+# PCs scree plot
+pvar <- pca_gw.list$pca_gw.500.20.gau$pca$sdev^2/sum(pca_gw.list$pca_gw.500.20.gau$pca$sdev^2)
+pvar <- data.frame(var = pvar,
+                   PCs = sprintf("PC%02d", seq(1, 500)))
+
+ggplot(pvar[1:10,], aes(x = PCs, y = var, group = 1)) + 
+    geom_point(size=3)+
+    geom_line() +
+    xlab("Principal Component") +
+    ylab("Variance Explained") +
+    ggtitle("Scree Plot") +
+    ylim(0, 1) + 
+    theme(axis.title = element_text(size = rel(2)),
+          axis.line.y.left = element_line(colour = "black"),
+          axis.line.x.bottom = element_line(colour = "black"),
+          axis.text = element_text(colour = "black", size = rel(2)),
+          axis.ticks.length.y.left = unit(.15, "cm"),
+          axis.ticks.length.x.bottom = unit(.15, "cm"),
+          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
+          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
+          plot.margin = unit(c(2,3,2,3), "cm"),
+          legend.title = element_text(colour = "black", size = rel(2)),
+          legend.text = element_text(colour = "black", size = rel(1.7)),
+          panel.background = element_rect(fill = "white"))
+
+ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+local.loadings <- pca_gw.list$pca_gw.500.20.gau$loadings[,,1]
+lead.item <- colnames(local.loadings)[max.col(abs(local.loadings))]
+unique(lead.item)
+
 
 
 ## Prepare for Fuzzy Geographically Weighted Clustering (FGWC) ----
