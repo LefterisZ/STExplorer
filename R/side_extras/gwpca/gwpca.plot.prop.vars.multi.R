@@ -20,6 +20,7 @@ gwpca.plot.prop.vars.multi <- function(data, theme){
                      outlier.colour = NA) +
         ylab("Percentage of Total Variation (PTV)") +
         xlab("") +
+        ylim(0, 100) +
         theme +
         theme(legend.position = "none")
 }

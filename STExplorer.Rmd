@@ -37,7 +37,8 @@ pkgCRAN <- c("Seurat", "cowplot",
              "harmony", "dplyr", 
              "spdep", "sf", "jsonlite",
              "tidyverse", "GWmodel",
-             "gridExtra")
+             "gridExtra", "ggbeeswarm",
+             "egg")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
