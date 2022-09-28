@@ -59,19 +59,7 @@ ggplot() +
     ylab("Y coordinates (pixels)") +
     scale_colour_manual(values = c("0" = "#EEA47FFF", "1" = "#00539CFF"),
                         labels = c("off-tissue", "on-tissue")) +
-    theme(axis.title = element_text(size = rel(2)),
-          axis.line.y.left = element_line(colour = "black"),
-          axis.line.x.bottom = element_line(colour = "black"),
-          axis.text = element_text(colour = "black", size = rel(2)),
-          axis.ticks.length.y.left = unit(.15, "cm"),
-          axis.ticks.length.x.bottom = unit(.15, "cm"),
-          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
-          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
-          plot.margin = unit(c(0.5,1,0.5,1), "cm"),
-          legend.title = element_text(colour = "black", size = rel(1.5)),
-          legend.text = element_text(colour = "black", size = rel(1.2)),
-          panel.background = element_rect(fill = "white"))
-
+    my_theme
 
 ggsave(file.path(graphDir, "voronoi_tessellation.pdf"),
        width = grDevices::dev.size(units = "in")[1],
@@ -137,18 +125,7 @@ ggplot() +
          colour = "Neighbours\ncount") + 
     xlab("X coordinates (pixels)") + 
     ylab("Y coordinates (pixels)") + 
-    theme(axis.title = element_text(size = rel(2)),
-          axis.line.y.left = element_line(colour = "black"),
-          axis.line.x.bottom = element_line(colour = "black"),
-          axis.text = element_text(colour = "black", size = rel(2)),
-          axis.ticks.length.y.left = unit(.15, "cm"),
-          axis.ticks.length.x.bottom = unit(.15, "cm"),
-          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
-          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
-          plot.margin = unit(c(2,3,2,3), "cm"),
-          legend.title = element_text(colour = "black", size = rel(2)),
-          legend.text = element_text(colour = "black", size = rel(1.7)),
-          panel.background = element_rect(fill = "white"))
+    my_theme
 
 ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
        width = grDevices::dev.size(units = "in")[1],
@@ -248,16 +225,17 @@ ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
        units = "in",
        dpi = 400)
 # Find leading items at each location
-lead.item <- gwpca.leading.G.single(pca_gw.list$pca_gw.500.20.gau, 2, "PC2") %>%
+lead.item <- gwpca.leading.G.single(pca_gw.list$pca_gw.500.20.gau, 2, "PC1") %>%
     mutate(pixel_x = polygons$pixel_x,
            pixel_y = polygons$pixel_y)
 
-ggplot(lead.item, aes(x = pixel_x, y = pixel_y, colour = PC2)) + 
+ggplot(lead.item, aes(x = pixel_x, y = pixel_y, colour = PC1)) + 
     geom_point(size = 3)+
     xlab("X coordinates (pixels)") +
     ylab("Y coordinates (pixels)") +
-    ggtitle("Leading Gene on PC2") +
-    my_theme
+    ggtitle("Leading Gene on PC1") +
+    my_theme + 
+    theme(legend.position="none")
 
 ggsave(file.path(graphDir, "gwpca_.500.20.gau_leadingGene_PC2.pdf"),
        width = grDevices::dev.size(units = "in")[1],
