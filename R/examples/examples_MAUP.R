@@ -1,4 +1,5 @@
 library(ggpubr)
+library(RColorBrewer)
 
 # Prepare data for MAUP examples
 cor.input <- vst_df
@@ -10,11 +11,18 @@ cor.input <- cor.input[select]
 cor.test(cor.input$ENSMUSG00000015090, cor.input$ENSMUSG00000052305,
          method = "spearman")
 
-ggscatter(cor.input, x = "ENSMUSG00000015090", y = colnames(cor.input[,2:11]),
+ggscatter(cor.input, x = "ENSMUSG00000015090", y = colnames(cor.input[,2:13]),
           combine = TRUE,
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "spearman",
-          xlab = "ENSMUSG00000015090")
+          xlab = "ENSMUSG00000015090",
+          ylab = "")
+
+ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 # Calculate multiple correlations and save in df
 cor.multi <- cor(cor.input, cor.input, method = "spearman")
@@ -62,8 +70,7 @@ ggplot() +
          fill = "Vertical\nzones") + 
     xlab("X coordinates (pixels)") + 
     ylab("Y coordinates (pixels)") + 
-    my_theme +
-    theme(legend.position = "right")
+    my_theme
 
 ggsave(file.path(graphDir, "MAUP_cor_zone-v.pdf"),
        width = grDevices::dev.size(units = "in")[1],
@@ -104,34 +111,38 @@ cor.input.groupedH <- cor.input %>%
     group_by(MAUP.groupsH) %>%
     select(-c("MAUP.groupsV"))
 
-genesH <- colnames(cor.input.groupedV)[1:500]
+genesH <- colnames(cor.input.groupedH)[1:500]
 
-# Get gene expression means for each zone
-maup_summarise_at <- function(data, gene){
-    summarise_at(data, vars(gene), list(gene = sum))
+# Get gene expression sums or means for each zone
+maup_summarise_at <- function(data, gene, method){
+    if (method == "mean"){
+        summarise_at(data, vars(gene), list(gene = mean))
+    } else {
+        summarise_at(data, vars(gene), list(gene = sum))
+    }
 }
 
-cor.input.sumsV <- lapply(genesV, maup_summarise_at, data = cor.input.groupedV)
-cor.input.sumsV <- reduce(cor.input.sumsV, full_join, by = "MAUP.groupsV")
-colnames(cor.input.sumsV)[2:501] <- genesV
+cor.input.meansV <- lapply(genesV, maup_summarise_at, data = cor.input.groupedV, method = "mean")
+cor.input.meansV <- reduce(cor.input.meansV, full_join, by = "MAUP.groupsV")
+colnames(cor.input.meansV)[2:501] <- genesV
 
-cor.input.sumsH <- lapply(genesH, maup_summarise_at, data = cor.input.groupedH)
-cor.input.sumsH <- reduce(cor.input.sumsH, full_join, by = "MAUP.groupsH")
-colnames(cor.input.sumsH)[2:501] <- genesH
+cor.input.meansH <- lapply(genesH, maup_summarise_at, data = cor.input.groupedH, method = "mean")
+cor.input.meansH <- reduce(cor.input.meansH, full_join, by = "MAUP.groupsH")
+colnames(cor.input.meansH)[2:501] <- genesH
 
 # Calculate correlations for the same genes as aggregated in zones
 for (i in 1:10){
-    p <- ggscatter(cor.input.sumsV, 
+    p <- ggscatter(cor.input.sumsH, 
                    x = cor.multi.highest[i, 1], 
                    y = cor.multi.highest[i, 2], 
                    add = "reg.line", conf.int = TRUE, 
                    cor.coef = TRUE, cor.method = "spearman",
-                   title = "Zones Vertical",
+                   title = "Zones Horizontal",
                    xlab = cor.multi.highest[i, 1], 
                    ylab = cor.multi.highest[i, 2],
                    ggtheme = my_theme)
     
-    ggsave(file.path(graphDir, paste0("MAUP_cor_",cor.multi.highest[i, 1], "_", cor.multi.highest[i, 2], "_zoneV.pdf")),
+    ggsave(file.path(graphDir, paste0("MAUP_cor_",cor.multi.highest[i, 1], "_", cor.multi.highest[i, 2], "_zoneH.pdf")),
            width = grDevices::dev.size(units = "in")[1],
            height = grDevices::dev.size(units = "in")[2],
            units = "in",
@@ -140,4 +151,122 @@ for (i in 1:10){
     print(p)
 }
 
+# Add spots in a grid made from the vertical and horizontal zones
+polygons <- polygons %>%
+    unite(MAUP.groups, MAUP.groupsV, MAUP.groupsH)
 
+n <- length(unique(polygons$MAUP.groups))
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+
+# Plot Grid
+ggplot() +
+    geom_sf(data = polygons$geom_pol, 
+            colour = "grey30", aes(fill = factor(polygons$MAUP.groups))) +
+    scale_fill_manual(values = sample(col_vector, 35)) +
+    labs(title = paste("MAUP Zonation Grid"),
+         subtitle = "",
+         fill = "Groups") + 
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") + 
+    my_theme
+
+ggsave(file.path(graphDir, "MAUP_cor_zone-grid.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+
+# Add zones to the correlation input df
+cor.input <- cbind(cor.input, 
+                   MAUP.groups = polygons$MAUP.groups)
+
+# Group by grid box and get a set of gene names
+cor.input.grouped <- cor.input %>% 
+    group_by(MAUP.groups) %>%
+    select(-c("MAUP.groupsH", "MAUP.groupsV"))
+
+genesG <- colnames(cor.input.grouped)[1:500]
+
+# Get gene expression sums for each grid box
+cor.input.means <- lapply(genesG, maup_summarise_at, data = cor.input.grouped)
+cor.input.means <- reduce(cor.input.means, full_join, by = "MAUP.groups")
+colnames(cor.input.means)[2:501] <- genesG
+
+# Calculate correlations for the same genes as aggregated in zones
+for (i in 1:10){
+    p <- ggscatter(cor.input.means, 
+                   x = cor.multi.highest[i, 1], 
+                   y = cor.multi.highest[i, 2], 
+                   add = "reg.line", conf.int = TRUE, 
+                   cor.coef = TRUE, cor.method = "spearman",
+                   title = "Zone Grid",
+                   xlab = cor.multi.highest[i, 1], 
+                   ylab = cor.multi.highest[i, 2],
+                   ggtheme = my_theme)
+    
+    ggsave(file.path(graphDir, paste0("MAUP_cor_",cor.multi.highest[i, 1], "_", cor.multi.highest[i, 2], "_zoneG-mean.pdf")),
+           width = grDevices::dev.size(units = "in")[1],
+           height = grDevices::dev.size(units = "in")[2],
+           units = "in",
+           dpi = 400)
+    
+    print(p)
+}
+
+ggscatter(cor.input.means, x = "ENSMUSG00000015090", y = colnames(cor.input.means[,3:14]),
+          combine = TRUE,
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "ENSMUSG00000015090",
+          ylab = "")
+ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneG.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+ggscatter(cor.input.meansV, x = "ENSMUSG00000015090", y = colnames(cor.input.meansV[,3:14]),
+          combine = TRUE,
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "ENSMUSG00000015090",
+          ylab = "")
+ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneV.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+ggscatter(cor.input.meansH, x = "ENSMUSG00000015090", y = colnames(cor.input.meansH[,3:14]),
+          combine = TRUE,
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "ENSMUSG00000015090",
+          ylab = "")
+ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneH.pdf"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+# Create manually p0, p1, p2 plots. ggarrange them for each gene as p3 and p4
+# Finally ggarrange p3 and p4.
+p0 <- ggscatter(cor.input, 
+          x = "ENSMUSG00000015090", 
+          y = c("ENSMUSG00000069917"), 
+          add = "reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method = "spearman",
+          title = "",
+          xlab = "", 
+          ylab = "ENSMUSG00000069917",
+          ggtheme = my_theme)
+
+p4 <- ggarrange(p0, p1, p2, ncol = 3)
+ggarrange(p3, p4, nrow = 2)
+
+ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneGV.tiff"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
