@@ -278,6 +278,38 @@ fgwc <- fgwc(X = vst_df, population = pop, distance = dist.Mat,
              threshold = 10^-5, 
              RandomNumber = 0)
 
+## Prepare for SA calculations ----
+counts.SA = counts(dds, normalized = TRUE) %>% # export normalised counts
+    t() %>% # transpose for downstream SA calculation
+    as.data.frame() # make it a df
+counts.SA <- counts.SA[select] # select the 500 most variable  
+
+## Run SA: Moran's I ----
+moran(x = counts.SA$ENSMUSG00000015090, 
+      listw = neighbours_wght, 
+      n = length(neighbours_wght$neighbours),
+      S0 = Szero(neighbours_wght))
+
+## Run Moran's I test with Monte Carlo permutations ---
+moran.mc(x = counts.SA$ENSMUSG00000015090, 
+         listw = neighbours_wght, 
+         nsim = 999)
+
+#### RUN Multiple Moran's ####
+moran.n <- length(neighbours_wght$neighbours)
+moran.S0 <- Szero(neighbours_wght)
+
+moran.multi <- apply(counts.SA, 2, function(x) moran(x, 
+                                                     neighbours_wght,
+                                                     moran.n,
+                                                     moran.S0))
+moran.multi.df <- moran.multi %>% 
+    reduce(bind_rows) %>% 
+    as.data.frame() # reduce list of lists to a df
+
+rownames(moran.multi.df) <- colnames(counts.SA) # give row names
+
+
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#

@@ -215,6 +215,7 @@ for (i in 1:10){
     print(p)
 }
 
+# Correlations for Grid zonation as panel
 ggscatter(cor.input.means, x = "ENSMUSG00000015090", y = colnames(cor.input.means[,3:14]),
           combine = TRUE,
           add = "reg.line", conf.int = TRUE, 
@@ -227,6 +228,7 @@ ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneG.pdf"),
        units = "in",
        dpi = 400)
 
+# Correlations for Vertical zonation as panel
 ggscatter(cor.input.meansV, x = "ENSMUSG00000015090", y = colnames(cor.input.meansV[,3:14]),
           combine = TRUE,
           add = "reg.line", conf.int = TRUE, 
@@ -239,6 +241,7 @@ ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneV.pdf"),
        units = "in",
        dpi = 400)
 
+# Correlations for Horizontal zonation as panel
 ggscatter(cor.input.meansH, x = "ENSMUSG00000015090", y = colnames(cor.input.meansH[,3:14]),
           combine = TRUE,
           add = "reg.line", conf.int = TRUE, 
@@ -250,8 +253,12 @@ ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneH.pdf"),
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
+
 # Create manually p0, p1, p2 plots. ggarrange them for each gene as p3 and p4
-# Finally ggarrange p3 and p4.
+# Finally ggarrange p3 and p4 to get 6 plots. For p3 add titles, but remove 
+# x-axis labels and add y-axis label only to the leftmost plot. For p4 remove
+# titles, add x-axis label to the middle plot and y-axis label to the leftmost.
+# Arrange with ggarrange p3 on top and p4 at the bottom.
 p0 <- ggscatter(cor.input, 
           x = "ENSMUSG00000015090", 
           y = c("ENSMUSG00000069917"), 
@@ -270,3 +277,5 @@ ggsave(file.path(graphDir, "MAUP_cor_ENSMUSG00000015090_panel_zoneGV.tiff"),
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
+
+
