@@ -61,7 +61,7 @@ ggplot() +
                         labels = c("off-tissue", "on-tissue")) +
     my_theme
 
-ggsave(file.path(graphDir, "voronoi_tessellation.pdf"),
+ggsave(file.path(graphDir, "voronoi_tessellation_no.colour.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -116,7 +116,6 @@ ggplot() +
     geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
     geom_sf(data = nb_sf, colour = "black") + 
     geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
-    #geom_circle(data = data_circle, aes(x0 = x0, y0 = y0, r = r)) +
     # Add titles and visually format the plot:
     scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
                                   "#FDAC53", "#F7CAC9", "#6B5B95")) +
@@ -127,7 +126,7 @@ ggplot() +
     ylab("Y coordinates (pixels)") + 
     my_theme
 
-ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
+ggsave(file.path(graphDir, "voronoi_tessellation_on-tissue.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -154,6 +153,9 @@ dds <- DESeqDataSetFromMatrix(countData = inputD_filt,
 dds = estimateSizeFactors(dds) # Estimate size factors
 
 counts = counts(dds, normalized = TRUE) # export normalised counts
+
+# Get spot names
+nb_names <- polygons$Barcode
 
 ## Prepare for Geographically Weighted PCA (GWPCA) ----
 # Transform counts to vst
@@ -214,30 +216,30 @@ ggplot(pvar[1:10,], aes(x = PCs, y = var, group = 1)) +
     geom_point(size=3)+
     geom_line() +
     xlab("Principal Component") +
-    ylab("Variance Explained") +
+    ylab("% Variance Explained") +
     ggtitle("Scree Plot") +
     ylim(0, 1) + 
     my_theme
 
-ggsave(file.path(graphDir, "voronoi_polygons_only.pdf"),
+ggsave(file.path(graphDir, "gwpca_globalPCA_screeplot.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
 # Find leading items at each location
-lead.item <- gwpca.leading.G.single(pca_gw.list$pca_gw.500.20.gau, 2, "PC1") %>%
+lead.item <- gwpca.leading.G.single(pca_gw.list$pca_gw.500.20.gau, 3, "PC3") %>%
     mutate(pixel_x = polygons$pixel_x,
            pixel_y = polygons$pixel_y)
 
-ggplot(lead.item, aes(x = pixel_x, y = pixel_y, colour = PC1)) + 
+ggplot(lead.item, aes(x = pixel_x, y = pixel_y, colour = PC3)) + 
     geom_point(size = 3)+
     xlab("X coordinates (pixels)") +
     ylab("Y coordinates (pixels)") +
-    ggtitle("Leading Gene on PC1") +
+    ggtitle("Leading Genes on PC3") +
     my_theme + 
     theme(legend.position="none")
 
-ggsave(file.path(graphDir, "gwpca_.500.20.gau_leadingGene_PC2.pdf"),
+ggsave(file.path(graphDir, "gwpca_.500.20.gau_leadingGene_PC3.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -249,14 +251,14 @@ dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw),
                    rp.locat = coordinates(inputPCAgw))
 
 # Generate a population matrix
-pop <- as.data.frame(rep(1, nrow(vst_df)))
-
+pop <- as.matrix(rep(1, nrow(vst_df)))
 
 # Select only the top variable genes to drive the clustering
-inputFGWC <- vst_df[select]
+inputFGWC <- vst_df[select] %>% # select 500 most variable genes
+    .[nb_names,] # Re-order rows to match the polygon object row order
 
 # Set FGWC parameters
-fgwc_param <- c(kind = 'u', ncluster = 10, m = 1.2, distance = 'euclidean', 
+fgwc_param <- c(kind = 'u', ncluster = 8, m = 1.2, distance = 'euclidean', 
                 order = 2, alpha = 0.5, a = 1, b = 1, max.iter = 500, 
                 error = 1e-5, randomN = 1)
 
@@ -267,49 +269,27 @@ fgwc <- naspaclust::fgwc(data = inputFGWC,
                          algorithm = "classic",
                          fgwc_param = fgwc_param)
 
-## Run FGWC ----
-fgwc <- fgwc(X = vst_df, population = pop, distance = dist.Mat,
-             K = 10, 
-             m = 2, 
-             beta = 0.5, 
-             a = 1, 
-             b = 1,
-             max.iteration = 100, 
-             threshold = 10^-5, 
-             RandomNumber = 0)
+fgwc_clusters <- data.frame(geometry = polygons$geom_pol,
+                            cluster = fgwc$cluster)
 
-## Prepare for SA calculations ----
-counts.SA = counts(dds, normalized = TRUE) %>% # export normalised counts
-    t() %>% # transpose for downstream SA calculation
-    as.data.frame() # make it a df
-counts.SA <- counts.SA[select] # select the 500 most variable  
+ggplot() + 
+    geom_sf(data = fgwc_clusters$geometry, 
+            aes(fill = as.factor(fgwc_clusters$cluster)),
+            colour = "grey30", 
+            show.legend = TRUE) +
+    scale_fill_brewer(type = "qual") + 
+    labs(title = "Fuzzy GW Clustering (FGWC)",
+         subtitle = "nclust = 8",
+         fill = "Cluster") + 
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") + 
+    my_theme
 
-## Run SA: Moran's I ----
-moran(x = counts.SA$ENSMUSG00000015090, 
-      listw = neighbours_wght, 
-      n = length(neighbours_wght$neighbours),
-      S0 = Szero(neighbours_wght))
-
-## Run Moran's I test with Monte Carlo permutations ---
-moran.mc(x = counts.SA$ENSMUSG00000015090, 
-         listw = neighbours_wght, 
-         nsim = 999)
-
-#### RUN Multiple Moran's ####
-moran.n <- length(neighbours_wght$neighbours)
-moran.S0 <- Szero(neighbours_wght)
-
-moran.multi <- apply(counts.SA, 2, function(x) moran(x, 
-                                                     neighbours_wght,
-                                                     moran.n,
-                                                     moran.S0))
-moran.multi.df <- moran.multi %>% 
-    reduce(bind_rows) %>% 
-    as.data.frame() # reduce list of lists to a df
-
-rownames(moran.multi.df) <- colnames(counts.SA) # give row names
-
-
+ggsave(file.path(graphDir, "fgwc_nclust-8.tiff"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 #---------------------TEST STUF...------------------------------#
 #---------------------------------------------------------------#

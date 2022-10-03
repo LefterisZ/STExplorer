@@ -25,14 +25,14 @@ dt_top10 <- data.frame(dt_top10) %>%
 #map the leading genes
 ggplot(dt_top10, 
        aes(x = pixel_x, y = pixel_y, colour = as.factor(Top10_lead_Gs))) + 
-    geom_point(size = 3) +
+    geom_point(size = 3) + 
     xlab("X coordinates (pixels)") +
     ylab("Y coordinates (pixels)") +
-    ggtitle("Leading Gene on PC1") +
+    ggtitle("Leading Genes on PC1") +
     my_theme +
     theme(legend.position="none")
 
-ggsave(file.path(graphDir, "gwpca_.500.20.gau_leadingGenes10_PC1.pdf"),
+ggsave(file.path(graphDir, "gwpca_.500.20.gau_leadingGenes10_PC1.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -45,7 +45,7 @@ props <- gwpca.prop.var(gwpca.obj = pca_gw.list$pca_gw.500.20.gau,
 #plot them all together
 gwpca.plot.prop.vars.multi(select(props, -c(pixel_x, pixel_y)), theme = my_theme)
 
-ggsave(file.path(graphDir, "gwpca_.500.20.gau_PTV_all.pdf"),
+ggsave(file.path(graphDir, "gwpca_.500.20.gau_PTV_all.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -111,7 +111,7 @@ ggplot(pivot_longer(discrepancy_df, col = "disc"),
     xlab(NULL) + 
     my_theme
 
-ggsave(file.path(graphDir, paste0("gwpca_.500.20.gau_discreps.box.pdf")),
+ggsave(file.path(graphDir, paste0("gwpca_.500.20.gau_discreps.box.tiff")),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -131,7 +131,7 @@ ggplot(data = select(dt, c(disc, pixel_x, pixel_y)),
     ggtitle("Local PC Discrepancy") +
     my_theme
 
-ggsave(file.path(graphDir, paste0("gwpca_.500.20.gau_discreps.pdf")),
+ggsave(file.path(graphDir, paste0("gwpca_.500.20.gau_discreps.tiff")),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
