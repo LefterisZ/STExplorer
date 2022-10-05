@@ -14,7 +14,7 @@ nb_names <- polygons$Barcode
 counts.SA <- counts(dds, normalized = TRUE) %>% # export normalised counts
     t() %>% # transpose for downstream SA calculation
     as.data.frame() %>% # make it a df
-    .[nb_names,] %>% # Re-order rows to match the polygon object row order
+    #.[nb_names,] %>% # Re-order rows to match the polygon object row order
     .[select] # select the 500 most variable genes
 
 # Get VST transformed counts from the top 500 most variable genes
@@ -76,8 +76,10 @@ moran.mc(x = counts.SA$ENSMUSG00000000740,
 moran.n <- length(neighbours_w_exp$neighbours)
 moran.S0 <- Szero(neighbours_w_exp)
 
-moran.multi <- apply(counts.SA, 2, function(x) moran.test(x, 
-                                                     neighbours_w_exp))
+moran.multi <- apply(counts.SA, 2, function(x) moran(x, 
+                                                     neighbours_w_exp,
+                                                     n = moran.n,
+                                                     S0 = moran.S0))
 moran.multi.df <- moran.multi %>% 
     reduce(bind_rows) %>% 
     as.data.frame() # reduce list of lists to a df
@@ -87,7 +89,7 @@ rownames(moran.multi.df) <- colnames(counts.SA) # give row names
 moran.P.SA <- moran.multi.df[order(moran.multi.df$I, decreasing = TRUE),]
 
 # Create a test counts df to map the gene expression
-test.counts <- data.frame(gene.expr.norm = log2(counts.SA$ENSMUSG00000068923),
+test.counts <- data.frame(gene.expr.norm = counts.SA$ENSMUSG00000000740,
                           pixel_x = polygons$pixel_x,
                           pixel_y = polygons$pixel_y)
 
@@ -95,19 +97,20 @@ test.counts <- data.frame(gene.expr.norm = log2(counts.SA$ENSMUSG00000068923),
 ggplot(test.counts) + 
     geom_point(aes(x = pixel_x, y = pixel_y, colour = gene.expr.norm),
                size = 3) + 
-    labs(title = "ENSMUSG00000068923",
-         subtitle = "No SA",
-         colour = "Log2 transformed\nNormalised counts\ngene expression") +
+    scale_colour_continuous(limits = c(0 , 150)) + 
+    labs(title = "ENSMUSG00000000740",
+         subtitle = NULL,
+         colour = "Normalised counts\ngene expression") +
     xlab("X coordinates (pixels)") + 
     ylab("Y coordinates (pixels)") + 
     my_theme
 
-ggsave(file.path(graphDir, "gene.expression_map_SA.Non_log2.pdf"),
+ggsave(file.path(graphDir, "gene.expression_map_SA.NegativeCtrl.pdf"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
-ggsave(file.path("~/Downloads", "gene.expression_map_SA.Non_log2.tiff"),
+ggsave(file.path("~/Downloads", "gene.expression_map_SA.NegativeCtrl.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
