@@ -50,7 +50,7 @@ sampleInfo
 sce_list <- list()
 for (i in 1:length(filefolders)) {
   ## create a VisiumSCE object - defaults to low res image!!
-  sce_list[[i]] <- Spaniel::createVisiumSCE(file.path(dataDir, filefolders[i]))
+  sce_list[[i]] <- Spaniel::createVisiumSCE(file.path(dataDir, filefolders[i], "Olfactory_Bulb_A1_Results"))
   ## add QC metrics for low quality spots identification
   sce_list[[i]] <- addPerCellQC(sce_list[[i]], subsets = list(Mito = 1:10))
   ## add info from sampleInfo to colData
@@ -120,6 +120,22 @@ for (i in 1:4) {
 ## 5.6 save RDS again with added clusters
 saveRDS(sce_list, sce_output)
 
+## 5.7 plot the clusters
+seurat_clust <- as.data.frame(colData(sce_list$Olfactory_Bulb))
+ggplot(seurat_clust) + 
+    geom_point(aes(x = pixel_x, y = pixel_y, colour = cluster), size = 3) + 
+    scale_colour_brewer(type = "qual") +
+    scale_y_reverse() +
+    xlab("X coordinates (pixels)") +
+    ylab("Y coordinates (pixels)") +
+    ggtitle("Seurat Clustering") +
+    my_theme
+
+ggsave(file.path(graphDir, "seurat_clustering_mob.tiff"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 #----------------------------------------------------#
 # END OF SCRIPT ----

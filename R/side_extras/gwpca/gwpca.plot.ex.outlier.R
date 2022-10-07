@@ -18,22 +18,26 @@
 gwpca.plot.ex.outlier <- function(data, i, loc, bw, ylim = NULL, ylab = "", 
                                   fixtrans = FALSE, ...) {
     m <- ncol(data)
-    bw <- bw*bw
-    dists <- rowSums(sweep(loc,2,loc[i,])**2)
-    nbrlist <- which(dists < bw*bw)
+    #bw <- bw*bw
+    bw <- bw
+    #dists <- rowSums(sweep(loc,2,loc[i,])**2)
+    dists <- rowSums(sweep(loc, 2, loc[i,]))
+    #nbrlist <- which(dists < bw*bw)
+    nbrlist <- which(dists < bw)
+    nbrlist <- nbrlist[nbrlist != i]
     wts <- (1 - dists/(bw*bw))^12
     xss <- scale(data)
     span <- 1:m
-    tsc <- 25/length(nbrlist)
+    tsc <- 50/length(nbrlist)
     
     
     if (is.null(ylim)) ylim <- c(min(xss[nbrlist,]),max(xss[nbrlist,]))
     
     plot(span,xss[i,],type='l',ylim=ylim,
-         xlim=c(0.5,m+0.5),col='red',lwd=6,axes=FALSE,xlab="",ylab=ylab,...)
-    axis(1,at=1:m,labels=colnames(data),las=2,cex.axis=1.2)
+         xlim=c(0.5,m+0.5),col='red',lwd=6,axes=FALSE,xlab="",ylab=ylab)
+    #axis(1,at=1:m,labels=colnames(data),las=2,cex.axis=1.2)
     axis(2,at=seq(floor(ylim[1]),ceiling(ylim[2]),by=1),cex.axis=1.2)
-    abline(v=1:m,col=grey(0.6))
+    #abline(v=1:m,col=grey(0.6))
     lines(c(1,m),c(0,0),col=grey(0.6))
     
     if (fixtrans) {
@@ -44,9 +48,8 @@ gwpca.plot.ex.outlier <- function(data, i, loc, bw, ylim = NULL, ylab = "",
 }
 
 
-data = scale(data.mat)
-bw = 6*spot_diameter(spatialDir)
-i = which(discrepancy == max(discrepancy))
-
-
-# use filter() to get the outlier
+data = data.mat
+bw = 3*spot_diameter(spatialDir)
+i = which(discrepancy_df == max(discrepancy_df))
+st_geometry(polygons) <- "geom_cntd"
+loc = st_coordinates(polygons)

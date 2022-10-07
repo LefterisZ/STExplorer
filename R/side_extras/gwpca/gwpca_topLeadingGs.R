@@ -127,9 +127,9 @@ ggplot() +
     geom_point(data = select(dt, c(disc, pixel_x, pixel_y)), 
                aes(x = pixel_x, y = pixel_y, colour = disc),
                size = 3.5) + 
-    geom_sf(data = outlier.coords, colour = "darkorange", size = 3) + 
-    geom_point(data = filter(dt, disc > 200000),
-               aes(x = pixel_x, y = pixel_y), colour = "red", size = 3) + 
+    #geom_sf(data = outlier.coords, colour = "darkorange", size = 3) + 
+    #geom_point(data = filter(dt, disc > 2000000),
+    #           aes(x = pixel_x, y = pixel_y), colour = "red", size = 3) + 
     xlab("X coordinates (pixels)") +
     ylab("Y coordinates (pixels)") +
     ggtitle("Local PC Discrepancy") +
@@ -140,3 +140,5 @@ ggsave(file.path(graphDir, paste0("gwpca_.500.20.gau_discreps.tiff")),
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
+
+
