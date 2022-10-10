@@ -53,3 +53,4 @@ bw = 3*spot_diameter(spatialDir)
 i = which(discrepancy_df == max(discrepancy_df))
 st_geometry(polygons) <- "geom_cntd"
 loc = st_coordinates(polygons)
+

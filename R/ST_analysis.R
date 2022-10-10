@@ -247,8 +247,7 @@ ggsave(file.path(graphDir, "gwpca_.500.20.gau_leadingGene_PC3.tiff"),
 
 ## Prepare for Fuzzy Geographically Weighted Clustering (FGWC) ----
 # Calculate the weighted distance matrix
-dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw), 
-                   rp.locat = coordinates(inputPCAgw))
+dist.Mat<- gw.dist(dp.locat = coordinates(inputPCAgw))
 
 # Generate a population matrix
 pop <- as.matrix(rep(1, nrow(vst_df)))

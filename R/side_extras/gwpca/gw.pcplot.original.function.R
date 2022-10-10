@@ -21,7 +21,7 @@ gw.pcplot <- function(data,vars,focus,bw,adaptive = FALSE, ylim=NULL,ylab="",fix
         DM.given<-F                     # Set DM.given to FALSE
         if(dp.n <= 5000)                # Check if the data points are less than 5000
         {                               # IF YES:
-            dMat <- gw.dist(dp.locat=loc, p=p, theta=theta, longlat=longlat) # Use the gw.dist function to generate the distance matrix
+            dMat <- gw.dist(dp.locat=loc, p=2, theta=0, longlat=FALSE) # Use the gw.dist function to generate the distance matrix
             DM.given<-T                 # Set DM.given to TRUE
         }
     }
@@ -70,3 +70,25 @@ gw.pcplot <- function(data,vars,focus,bw,adaptive = FALSE, ylim=NULL,ylab="",fix
     } 
     
 }
+
+
+data = data.mat
+bw = 3*spot_diameter(spatialDir)
+i = which(discrepancy_df == max(discrepancy_df))
+st_geometry(polygons) <- "geom_cntd"
+loc = st_coordinates(polygons)
+dMat = dist.Mat
+
+inputPCAgw.ex.outlier <- counts[select,] %>% # select top 500 variable genes
+    t() %>%                                  # transpose
+    as.data.frame() %>%                      # make it a df
+    rownames_to_column(var = "Barcode") %>%  # get barcodes in a column
+    merge(., polygons[,c("Barcode", "pixel_x", "pixel_y")]) %>% # merge with coordinates
+    select(-c("geom_cntd")) %>%                   # drop geometry
+    column_to_rownames(var = "Barcode") %>%  # return barcodes to row names
+    .[nb_names,] %>%                         # order rows
+    st_as_sf(coords = c("pixel_x", "pixel_y"), 
+             remove = TRUE)                  # transform df to sf
+
+
+
