@@ -55,10 +55,10 @@ gw.pcplot <- function(data,vars,focus,bw,adaptive = FALSE, ylim=NULL,ylab="",fix
     if (is.null(ylim))            # Plot
         ylim <- c(min(xss[nbrlist,]),max(xss[nbrlist,]))
     plot(span,xss[i,],type='l',ylim=ylim,
-         xlim=c(0.5,m+0.5),col='red',lwd=6,axes=FALSE,xlab="",ylab=ylab,...)
-    axis(1,at=1:m,labels=colnames(x),las=2,cex.axis=1.2)
+         xlim=c(0.5,m+0.5),col='red',lwd=6,axes=FALSE,xlab="",ylab=ylab) # put back after ylab: ,...
+    #axis(1,at=1:m,labels=colnames(x),las=2,cex.axis=1.2)
     axis(2,at=seq(floor(ylim[1]),ceiling(ylim[2]),by=1),cex.axis=1.2)
-    abline(v=1:m,col=grey(0.6))
+    #abline(v=1:m,col=grey(0.6))
     lines(c(1,m),c(0,0),col=grey(0.6))
     if (fixtrans) {
         for (nbr in nbrlist) 
@@ -72,23 +72,51 @@ gw.pcplot <- function(data,vars,focus,bw,adaptive = FALSE, ylim=NULL,ylab="",fix
 }
 
 
-data = data.mat
-bw = 3*spot_diameter(spatialDir)
-i = which(discrepancy_df == max(discrepancy_df))
+data <- as.data.frame(data.mat) # vst data (gene expression data)
+bw <- 3*spot_diameter(spatialDir)
+i <- which(discrepancy_df == max(discrepancy_df))
 st_geometry(polygons) <- "geom_cntd"
-loc = st_coordinates(polygons)
-dMat = dist.Mat
+loc <- st_coordinates(polygons)
+dMat <- dist.Mat
 
+focus.nm <- rownames(data)[i]
+
+data.focus <- data[nbrlist,] %>% # get the expression data of the focus location and the neighbours
+    t() %>%
+    as.data.frame() %>%
+    mutate(nb.mean = rowMeans(across(which(colnames(.) != focus.nm)))) %>% # find the vst mean of neighbours
+    mutate(focus.diff = abs(.data$nb.mean - .data[[focus.nm]])) %>% # find absolute difference of mean to focus point 
+    mutate(labels = ifelse(.data$focus.diff > 1, TRUE, FALSE)) # add labels to the genes that have a difference from vst mean > 1
+
+
+nb.alphas <- tsc*wts[nbrlist[!nbrlist %in% i]] # get the alpha values for the nbrs only
+
+# create the input data table
 inputPCAgw.ex.outlier <- counts[select,] %>% # select top 500 variable genes
     t() %>%                                  # transpose
     as.data.frame() %>%                      # make it a df
     rownames_to_column(var = "Barcode") %>%  # get barcodes in a column
-    merge(., polygons[,c("Barcode", "pixel_x", "pixel_y")]) %>% # merge with coordinates
-    select(-c("geom_cntd")) %>%                   # drop geometry
+    merge(., polygons[,c("Barcode")]) %>% # merge with coordinates
     column_to_rownames(var = "Barcode") %>%  # return barcodes to row names
-    .[nb_names,] %>%                         # order rows
-    st_as_sf(coords = c("pixel_x", "pixel_y"), 
-             remove = TRUE)                  # transform df to sf
+    .[nb_names,]                             # order rows
+st_geometry(inputPCAgw.ex.outlier) <- "geom_cntd" # make geom_cntd the geometry column
+    
 
+# Plot extreme outlier with labels for genes with difference from the mean of more than 1
+xss.focus <- data.frame(focus.loc = xss[i,]) # get the scaled expression of the location in focus
+xss.focus.nbrs <- xss[nbrlist[!nbrlist %in% i],] %>% # get the scaled expression data for the neighbours of the focus location
+    t() %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "gene_IDs") %>%
+    reshape2::melt(id = "gene_IDs")
+
+ggplot() +
+    geom_line(data = xss.focus, aes(x = span, y = focus.loc), 
+               size = 1.5, colour = "red") + 
+    geom_line(data = xss.focus.nbrs,
+              aes(x = gene_IDs,
+                  y = value,
+                  colour = variable))
+    
 
 
