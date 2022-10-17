@@ -141,4 +141,26 @@ ggsave(file.path(graphDir, paste0("gwpca_.500.20.gau_discreps.tiff")),
        units = "in",
        dpi = 400)
 
+# create the input data table for the oulier plot
+inputPCAgw.outlier <- vst_df[,select] %>% # select top 500 variable genes
+    as.data.frame() %>%                      # make it a df
+    .[nb_names,]                             # order rows
 
+# create the biomart for mouse
+biomart.mouse <- create_biomart("mouse")
+
+# plot the heatmap to visualise the genes that make this location an outlier
+gwpca.plot.outlier(inputPCAgw.outlier,
+                   bw = 3*spot_diameter(spatialDir),
+                   focus = which(discrepancy_df == max(discrepancy_df)),
+                   dMat = dist.Mat,
+                   show.vars = "top",
+                   mean.diff = 1,
+                   gene.names = TRUE, 
+                   biomart = biomart.mouse,
+                   show.data = FALSE,
+                   check.names = FALSE,
+                   scale = "row",
+                   cutree_cols = 5,
+                   cutree_rows = 6,
+                   color = rev(colorRampPalette(brewer.pal(11, "RdBu"))(1000)))

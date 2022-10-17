@@ -1,4 +1,4 @@
-gw.pcplot <- function(data,vars,focus,bw,adaptive = FALSE, ylim=NULL,ylab="",fixtrans=FALSE, p=2, theta=0, longlat=F,dMat,...) 
+gw.pcplot <- function(data, vars, focus, bw, ylim=NULL, ylab="", fixtrans=FALSE, dMat, ...) 
 {
     if (is(data, "Spatial"))      # expects a spatial df with data and coordinates
     {                             # IF TRUE:
@@ -65,58 +65,20 @@ gw.pcplot <- function(data,vars,focus,bw,adaptive = FALSE, ylim=NULL,ylab="",fix
             lines(span,xss[nbr,],col=rgb(0,0,0,0.3), lwd=3) }
     else 
     {
-        for (nbr in nbrlist)
+        for (nbr in nbrlist[!nbrlist %in% i])
             lines(span,xss[nbr,],col=rgb(0,0,0,tsc*wts[nbr]), lwd=3)  
     } 
     
 }
 
 
-data <- as.data.frame(data.mat) # vst data (gene expression data)
+data <- inputPCAgw.outlier # vst data (gene expression data)
+vars <- colnames(inputPCAgw.outlier) 
 bw <- 3*spot_diameter(spatialDir)
 i <- which(discrepancy_df == max(discrepancy_df))
 st_geometry(polygons) <- "geom_cntd"
 loc <- st_coordinates(polygons)
 dMat <- dist.Mat
 
-focus.nm <- rownames(data)[i]
-
-data.focus <- data[nbrlist,] %>% # get the expression data of the focus location and the neighbours
-    t() %>%
-    as.data.frame() %>%
-    mutate(nb.mean = rowMeans(across(which(colnames(.) != focus.nm)))) %>% # find the vst mean of neighbours
-    mutate(focus.diff = abs(.data$nb.mean - .data[[focus.nm]])) %>% # find absolute difference of mean to focus point 
-    mutate(labels = ifelse(.data$focus.diff > 1, TRUE, FALSE)) # add labels to the genes that have a difference from vst mean > 1
-
-
-nb.alphas <- tsc*wts[nbrlist[!nbrlist %in% i]] # get the alpha values for the nbrs only
-
-# create the input data table
-inputPCAgw.ex.outlier <- counts[select,] %>% # select top 500 variable genes
-    t() %>%                                  # transpose
-    as.data.frame() %>%                      # make it a df
-    rownames_to_column(var = "Barcode") %>%  # get barcodes in a column
-    merge(., polygons[,c("Barcode")]) %>% # merge with coordinates
-    column_to_rownames(var = "Barcode") %>%  # return barcodes to row names
-    .[nb_names,]                             # order rows
-st_geometry(inputPCAgw.ex.outlier) <- "geom_cntd" # make geom_cntd the geometry column
-    
-
-# Plot extreme outlier with labels for genes with difference from the mean of more than 1
-xss.focus <- data.frame(focus.loc = xss[i,]) # get the scaled expression of the location in focus
-xss.focus.nbrs <- xss[nbrlist[!nbrlist %in% i],] %>% # get the scaled expression data for the neighbours of the focus location
-    t() %>%
-    as.data.frame() %>%
-    rownames_to_column(var = "gene_IDs") %>%
-    reshape2::melt(id = "gene_IDs")
-
-ggplot() +
-    geom_line(data = xss.focus, aes(x = span, y = focus.loc), 
-               size = 1.5, colour = "red") + 
-    geom_line(data = xss.focus.nbrs,
-              aes(x = gene_IDs,
-                  y = value,
-                  colour = variable))
-    
 
 

@@ -2,7 +2,7 @@
 ## LOAD/ INSTALL PACKAGES ----
 #----------------------------------------------------#
 ## 1 Bioconductor ----
-pkgBio <- c("Spaniel", "scater", 
+pkgBio <- c("Spaniel", "scater", "biomaRt",
             "batchelor", "scran", "DESeq2")
 
 if (!require("BiocManager", quietly = TRUE))
@@ -27,7 +27,7 @@ pkgCRAN <- c("Seurat", "cowplot",
              "spdep", "sf", "jsonlite",
              "tidyverse", "GWmodel", 
              "gridExtra", "ggbeeswarm",
-             "egg", "ggpubr")
+             "egg", "ggpubr", "scales", "pheatmap")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
