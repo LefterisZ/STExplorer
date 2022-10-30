@@ -1,19 +1,23 @@
 ---
 title: "ST_explorer"
 output: html_document
-date: '2022-07-08'
+date: '2022-10-24'
 ---
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# STExplorer: analysis of spatial transcriptomics data using geocomputational methods
 
-### 1. Load/ install all the required packages and custom scripts
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as load_packages.R*
+
+## 1. Load/ install all the required packages and custom scripts
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R/initialise_analysis) GitHub repo as load_packages.R*
+
+**NOTE:** the STExplorer is not yet a package. You will need to download from [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/) GitHub repo the R folder that contains the scripts. Then modify the path at the end of the below code chunck to match the path where you saved them. The code will list only the required scripts and the sapply function will source them to your .GlobalEnv. 
 
 ```{r load-import pkg, eval=TRUE, message=FALSE}
 ## 1 Bioconductor ----
-pkgBio <- c("Spaniel", "scater", 
+pkgBio <- c("Spaniel", "scater", "biomaRt",
             "batchelor", "scran", "DESeq2")
 
 if (!require("BiocManager", quietly = TRUE))
@@ -36,9 +40,10 @@ pkgCRAN <- c("Seurat", "cowplot",
              "RColorBrewer",
              "harmony", "dplyr", 
              "spdep", "sf", "jsonlite",
-             "tidyverse", "GWmodel",
+             "tidyverse", "GWmodel", 
              "gridExtra", "ggbeeswarm",
-             "egg", "ggpubr")
+             "egg", "ggpubr", "scales", 
+             "pheatmap", "rlist", "kableExtra")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
@@ -53,7 +58,8 @@ pkg.check <- lapply(
 
 ## 3 GitHub ----
 pkgGit <- c("RachelQueen1/SCFunctionsV3",
-            "eddelbuettel/rbenchmark")
+            "eddelbuettel/rbenchmark",
+            "mtennekes/cols4all")
 
 if (!require("devtools", quietly = TRUE))
   install.packages("devtools")
@@ -72,27 +78,33 @@ pkg.check <- lapply(
 )
 
 ## 4 source scripts ----
-source("./R/sf_coord_as_df.R")
-source("./R/sfc_coord_as_df.R")
-source("./R/readSpacerangerMD.R")
-source("./R/readSpacerangerD.R")
-source("./R/spot_diameter.R")
+# List all scripts in R folder and remove the ones located in the core folder.
+file.sources <- list.files(path = "./R/core",
+                           pattern = "*.R$",
+                           recursive = TRUE,
+                           full.names = TRUE,
+                           ignore.case = TRUE)
 
+sapply(file.sources, source, local = .GlobalEnv)
 ```
 
-### 2. Make the required folders
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as make_folders.R*
+## 2. Make the required folders
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R/initialise_analysis) GitHub repo as make_folders.R*
 
 ```{r make-folder}
 ## Set file paths
-#projDir <- file.path(getwd(), "data")
+projDir <- file.path(getwd(), "data")
 inputDir <- file.path(projDir, "spaceranger_outs/")
 outputDir <- file.path(projDir, "rObjects/")
 csvDir <- file.path(projDir, "csvFiles/")
 graphDir <- file.path(projDir, "graphics_out/")
+tissue_mapDir <- file.path(graphDir, "tissue_map")
+gwpcaDir <- file.path(graphDir, "gwpca")
+fgwcDir <- file.path(graphDir, "fgwc")
 
-## Check if inputDir/ outputDir/ csvDir exist and create them if not.
-dirs <- c(inputDir, outputDir, csvDir, graphDir)
+## Check if inputDir/ outputDir/ csvDir/ graphDir/ exist and create them if not.
+dirs <- c(inputDir, outputDir, csvDir, graphDir, 
+          tissue_mapDir, gwpcaDir, fgwcDir)
 
 dirCheck <- lapply(
     dirs,
@@ -106,9 +118,16 @@ dirCheck <- lapply(
     }
 )
 
+## If you have more than one tissue sections it is good practice to further 
+## create the below folders inside inputDir. One for each section!
+dir.create(file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results"), recursive = TRUE)
+
 ```
 
-### 3 Import the MetaData and the Data to be used
+**IMPORTANT NOTE 1:** at this point you want to copy the "spatial" and the "filtered_feature_bc_matrix" folders from the spaceranger "outs" folder into the recently created "spaceranger_outs".\n
+**IMPORTANT NOTE 2:** if you have more than one tissue sections, make sure to add their each section's "spatial" and "filtered_feature_bc_matrix" folders from "outs" into their matching section's folder inside "spaceranger_outs".\n
+
+## 3. Import the MetaData and the Data to be used
 ```{r import-data}
 ## set the file paths to spaceranger's spatial and gene expression folders
 sampleDir <- "Olfactory_Bulb/Olfactory_Bulb_A1_Results"
@@ -118,46 +137,68 @@ countsDir <- file.path(inputDir, sampleDir, "filtered_feature_bc_matrix")
 ## Import the dataset
 inputMD <- readSpacerangerMD(spatialDir, res = "low") #read-in MetaData
 inputD <- readSpacerangerD(countsDir) #read-in gene expression Data
+
+## Have a look
+inputMD[1:5,]
+inputD[1:5, 1:5]
+
 ```
 
-### 4. Find neighbours
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+## 4. Prepare the data 
+**Generate the geocomputational data types needed for downstream applications.**\n
+Namely these are: 1. polygonise space, 2. find neighbours.
+
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
 
 
-#### 4.2 Generate an enveloped Voronoi Tessellation for the whole capture area
+### 4.1 Generate an enveloped Voronoi Tessellation for the whole capture area
 As *capture area* we refer to the total number of spots that are on the slide
 
-```{r voronoi-tessellation}
-## Select spots in both bins (Sections) 0 and 1
-spot_position <- inputMD %>% 
-    select(c("Barcode", "pixel_x", "pixel_y", "Section"))
-head(spot_position, 5)
+**NOTE:** In cases where the tissue touches the edges of the slide we have on-tissue spots right on the edge. With the way tessellation works these spots end up having no polygons and therefore are omitted from the further downstream analysis. To prevent that, we use a custom-made function called "add.perimeter.slide" which adds a layer of spots outside the slide's spot layout leading to spots on the edge having a polygon.
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R/core/helper_functions) GitHub repo as add.perimeter.slide.R*
 
+**NOTE 2:** It is good practice in R to have column names with letters, numbers, '_' and '.'. Below we will remove the '-' from the barcode names and replace it with '.'. Although this is not in column names, the inputD has the barcodes as column names and we will do the same change there too. Column names of inputD and Barcode column entries of inputMD should always match!
+
+```{r voronoi-tessellation 1}
+## Select spots in both bins (Sections) 0 and 1 and add a perimeter if needed
+spot_position <- inputMD %>% 
+    select(c("Barcode", "pixel_x", "pixel_y", "Section")) %>%
+    mutate(Barcode = gsub("-", ".", .data$Barcode)) # remove the "-" from the barcodes and replace it with "."
+    # add.perimeter.slide(., spatialDir)
+head(spot_position, 5)
+```
+```{r voronoi-tessellation 2}
 ## Convert spots to centroids
 centroids <- spot_position %>% 
   st_as_sf(coords = c("pixel_x", "pixel_y"), 
            remove = FALSE)
 head(centroids, 5)
-
+```
+```{r voronoi-tessellation 3}
 ## Combine the points into a multipoint geometry:
 cntd_union <- st_union(centroids)
 head(cntd_union)
-
+```
+```{r voronoi-tessellation 4}
 ## Use the union of points to generate a voronoi object
 voronoi <- st_voronoi(cntd_union, bOnlyEdges = TRUE)
 head(voronoi)
-
+```
+```{r voronoi-tessellation 5}
 ## Create an enveloped voronoi tessellation around the tissue
 voronoi_env <- st_intersection(st_cast(voronoi), st_convex_hull(cntd_union))
 head(voronoi_env)
 ```
 
-**Plot and save the Voronoi tessellation**
+**Plot and save the Voronoi tessellation:**
 ```{r plot voronoi-tessellation, echo = FALSE, fig.height = 11, fig.width = 11}
-## plot the voronoi tessellation
+## plot the voronoi tessellation without the perimeter
 ggplot() +
     geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
     geom_sf(data = centroids, aes(colour = as.factor(Section)), size = 1.2) + 
+    # If a perimeter was added:
+    # geom_sf(data = filter(centroids, Section != "perimeter"), # remove the perimeter spots
+    #     aes(colour = as.factor(Section)), size = 2) + 
     # Add titles and visually format the plot:
     labs(title = paste("Voronoi tessellation"),
        subtitle = ,
@@ -180,14 +221,30 @@ ggplot() +
         panel.background = element_rect(fill = "white"))
 
 
-ggsave(file.path(graphDir, "voronoi_tessellation.pdf"),
+ggsave(file.path(tissue_mapDir, "voronoi_tessellation_wholeSlide.pdf"),
        width = grDevices::dev.size(units = "px")[1]/96,
        height = grDevices::dev.size(units = "px")[2]/96,
        units = "in",
        dpi = 400)
 ```
 
-#### 4.3 Polygonise the tessellation only for the bin_1 spots 
+**IMPORTANT NOTE:** Since there are going to be many plots, to make the code a bit shorter it is good practice to save a favourite ggplot theme and call it by its name. In my case, I have a custom-made theme that I use all the time. Below I save it as "my_theme" and use *+ my_theme* at the end of each ggplot call.
+```{r save custom theme as my_theme}
+my_theme <- theme(axis.title = element_text(size = rel(2)),
+                  axis.text = element_text(colour = "black", size = rel(1.2)),
+                  axis.line.y.left = element_line(colour = "black"),
+                  axis.line.x.bottom = element_line(colour = "black"),
+                  axis.ticks.length.y.left = unit(.15, "cm"),
+                  axis.ticks.length.x.bottom = unit(.15, "cm"),
+                  plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
+                  plot.subtitle = element_text(colour = "black", size = rel(1.7), hjust = 0.5),
+                  plot.margin = unit(c(10,10,10,10), "pt"),
+                  legend.title = element_text(colour = "black", size = rel(1.5)),
+                  legend.text = element_text(colour = "black", size = rel(1.2)),
+                  panel.background = element_rect(fill = "white"))
+```
+
+### 4.2 Polygonise the tessellation only for the bin_1 spots 
 As *bin_1* spots we refer to the on-tissue spots.
 
 ```{r polygonise}
@@ -205,14 +262,14 @@ polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
     st_sf() # convert back to sf (mutate makes it a df)
 ```
 
-#### 4.4 Find neighbours based on adjacency 
+### 4.3 Find neighbours based on adjacency 
 ```{r get neighbours}
 ## Create contiguity neighbours
 neighbours <- poly2nb(polygons, snap = 0)
 names(neighbours) = attr(neighbours, "region.id") # add names to the sub-lists
 ```
 
-#### 4.5 Make one data frame to contain all the information
+### 4.4 Make one data frame to contain all the information
 ```{r save all in one data.frame}
 ## Add number of neighbours for each polygon back to the polygons object
 polygons$nb_count <- card(neighbours)
@@ -238,9 +295,12 @@ polygons <- left_join(as.data.frame(polygons), as.data.frame(centroids),
     rename(geom_cntd = geometry) %>% 
     st_sf(sf_column_name = "geom_pol")
 
+# Get spot names
+nb_names <- polygons$Barcode
+
 ```
 
-**Plot the polygons**
+**Plot the polygons:**
 ```{r plot polygons and neighbours, echo = FALSE, fig.height = 11, fig.width = 11}
 ## Plot polygons graph
 ggplot() +
@@ -248,25 +308,14 @@ ggplot() +
     # Add titles and visually format the plot:
     scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
                                   "#FDAC53", "#F7CAC9", "#6B5B95")) +
-    labs(title = paste("Bin_1 polygons"),
+    labs(title = paste("On-tissue polygons"),
          subtitle = "",
          colour = "") + 
     xlab("X coordinates (pixels)") + 
-    ylab("Y coordinates (pixels)") + 
-    theme(axis.title = element_text(size = rel(2)),
-          axis.line.y.left = element_line(colour = "black"),
-          axis.line.x.bottom = element_line(colour = "black"),
-          axis.text = element_text(colour = "black", size = rel(2)),
-          axis.ticks.length.y.left = unit(.15, "cm"),
-          axis.ticks.length.x.bottom = unit(.15, "cm"),
-          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
-          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
-          plot.margin = unit(c(2,3,2,3), "cm"),
-          legend.title = element_text(colour = "black", size = rel(2)),
-          legend.text = element_text(colour = "black", size = rel(1.7)),
-          panel.background = element_rect(fill = "white"))
+    ylab("Y coordinates (pixels)") +  
+    my_theme
 
-ggsave("voronoi_polygons_only.pdf",
+ggsave(file.path(graphDir, "voronoi_polygons_tissueOnly.pdf"),
        width = grDevices::dev.size(units = "px")[1]/96,
        height = grDevices::dev.size(units = "px")[2]/96,
        units = "in",
@@ -276,49 +325,47 @@ ggsave("voronoi_polygons_only.pdf",
 ggplot() +
     geom_sf(data = polygons$geom_pol, colour = "grey30", fill = "white") +
     geom_sf(data = as(nb2lines(neighbours, coords = polygons$geom_cntd), "sf"), 
-            colour = "black") + 
-    geom_point(data = polygons, aes(x = pixel_x, y = pixel_y, colour = factor(nb_count))) + 
+            colour = "black") +
+    geom_point(data = polygons, 
+               aes(x = pixel_x, y = pixel_y, colour = factor(nb_count)),
+               size = 1.5) + 
     # Add titles and visually format the plot:
-    scale_color_manual(values = c("#34568B", "#FF6F61", "#88B04B",
-                                  "#FDAC53", "#F7CAC9", "#6B5B95")) +
+    scale_color_manual(values = c4a("wright25", 6)) +
     labs(title = paste("Contiguity neighbours"),
          subtitle = "",
          colour = "Neighbours\ncount") + 
     xlab("X coordinates (pixels)") + 
     ylab("Y coordinates (pixels)") + 
-    theme(axis.title = element_text(size = rel(2)),
-          axis.line.y.left = element_line(colour = "black"),
-          axis.line.x.bottom = element_line(colour = "black"),
-          axis.text = element_text(colour = "black", size = rel(2)),
-          axis.ticks.length.y.left = unit(.15, "cm"),
-          axis.ticks.length.x.bottom = unit(.15, "cm"),
-          plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
-          plot.subtitle = element_text(colour = "black", size = rel(1.9), hjust = 0.5),
-          plot.margin = unit(c(2,3,2,3), "cm"),
-          legend.title = element_text(colour = "black", size = rel(2)),
-          legend.text = element_text(colour = "black", size = rel(1.7)),
-          panel.background = element_rect(fill = "white"))
+    my_theme
 
-ggsave("neighbours_graph.pdf",
+ggsave(file.path(tissue_mapDir, "neighbours_graph.pdf"),
        width = grDevices::dev.size(units = "px")[1]/96,
        height = grDevices::dev.size(units = "px")[2]/96,
        units = "in",
        dpi = 400)
 ```
 
-#### 4.5 Calculate neighbour weights
+### 4.5 Calculate neighbour weights
 ```{r calculate weights}
 ## Calculate neighbour weights with a distance decay function
 neighbours_wght <- nb2listwdist(neighbours, polygons$geom_cntd,
                                 type = "idw", style = "raw", alpha = 1)
 head(neighbours_wght$weights, 5)
-```
 
-### 5. Normalise gene counts
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+dist.Mat <- select(polygons, c(pixel_x, pixel_y)) %>% 
+    st_drop_geometry() %>%
+    coordinates() %>%
+    gw.dist()
+
+```
+## 5. Prepare count data for downstream analysis
+
+### 5.1 Normalise gene counts
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo aas STExplorer_analysis.R*
 
 ```{r normalise counts}
 ## Prepare for gene expression normalisation using DESeq2
+colnames(inputD) <- gsub("-", ".", colnames(inputD)) # Fix the colnames
 spotName <- colnames(inputD)
 spotTable <- data.frame(spotName = spotName)
 
@@ -336,15 +383,43 @@ counts = counts(dds, normalized = TRUE) # export normalised counts
 head(counts, c(10,5)) # Print the first 10 gene counts
 ```
 
-### 6. Perform Geographically Weighted PCA (GWPCA)
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
+### 5.2 Generate VST counts data
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo aas STExplorer_analysis.R*
 
-#### 6.1 Data prearation and single GWPCA run
+```{r generate VST counts data}
+# Transform counts to vst
+message("Performing a Variance Stabilising Transformation on the count data.
+This might take a while... 
+Grab your self a coffee!")
+start.t <- Sys.time()
+
+vst <- varianceStabilizingTransformation(dds) # Calculate VST
+
+end.t <- Sys.time()
+elapsed.t <- round(difftime(end.t, start.t, units = "mins"), 2)
+message("VST is complete! 
+Elapsed time is: ", elapsed.t, " minutes.")
+
+vst_df <- as.data.frame(t(assay(vst))) # transpose and transform to df
+```
+
+### 5.3 Select the most variable genes
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo aas STExplorer_analysis.R*
+
+```{r select the most variable genes}
+# Selecte the 500 most variable genes
+row_vars <- rowVars(assay(vst))
+select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
+```
+
+## 6. Perform Geographically Weighted PCA (GWPCA)
+
+### 6.1 Data prearation and single GWPCA run
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
+
 ```{r gwpca single}
 ## Prepare for Geographically Weighted PCA (GWPCA)
-# Transform counts to vst
-vst <- varianceStabilizingTransformation(dds)
-vst_df <- as.data.frame(t(assay(vst))) # transpose and transform to df
+# Use the previously generated vst data for the GWPCA
 
 # Get the coordinates
 coords <- polygons[, c("Barcode", "pixel_x", "pixel_y")] %>%
@@ -357,24 +432,30 @@ inputPCAgw <- SpatialPointsDataFrame(coords, vst_df, match.ID = TRUE)
 # Identify the most variable genes equal to the number of spots.
 # gwpca uses princomp to run the PCAs and this does not accept the number of
 # variables (genes) being more than the number of samples (spots).
-row_vars <- rowVars(assay(vst))
-select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
 inputPCAgw <- inputPCAgw[select]
+inputPCAgw[1:5, 1:10]
 vars <- colnames(inputPCAgw@data)
 bw <- 6*spot_diameter(spatialDir)
 k <- 20
 
 ## Run GWPCA
-pca_gw <- gwpca(inputPCAgw, 
-                vars = vars, 
+message("Running GWPCA...
+This will take a while...
+Depending on the number of spots in your experiment this can take several hours to compute.
+Sit back and relax!")
+
+pca_gw <- gwpca(inputPCAgw,
+                vars = vars,
                 bw = bw,
                 k = k,
                 kernel = "gaussian")
 ```
 
-#### 6.2 Data prearation and single GWPCA run
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as find_nb_pixelXY.R*
-*The functions used can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R/side_extras/gwpca) GitHub repo*
+### 6.2 GWPCA run with multiple parameter combinations
+**WARNING:** This step is time intensive! The parameters combination below needs almost 3 days to complete.\n If you do **NOT** wish to run GWPCA with multiple parameters then **SKIP** the below code chunk.
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
+*The functions used can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R/core/gwpca) GitHub repo*
+
 ```{r gwpca multiple}
 #### RUN MULTIPLE GWPCAs ####
 # Generate a df with combinations of parameters
@@ -383,15 +464,453 @@ data.in <- param.combo(var.no = c(500, 750, 1000),
                        kernel = c("gaussian", "exponential"))
 
 # Initialise an empty list
-pca_gw.list <- list()
+# pca_gw.list <- list()
 
 # Run multiple GWPCAs and output them into the list
-pca_gw.list <- gwpca.combo(data.in)
+# pca_gw.list <- gwpca.combo(data.in)
 
 # Get the parameters in a table
 pca_params <- cbind(sapply(pca_gw.list, get.params)) %>%
     t() %>%
     as.data.frame() %>%
     mutate(minutes = round(as.numeric(minutes), 2))
+
+```
+
+### 6.3 Plot global PCA results
+Inside the results from GWPCA there are global PCA results too. We can have a look at them and get a hint of how many components are worth looking at using a scree plot.
+
+```{r plot global PCA results, fig.height = 5, fig.width = 10}
+# Set an object and pass into it either the result of the single-run GWPCA or 
+# an item from the list with the multi-run GWPCA. Then use this object in all
+# downstream applications. Also set a prefix to be used in downstream plots.
+pca_gw.inUse <- pca_gw.list$pca_gw.500.20.gau
+prefix.gwpca <- "gwpca_.500.20.gau_"
+
+# Prepare data for scree plot
+pvar <- pca_gw.inUse$pca$sdev^2/sum(pca_gw.inUse$pca$sdev^2)
+pvar <- data.frame(var = pvar,
+                   PCs = sprintf("PC%02d", seq(1, 500)))
+
+# Plot scree plot
+ggplot(pvar[1:10,], aes(x = PCs, y = var, group = 1)) + 
+    geom_point(size=3)+
+    geom_line() +
+    xlab("Principal Component") +
+    ylab("% Variance Explained") +
+    ggtitle("Scree Plot") +
+    ylim(0, 1) + 
+    my_theme
+
+ggsave(file.path(gwpcaDir, "gwpca_globalPCA_screeplot.tiff"),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+```
+
+### 6.4 Identify the leading genes in each location
+#### 6.4.a Single leading gene on each location
+```{r single leading gene on each location, fig.keep='all', fig.height=8, fig.width=10}
+# Create the biomart for mouse
+biomart.mouse.98 <- create_biomart("mouse", version = 98)
+
+# Set some palettes in a list
+colour.list <- list(palette36 = c4a("palette36"),
+                    glasbey.32 = c4a("glasbey"),
+                    alphabet2.26 = c4a("alphabet2"),
+                    wright25 = c4a("wright25"),
+                    light24 = c4a("light24"),
+                    dark24 = c4a("dark24"))
+
+for (i in 1:3) {
+    lead.item <- gwpca.Leading.G.single(pca_gw.inUse, 
+                                        pc.no = i, 
+                                        sf.geom = polygons$geom_pol,
+                                        gene.names = TRUE,
+                                        biomart = biomart.mouse.98,
+                                        check.names = FALSE) 
+    
+    ## Set some variables to be used in plotting
+    pc.No = i
+    col.No = length(unique(lead.item[,1]))
+    colour.values <- get.colours(col.No)
+    
+    p <- ggplot() + 
+        geom_sf(data = lead.item$geometry,
+                aes(fill = lead.item[,1])) +
+        scale_fill_manual(values = colour.values) + 
+        xlab("X coordinates (pixels)") +
+        ylab("Y coordinates (pixels)") +
+        labs(title = paste0("Leading Genes on PC", pc.No),
+             fill = "Leading Genes") +
+        my_theme + 
+        theme(legend.position="right")
+    
+    print(p)
+    
+    ggsave(file.path(gwpcaDir,
+                     paste0(prefix.gwpca, "leadingGene_PC", pc.No, ".tiff")),
+           plot = p,
+           width = grDevices::dev.size(units = "in")[1],
+           height = grDevices::dev.size(units = "in")[2],
+           units = "in",
+           dpi = 400)
+}
+
+```
+
+#### 6.4.b Top leading genes on each location
+```{r top leading genes on each location, fig.keep='all', fig.height=8, fig.width=15}
+dt_top.Gs <- gwpca.topLeading.Gs(gwpca = pca_gw.inUse,
+                                 pc.no = 1,
+                                 genes.n = 3,
+                                 sf.geom = polygons$geom_pol,
+                                 method = "membership",
+                                 gene.names = TRUE,
+                                 biomart = biomart.mouse.98,
+                                 check.names = FALSE)
+
+
+pc.No = 1
+genes.No = 3
+method = "membership"
+groups = count(unique(as.data.frame(dt_top.Gs$Top_lead_Gs)))
+
+#map the leading genes
+ggplot() +
+    geom_sf(data = dt_top.Gs$geometry, 
+            aes(fill = as.factor(dt_top.Gs$Top_lead_Gs))) +
+    geom_point(size = 3) + 
+    #scale_fill_manual(values = c4a("wright25", 18)) +
+    xlab("X coordinates (pixels)") +
+    ylab("Y coordinates (pixels)") +
+    labs(title = paste0("Leading Genes on PC", pc.No),
+         subtitle = paste0("Top ", genes.No, " Genes"),
+         caption = paste0("Grouping method: ",
+                          method,
+                          "\nNumber of groups: ",
+                          groups),
+         fill = "Top Leading Genes\nGroups") +
+    my_theme +
+    theme(legend.position="right")
+
+ggsave(file.path(gwpcaDir,
+                 paste0(prefix.gwpca, "leadingGenes3_PC1-membership.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+```
+
+### 6.5 Percentage of Total Variation (PTV)
+#### 6.5.1 Calculate PTV
+```{r calculate PTV}
+# Calculate the PTV for multiple Components
+props <- gwpca.prop.var(gwpca.obj = pca_gw.inUse,
+                        n.comp = c(5, 10, 20, 30, 40, 50))
+```
+
+#### 6.5.2 Plot PTV
+```{r plot PTV 1, fig.keep='all', fig.height=6, fig.width=12}
+# Plot them all together
+gwpca.plot.prop.vars.multi(select(props, -c(geometry)), theme = my_theme)
+
+ggsave(file.path(gwpcaDir, paste0(prefix.gwpca, "PTV_all.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+```
+```{r plot PTV 2, fig.keep='all', fig.height=6, fig.width=6}
+# Plot PTVs one by one and in a panel
+## One by one:
+column_names <- colnames(props)
+for (n in column_names) {
+    p <- gwpca.plot.prop.vars.single(data = select(props, n))
+    
+    print(p)
+    
+    name = sub("Comps_", "", n)
+    
+    ggsave(file.path(gwpcaDir, paste0(prefix.gwpca, "PTV_", name,".pdf")),
+           plot = p,
+           width = grDevices::dev.size(units = "in")[1],
+           height = grDevices::dev.size(units = "in")[2],
+           units = "in",
+           dpi = 400)
+}
+```
+```{r plot PTV 3, fig.keep='all', fig.height=6, fig.width=9}
+## In a panel
+plot_list <- lapply(colnames(select(props, -c(geometry))),
+                    gwpca.plot.prop.vars.single, 
+                    data = select(props, -c(geometry)), ylab = NULL)
+
+plot_list <- setNames(plot_list, colnames(select(props, -c(geometry))))
+
+egg::ggarrange(plots = plot_list, nrow = 2, ncol = 3)
+
+ggsave(file.path(gwpcaDir, paste0(prefix.gwpca, "PTV_panel.pdf")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+```
+
+#### 6.5.3 Map PTV
+```{r map PTV, fig.keep='all', fig.height=8, fig.width=10}
+# Map the PTV for a specific selection of components
+for (i in c(5, 10, 20, 30)) {
+    comps <- sprintf("Comps_%02d", i)
+    ptv.map <- dplyr::select(props, all_of(c(comps, "geometry")))
+    
+    p <- ggplot() + 
+        geom_sf(data = ptv.map$geometry,
+                aes(fill = ptv.map[,1])) +
+        scale_fill_viridis_c(option = "magma", limits = c(0, 100)) +
+        xlab("X coordinates (pixels)") +
+        ylab("Y coordinates (pixels)") +
+        labs(title = "Percantage of Total Variation\n(PTV)",
+             fill = paste0("PTV of ", i, "\n components")) +
+        my_theme
+    
+    print(p)
+    
+    ggsave(file.path(gwpcaDir, paste0(prefix.gwpca, "PTV_", comps, "map.pdf")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+}
+```
+
+### 6.6 Identify discrepancies
+#### 6.6.1 Calculate discrepancies
+```{r calculate discrepancies}
+# Calculate the discrepancies
+data.mat <- as.matrix(inputPCAgw@data)
+discrepancy <- gwpca.cv.contrib(data.mat, coordinates(inputPCAgw), 
+                                bw = 6*spot_diameter(spatialDir), 
+                                adaptive = TRUE, dMat = dist.Mat)
+```
+
+#### 6.6.2 Plot discrepancies in a box plot
+```{r plot discrepancies box plot}
+# Plot the discrepancies in a box plot
+discrepancy_df <- data.frame(disc = discrepancy)
+
+ggplot(pivot_longer(discrepancy_df, col = "disc"),
+       aes(x = name, y = value)) + 
+    geom_boxplot(fill = "#D1E5F0", colour = "#2166AC", 
+                 outlier.colour = "red", outlier.size = 2) + 
+    geom_jitter(col = "#EF8A62", size = 2, width = 0.3, alpha = 0.8) +
+    # add horizontal line
+    geom_hline(yintercept = 2e+06, linetype = "dashed", color = "royalblue") +
+    # customise axes
+    scale_x_discrete(labels = "Locations") +
+    coord_flip() +
+    xlab(NULL) +
+    ylab("Local PC Discrepancy") +
+    my_theme + 
+    theme(axis.text.y = element_text(angle = 90, hjust = 0.5))
+
+ggsave(file.path(gwpcaDir, paste0(prefix.gwpca, "discreps.box.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+```
+
+#### 6.6.3 Map the discrepancies
+```{r map discrepancies, fig.keep='all', fig.height=8, fig.width=10}
+# Map the discrepancies
+dt <- inputPCAgw@data %>%
+    mutate(disc = discrepancy,
+           geometry = polygons$geom_pol)
+
+disc.map <- dplyr::select(dt, all_of(c("disc", "geometry")))
+
+ggplot() + 
+    geom_sf(data = disc.map$geometry, 
+            aes(fill = disc.map$disc)) + 
+    scale_fill_viridis_c(option = "inferno") +
+    xlab("X coordinates (pixels)") +
+    ylab("Y coordinates (pixels)") +
+    labs(title = "Local PC Discrepancy",
+         fill = "Discrepancy\nscore") +
+    my_theme
+
+ggsave(file.path(gwpcaDir, paste0(prefix.gwpca, "discreps.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+```
+
+### 6.7 Create the outlier plot
+This plot is a heatmap that showcases the reason why the location in focus is a discrepancy.
+
+```{r plot outlier plot, fig.keep='all', fig.height=15, fig.width=12}
+# Create the input data table for the outlier plot
+inputPCAgw.outlier <- vst_df[,select] %>% # select top 500 variable genes
+    as.data.frame() %>%                      # make it a df
+    .[nb_names,]                             # order rows
+
+#Get the indexes of the outliers
+outliers <- which(discrepancy_df > 2e+06)
+
+# Plot the heatmap to visualise the genes that make this location an outlier
+for(i in outliers){
+    p <- gwpca.plot.outlier(inputPCAgw.outlier,
+                           bw = 3*spot_diameter(spatialDir),
+                           focus = i,
+                           dMat = dist.Mat,
+                           show.vars = "top",
+                           mean.diff = 1,
+                           gene.names = TRUE, 
+                           biomart = biomart.mouse.98,
+                           show.data = FALSE,
+                           check.names = FALSE,
+                           scale = "row",
+                           cutree_cols = 5,
+                           cutree_rows = 4,
+                           color = rev(colorRampPalette(brewer.pal(11, "RdBu"))(1000)))
+    # Save output
+    png(file.path(gwpcaDir, paste0(prefix.gwpca, "discreps_", i, ".outlierPlot.png")),
+           width = grDevices::dev.size(units = "in")[1],
+           height = grDevices::dev.size(units = "in")[2],
+           units = "in",
+           res = 400)
+    print(p)
+    dev.off()
+    
+    # Print inside markdown
+    message("Plotting heatmap ", which(outliers %in% i), " of ", length(outliers))
+    print(p)
+}
+
+```
+
+## 7. Fuzzy Geographically Weighted Clustering (FGWC)
+
+### 7.1 Data preparation for FGWC
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
+```{r prepare fgwc data}
+# Calculate the weighted distance matrix
+dist.Mat <- gw.dist(dp.locat = coordinates(inputPCAgw))
+
+# Generate a population matrix
+pop <- as.matrix(rep(1, nrow(vst_df)))
+
+# Select only the top variable genes to drive the clustering
+inputFGWC <- vst_df[select] %>% # select 500 most variable genes
+    .[nb_names,] # Re-order rows to match the polygon object row order
+```
+
+### 7.2 Set parameters and run FGWC -classic mode-
+```{r set params and run fgwc}
+# Set FGWC parameters
+fgwc_param <- c(kind = 'v', ncluster = 7, m = 1.1, distance = 'euclidean', 
+                order = 2, alpha = 0.5, a = 1, b = 1, max.iter = 500, 
+                error = 1e-5, randomN = 1)
+
+## Run FGWC ----
+fgwc <- naspaclust::fgwc(data = inputFGWC, 
+                         pop = pop, 
+                         distmat = dist.Mat,
+                         algorithm = "classic",
+                         fgwc_param = fgwc_param)
+```
+
+### 7.3 Plot FGWC results
+#### 7.3.1 Plot for each location the cluster with the highest membership
+```{r plot highest membership clusters, fig.keep='all', fig.height=8, fig.width=10}
+fgwc_clusters <- data.frame(geometry = polygons$geom_pol,
+                            cluster = fgwc$cluster)
+
+message("Fuzzy GW Clustering parameters used:")
+fgwc_param
+clust.No <- as.numeric(fgwc_param["ncluster"])
+
+ggplot() + 
+    geom_sf(data = fgwc_clusters$geometry, 
+            aes(fill = as.factor(fgwc_clusters$cluster)),
+            colour = "grey30", 
+            show.legend = TRUE) +
+    scale_fill_brewer(type = "qual") + 
+    labs(title = "Fuzzy GW Clustering (FGWC)",
+         subtitle = paste0("nclust = ", clust.No),
+         fill = "Cluster") + 
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") + 
+    my_theme
+
+ggsave(file.path(fgwcDir,
+                 paste0("fgwc_nclust-", clust.No, ".tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+```
+
+#### 7.3.2 Plot for each cluster the membership percentage of each location
+```{r plot membership % for all clusters -panel-, fig.keep='all', fig.height=16, fig.width=16}
+## Prepare the data frame for plotting
+clusts.number <- 1:clust.No
+fgwc_membership <- data.frame(fgwc$membership)
+colnames(fgwc_membership) <- paste0("Cluster_", clusts.number)
+rownames(fgwc_membership) <- polygons$Barcode
+fgwc_membership <- data.frame(fgwc_membership,
+                              geometry = polygons$geom_pol)
+
+fgwc.plot.list <- list()
+
+## Plot all clusters and save them to a list
+
+fgwc.plot.list <- lapply(clusts.number, function(i){
+    p <- ggplot() + 
+    geom_sf(data = fgwc_membership$geometry, 
+            aes(fill = fgwc_membership[[paste0("Cluster_",i)]]),
+            colour = "grey30", 
+            show.legend = TRUE) + 
+    scale_fill_viridis_c(option = "inferno", limits = c(0, 1)) +
+    labs(title = paste0("Cluster: ", i),
+         fill = "Cluster\nmembership") + 
+    xlab("X coordinates (pixels)") + 
+    ylab("Y coordinates (pixels)") + 
+    my_theme +
+    theme(legend.position="right")
+    
+    return(p)
+})
+
+p <- egg::ggarrange(plots = fgwc.plot.list, nrow = 3, ncol = 3)
+
+ggsave(file.path(fgwcDir, 
+                 paste0("fgwc_nclust-", clust.No, "_memberships.tiff")),
+       plot = p,
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+print(p)
+```
+```{r plot membership % for all clusters -single-, fig.keep='all', fig.height=8, fig.width=10}
+for (i in clusts.number) {
+    p <- fgwc.plot.list[[i]]
+    
+    ggsave(file.path(fgwcDir, 
+                 paste0("fgwc_nclust-", clust.No, "_memberships_clust-", i, ".tiff")),
+       plot = p,
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+    
+    print(p)
+}
+
 ```
 
