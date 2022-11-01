@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE,
 ```
 # STExplorer: analysis of spatial transcriptomics data using geocomputational methods
 The below Rmarkdown will guide you through the spatial transcriptomics data analysis using geocomputational methodology. As a pipeline it has 5 steps that are time consuming:
-1. Normalisation of gene expression count data ([](#))
+1. Normalisation of gene expression count data ([5.1](#5.1))
 2. Variance stabilising transformation of gene expression count data ([5.2](#5.2))
 3. GWPCA run ([6.1](#6.1))
 4. Discrepancies identification ([6.6.1](#6.6.1))
