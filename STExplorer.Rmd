@@ -378,11 +378,7 @@ dist.Mat <- select(polygons, c(pixel_x, pixel_y)) %>%
 ```
 ## 5. Prepare count data for downstream analysis
 
-<<<<<<< HEAD
 ### <a id="5.1"></a>5.1 Normalise gene counts
-=======
-### 5.1 Normalise gene counts
->>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
 *This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo aas STExplorer_analysis.R*
 
 ```{r normalise counts}
@@ -405,11 +401,8 @@ counts = counts(dds, normalized = TRUE) # export normalised counts
 head(counts, c(10,5)) # Print the first 10 gene counts
 ```
 
-<<<<<<< HEAD
+
 ### <a id="5.2"></a>5.2 Generate VST counts data
-=======
-### 5.2 Generate VST counts data
->>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
 *This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo aas STExplorer_analysis.R*
 
 ```{r generate VST counts data}
@@ -440,11 +433,7 @@ select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
 
 ## 6. Perform Geographically Weighted PCA (GWPCA)
 
-<<<<<<< HEAD
 ### <a id="6.1"></a>6.1 Data prearation and single GWPCA run
-=======
-### 6.1 Data prearation and single GWPCA run
->>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
 *This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
 
 ```{r gwpca single}
@@ -655,18 +644,12 @@ ggsave(file.path(gwpcaDir, paste0(prefix.gwpca, "PTV_all.tiff")),
 ```{r plot PTV 2, fig.keep='all', fig.height=6, fig.width=6}
 # Plot PTVs one by one and in a panel
 ## One by one:
-<<<<<<< HEAD
 column_names <- colnames(props) %>%
     .[! . %in% "geometry"]
 
 for (n in column_names) {
     p <- gwpca.plot.prop.vars.single(data = select(props, all_of(n)))
-=======
-column_names <- colnames(props)
-for (n in column_names) {
-    p <- gwpca.plot.prop.vars.single(data = select(props, n))
->>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
-    
+
     print(p)
     
     name = sub("Comps_", "", n)
@@ -724,10 +707,8 @@ for (i in c(5, 10, 20, 30)) {
 ```
 
 ### 6.6 Identify discrepancies
-<<<<<<< HEAD
+
 #### <a id="6.6.1"></a>6.6.1 Calculate discrepancies
-=======
-#### 6.6.1 Calculate discrepancies
 >>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
 ```{r calculate discrepancies}
 # Calculate the discrepancies
@@ -850,11 +831,8 @@ inputFGWC <- vst_df[select] %>% # select 500 most variable genes
     .[nb_names,] # Re-order rows to match the polygon object row order
 ```
 
-<<<<<<< HEAD
+
 ### <a id="7.2"></a>7.2 Set parameters and run FGWC -classic mode-
-=======
-### 7.2 Set parameters and run FGWC -classic mode-
->>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
 ```{r set params and run fgwc}
 # Set FGWC parameters
 fgwc_param <- c(kind = 'v', ncluster = 7, m = 1.1, distance = 'euclidean', 
@@ -901,11 +879,7 @@ ggsave(file.path(fgwcDir,
 ```
 
 #### 7.3.2 Plot for each cluster the membership percentage of each location
-<<<<<<< HEAD
 ```{r plot membership for all clusters -panel-, fig.keep='all', fig.height=16, fig.width=16}
-=======
-```{r plot membership % for all clusters -panel-, fig.keep='all', fig.height=16, fig.width=16}
->>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
 ## Prepare the data frame for plotting
 clusts.number <- 1:clust.No
 fgwc_membership <- data.frame(fgwc$membership)
@@ -947,11 +921,7 @@ ggsave(file.path(fgwcDir,
 
 print(p)
 ```
-<<<<<<< HEAD
 ```{r plot membership for all clusters -single-, fig.keep='all', fig.height=8, fig.width=10}
-=======
-```{r plot membership % for all clusters -single-, fig.keep='all', fig.height=8, fig.width=10}
->>>>>>> 6c5384d060d1484fa82fa2627888692a34f2332d
 for (i in clusts.number) {
     p <- fgwc.plot.list[[i]]
     
