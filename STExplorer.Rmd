@@ -143,7 +143,7 @@ dir.create(file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results"), recu
 ```
 
 **IMPORTANT NOTE 1:** at this point you want to copy the "spatial" and the "filtered_feature_bc_matrix" folders from the spaceranger "outs" folder into the recently created "spaceranger_outs".\n
-**IMPORTANT NOTE 2:** if you have more than one tissue sections, make sure to add their each section's "spatial" and "filtered_feature_bc_matrix" folders from "outs" into their matching section's folder inside "spaceranger_outs".\n
+**IMPORTANT NOTE 2:** if you have more than one tissue sections, make sure to add each section's "spatial" and "filtered_feature_bc_matrix" folders from "outs" into their matching section's folder inside "spaceranger_outs".\n
 
 ## 3. Import the MetaData and the Data to be used
 ```{r import-data}
@@ -164,7 +164,7 @@ inputD[1:5, 1:5]
 
 ## 4. Prepare the data 
 **Generate the geocomputational data types needed for downstream applications.**\n
-Namely these are: 1. polygonise space, 2. find neighbours.
+Namely these are: 1. polygonise space, 2. find neighbours and 3. distance matrix.
 
 *This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
 
