@@ -153,7 +153,9 @@ spatialDir <- file.path(inputDir, sampleDir, "spatial")
 countsDir <- file.path(inputDir, sampleDir, "filtered_feature_bc_matrix")
 
 ## Import the dataset
-inputMD <- readSpacerangerMD(spatialDir, res = "low") #read-in MetaData
+inputMD <- readSpacerangerMD(spatialDir, 
+                             "tissue_positions_list.csv",
+                             res = "low") #read-in MetaData
 inputD <- readSpacerangerD(countsDir) #read-in gene expression Data
 
 ## Have a look
@@ -172,17 +174,25 @@ Namely these are: 1. polygonise space, 2. find neighbours and 3. distance matrix
 ### 4.1 Generate an enveloped Voronoi Tessellation for the whole capture area
 As *capture area* we refer to the total number of spots that are on the slide
 
-**NOTE:** In cases where the tissue touches the edges of the slide we have on-tissue spots right on the edge. With the way tessellation works these spots end up having no polygons and therefore are omitted from the further downstream analysis. To prevent that, we use a custom-made function called "add.perimeter.slide" which adds a layer of spots outside the slide's spot layout leading to spots on the edge having a polygon.
+**NOTE 1:** In cases where the tissue touches the edges of the slide we have on-tissue spots right on the edge. With the way tessellation works these spots end up having no polygons and therefore are omitted from the further downstream analysis. To prevent that, we use a custom-made function called "add.perimeter.slide" which adds a layer of spots outside the slide's spot layout leading to spots on the edge having a polygon.
 *This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R/core/helper_functions) GitHub repo as add.perimeter.slide.R*
 
 **NOTE 2:** It is good practice in R to have column names with letters, numbers, '_' and '.'. Below we will remove the '-' from the barcode names and replace it with '.'. Although this is not in column names, the inputD has the barcodes as column names and we will do the same change there too. Column names of inputD and Barcode column entries of inputMD should always match!
 
+**IMPORTANT NOTE:** If you added a perimeter, have a proper look to the plot. If any perimeter spots overlap on-tissue spots please adjust the perimeter addition parameters so that they do not overlap.
 ```{r voronoi-tessellation 1}
 ## Select spots in both bins (Sections) 0 and 1 and add a perimeter if needed
 spot_position <- inputMD %>% 
     select(c("Barcode", "pixel_x", "pixel_y", "Section")) %>%
-    mutate(Barcode = gsub("-", ".", .data$Barcode)) # remove the "-" from the barcodes and replace it with "."
-    # add.perimeter.slide(., spatialDir)
+    mutate(Barcode = gsub("-", ".", .data$Barcode)) %>% # remove the "-" from the barcodes and replace it with "."
+#     add.perimeter.slide(., spatialDir,
+#                         adjustselect = c(2, 2.4, 1.9, 1.9),
+#                         adjustadd = c(2, 2, 2.8, 2.8))
+# 
+# # Check that the perimeter was added correctly and if not, adjust it
+# ggplot(spot_position) +
+#     geom_point(aes(x = pixel_x, y = pixel_y, colour = Section))
+
 head(spot_position, 5)
 ```
 ```{r voronoi-tessellation 2}
@@ -213,7 +223,8 @@ head(voronoi_env)
 ## plot the voronoi tessellation without the perimeter
 ggplot() +
     geom_sf(data = voronoi_env, colour = "black", fill = "white") + 
-    geom_sf(data = centroids, aes(colour = as.factor(Section)), size = 1.2) + 
+    # If there is no perimeter added:
+    geom_sf(data = centroids, aes(colour = as.factor(Section)), size = 5) + 
     # If a perimeter was added:
     # geom_sf(data = filter(centroids, Section != "perimeter"), # remove the perimeter spots
     #     aes(colour = as.factor(Section)), size = 2) + 
@@ -294,8 +305,7 @@ polygons$nb_count <- card(neighbours)
 
 ## Add the neighbour (nb) IDs as a nested df in the polygons object
 nb_IDs <- neighbours %>%
-    nb2lines(., coords = polygons$geometry) %>% #get nb connecting lines 
-    as("sf") %>% #convert to sf
+    nb2lines(., coords = polygons$geometry, as_sf = TRUE) %>% #get nb connecting lines
     st_drop_geometry() %>% #drop geometry column
     select(i_ID, j_ID) %>% #select only nb ID columns
     rename(nb_IDs = j_ID) %>% #rename the neighbours ID column
