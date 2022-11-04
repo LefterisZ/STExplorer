@@ -142,7 +142,6 @@ dir.create(file.path(inputDir, "Olfactory_Bulb/Olfactory_Bulb_A1_Results"), recu
 
 ```
 
-**IMPORTANT NOTE 1:** at this point you want to copy the "spatial" and the "filtered_feature_bc_matrix" folders from the spaceranger "outs" folder into the recently created "spaceranger_outs".\n
 **IMPORTANT NOTE 2:** if you have more than one tissue sections, make sure to add each section's "spatial" and "filtered_feature_bc_matrix" folders from "outs" into their matching section's folder inside "spaceranger_outs".\n
 
 ## 3. Import the MetaData and the Data to be used
