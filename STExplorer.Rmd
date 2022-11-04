@@ -294,12 +294,18 @@ polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
 ### 4.3 Find neighbours based on adjacency 
 ```{r get neighbours}
 ## Create contiguity neighbours
-neighbours <- poly2nb(polygons, snap = 0)
-names(neighbours) = attr(neighbours, "region.id") # add names to the sub-lists
+neighbours <- poly2nb.ste(pls = polygons,
+                          snap = 0,
+                          remove = FALSE,
+                          show = TRUE)
 ```
 
 ### 4.4 Make one data frame to contain all the information
 ```{r save all in one data.frame}
+## If you removed neighbourless locations in the previous step, remove them from
+## the polygons object too:
+# polygons <- clean.no.nbs(nbr = neighbours, pls = polygons)
+
 ## Add number of neighbours for each polygon back to the polygons object
 polygons$nb_count <- card(neighbours)
 
@@ -389,18 +395,22 @@ dist.Mat <- select(polygons, c(pixel_x, pixel_y)) %>%
 ## 5. Prepare count data for downstream analysis
 
 ### <a id="5.1"></a>5.1 Normalise gene counts
-*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo aas STExplorer_analysis.R*
+*This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
 
 ```{r normalise counts}
-## Prepare for gene expression normalisation using DESeq2
 colnames(inputD) <- gsub("-", ".", colnames(inputD)) # Fix the colnames
+
+#If you removed neighbourless locations, remove them from inputD too.
+inputD <- clean.no.nbs(nbr = neighbours, inD = inputD) # clean the gene counts df
+
+## Prepare for gene expression normalisation using DESeq2
 spotName <- colnames(inputD)
 spotTable <- data.frame(spotName = spotName)
 
 #filter out genes with less than 10 counts total in all spots
 inputD_filt <- inputD[!rowSums(inputD) < 10,]
 
-dds <- DESeqDataSetFromMatrix(countData = inputD,
+dds <- DESeqDataSetFromMatrix(countData = inputD_filt,
                               colData = spotTable,
                               design = ~spotName)
 
