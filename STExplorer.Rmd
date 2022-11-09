@@ -54,9 +54,9 @@ pkg.check <- lapply(
 
 
 ## 2 Cran ----
-pkgCRAN <- c("Seurat", "cowplot", 
-             "RColorBrewer",
-             "harmony", "dplyr", 
+pkgCRAN <- c("Seurat", "cowplot", "igraph",
+             "RColorBrewer", "ggraph",
+             "harmony", "dplyr", "umap",
              "spdep", "sf", "jsonlite",
              "tidyverse", "GWmodel", 
              "gridExtra", "ggbeeswarm",
