@@ -299,24 +299,27 @@ ggraph::ggraph(g = umap.map.3.ig,
     geom_edge_link(width = 0.1, edge_colour = "grey66") + 
     geom_node_point(aes(colour = grp)) + 
     scale_colour_manual(values = c4a("wright25", 7))
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.igraph.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 ggraph::ggraph(g = umap.map.3.ig,
                layout = "stress") + 
     geom_edge_link(width = 0.1, edge_colour = "grey66") + 
     geom_node_point(aes(colour = grp)) + 
     scale_colour_manual(values = c4a("wright25", 7))
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.igraph2.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 ### Cluster with Louvain ----
 umap.map.3.clst <- cluster_louvain(umap.map.3.ig)
 membership(umap.map.3.clst)
-plot(umap.map.3.clst, umap.map.3.ig)
-V(umap.map.3.ig)$louv <- as.factor(membership(umap.map.3.clst))
-
-ggraph::ggraph(g = umap.map.3.ig,
-               layout = "stress") + 
-    geom_edge_link(width = 0.1, edge_colour = "grey66") + 
-    geom_node_point(aes(colour = louv)) + 
-    scale_colour_manual(values = c4a("wright25", 9))
+V(umap.map.3.ig)$louv <- as.character(membership(umap.map.3.clst))
 
 ggraph::ggraph(g = umap.map.3.ig,
                layout = "manual",
@@ -325,6 +328,22 @@ ggraph::ggraph(g = umap.map.3.ig,
     geom_edge_link(width = 0.1, edge_colour = "grey66") + 
     geom_node_point(aes(colour = louv)) + 
     scale_colour_manual(values = c4a("wright25", 9))
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.igraph.louv.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+ggraph::ggraph(g = umap.map.3.ig,
+               layout = "stress") + 
+    geom_edge_link(width = 0.1, edge_colour = "grey66") + 
+    geom_node_point(aes(colour = louv)) + 
+    scale_colour_manual(values = c4a("wright25", 9))
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.igraph.louv2.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 umap.map.3 <- umap.map.3 %>%
     mutate("louvain" = as.factor(membership(umap.map.3.clst)))
@@ -358,21 +377,23 @@ dist.Mat.w2 <- gw.weight(vdist = dist.Mat,
                             kernel = kernel,
                             adaptive = FALSE)
 
+umap.map.3.edgeW1 <- apply(umap.map.3.igraph, 1, function(x){
+    dist.Mat.w1[x[1],x[2]]
+})
 umap.map.3.edgeW2 <- apply(umap.map.3.igraph, 1, function(x){
     dist.Mat.w2[x[1],x[2]]
 })
 
-range(umap.map.3.edgeW2)
-E(umap.map.3.ig)$weights <- umap.map.3.edgeW2
+range(umap.map.3.edgeW1)
+E(umap.map.3.ig)$weights <- umap.map.3.edgeW1
 
 
 umap.map.3.ig.filt <- subgraph.edges(umap.map.3.ig, 
-                                     E(umap.map.3.ig)[E(umap.map.3.ig)$weights > 0], 
+                                     E(umap.map.3.ig)[E(umap.map.3.ig)$weights > 1], 
                                      del=F)
 
 umap.map.3.clst.filt <- cluster_louvain(umap.map.3.ig.filt)
 membership(umap.map.3.clst.filt)
-plot(umap.map.3.clst, umap.map.3.ig.filt)
 V(umap.map.3.ig.filt)$louv <- as.factor(membership(umap.map.3.clst.filt))
 
 ggraph::ggraph(g = umap.map.3.ig.filt,
@@ -406,7 +427,7 @@ range(umap.map.3.dist)
 dist.Mat <- gw.dist(dp.locat = st_coordinates(polygons$geom_cntd),
                     p = 2)
 bw = 3*spot_diameter(spatialDir)
-kernel = "gaussian"
+kernel = "exponential"
 
 polygons.wdist <- gw.weight(vdist = dist.Mat, 
                             bw = bw,
@@ -416,7 +437,7 @@ range(polygons.wdist)
 range(dist.Mat)
 
 ### Calculate weighted UMAP distances
-umap.map.3.wdist <- umap.map.3.dist * dist.Mat
+umap.map.3.wdist <- umap.map.3.dist / polygons.wdist
 
 umap.map.3.cmdscale <- cmdscale(umap.map.3.wdist, k = 2, add = TRUE) %>%
     .[["points"]] %>%
@@ -451,7 +472,11 @@ ggplot() +
     labs(title = "Reconstructed UMAP from point distances",
          subtitle = "n neighbours = 7\nmin dist = 0.05") +
     my_theme
-
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.reconst.umap.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 ### Reconstruct tissue map from weighted point distances ----
 cmdscale_polygons.w <- cmdscale(polygons.wdist, k = 2, add = TRUE) %>%
     .[["points"]] %>%
@@ -463,8 +488,13 @@ ggplot() +
                aes(x = X, y = Y, colour = group)) +
     scale_color_manual(values = c4a("wright25", 7)) +
     labs(title = "Reconstructed map from \nweighted point distances",
-         subtitle = "kernel = bisquared") +
+         subtitle = "kernel = exponential") +
     my_theme
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.reconst.mapW.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 ### Reconstruct tissue map from simple point distances ----
 cmdscale_polygons <- cmdscale(dist.Mat, k = 2, add = TRUE) %>%
@@ -474,10 +504,15 @@ cmdscale_polygons <- cmdscale(dist.Mat, k = 2, add = TRUE) %>%
     rename("X" = "V1", "Y" = "V2")
 ggplot() +
     geom_point(data = cmdscale_polygons,
-               aes(x = X, y = Y, colour = group), size = 4.5) +
+               aes(x = X, y = Y, colour = group), size = 5.8) +
     scale_color_manual(values = c4a("wright25", 7)) +
     labs(title = "Reconstructed map from point distances") +
     my_theme
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.reconst.map.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
 
 ## Calculate knn from UMAP layout ----
 umap.custom.3.knn <- knearneigh(umap.custom.3$layout, k = 6)
@@ -505,6 +540,172 @@ ggplot() +
 
 prefix.gwumap <- "gwumap_cust.n7.dist005_500.vst.unscaled"
 ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+# 9. Run GW-UMAP - weight knn statistical distance ----
+## Customise configuration ----
+custom.config <- umap.defaults
+custom.config$n_neighbors <- 7
+custom.config$min_dist <- 0.05
+
+## Run UMAP ----
+scaled <- "scaled"
+umap.custom <- umap(inputUMAP.scaled,
+                      config = custom.config)
+
+umap.layout_df <- as.data.frame(umap.custom$layout)
+head(umap.layout_df)
+polygons[1:6, 1:2]
+
+## Plot UMAP ----
+ggplot() + 
+    geom_point(data = umap.layout_df,
+               aes(x = V1, y = V2)) +
+    labs(title = "Scaled VST data UMAP",
+         subtitle = "n neighbours = 7\nmin dist = 0.05") + 
+    my_theme
+
+prefix.gwumap <- paste0("gwumap_cust.n", custom.config$n_neighbors,
+                        ".dist", custom.config$min_dist, ".", scaled)
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+## Get the knn indexes and the UMAP distances ----
+umap.map.igraph.idx <- umap.custom$knn$indexes
+colnames(umap.map.igraph.idx) <- c("from", 
+                                     paste0("nb", 1:(dim(umap.map.igraph.idx)[2]-1)))
+
+umap.map.igraph.dist <- umap.custom$knn$distances
+colnames(umap.map.igraph.dist) <- c("from", 
+                                      paste0("nb", 1:(dim(umap.map.igraph.dist)[2]-1)))
+
+## Build EDGES from-to data.frame ----
+umap.map.igraph.E <- umap.map.igraph.idx %>%
+    as.data.frame() %>%
+    pivot_longer(-from, names_to = NULL, values_to = "to")
+
+## Plot UN-weighted LOUVAIN ----
+### Generate the graph object ----
+umap.map.ig <- graph.data.frame(umap.map.igraph.E, directed = FALSE)
+umap.map.clst <- cluster_louvain(umap.map.ig)
+V(umap.map.ig)$louv <- as.character(membership(umap.map.clst))
+### Plot ----
+ggraph::ggraph(g = umap.map.ig,
+               layout = "manual",
+               x = umap.custom$layout[,1],
+               y = umap.custom$layout[,2]) + 
+    geom_edge_link(width = 0.1, edge_colour = "grey66") + 
+    geom_node_point(aes(colour = louv)) + 
+    scale_colour_manual(values = c4a("wright25", 11))
+ggsave(file.path(gwumapDir, paste0("umap.custom.", scaled, ".louv.default.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+## Build EDGES UMAP distance vector ----
+umap.map.igraph.D <- umap.map.igraph.dist %>%
+    as.data.frame() %>%
+    pivot_longer(-from, names_to = NULL, values_to = "dist") %>%
+    as.data.frame() %>%
+    select(-from) %>%
+    .[,1]
+
+## Calculate weighted physical distance matrix ----
+### Set parameters ----
+dist.Mat <- gw.dist(dp.locat = st_coordinates(polygons$geom_cntd), p = 2)
+a = 1
+b = 1
+bw = (spot_diameter(spatialDir) + range(dist.Mat)[2])*0.75
+kernel = "bisquare"
+### Calculate W distance matrix ----
+dist.Mat.w1 <- ((1/(dist.Mat+a))+b)
+dist.Mat.w2 <- gw.weight(vdist = dist.Mat, 
+                         bw = bw,
+                         kernel = kernel,
+                         adaptive = FALSE)
+### Plot weights distribution for a single location ----
+ggplot() +
+    geom_line(aes(x = dist.Mat[,1], y = dist.Mat.w2[,1]), 
+              colour = "black",
+              size = 1.5) + 
+    geom_point(aes(x = dist.Mat[,1], y = dist.Mat.w2[,1]), 
+               colour = "skyblue", 
+               alpha = 0.4) + 
+    labs(title = kernel,
+         subtitle = paste0("bw = ", bw),
+         caption = paste0(scaled, " VST data")) +
+    ylab("weight") + 
+    xlab("distance") +
+    my_theme
+ggsave(file.path(gwumapDir, 
+                 paste0("dist.weight.curve.", scaled, ".", kernel, ".bw", round(bw), ".tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+## Build WEIGHTS vector for the graph edges ----
+umap.map.igraph.W <- get.weights(umap.map.igraph.E, dist.Mat.w2)
+
+## Calculate WEIGHTED UMAP DISTANCES vector ----
+umap.map.igraph.DW <- umap.map.igraph.D * umap.map.igraph.W
+range(umap.map.igraph.DW)
+
+## Add weighted UMAP distances as edge weights ----
+E(umap.map.ig)$weight <- umap.map.igraph.DW
+V(umap.map.ig)
+I(umap.map.ig)
+
+## LOUVAIN CLUSTERING with EDGE WEIGHTS ----
+umap.map.clst.DW <- cluster_louvain(umap.map.ig)
+membership(umap.map.clst.DW)
+V(umap.map.ig)$louv <- as.character(membership(umap.map.clst.DW))
+col.No = length(umap.map.clst.DW)
+colour.values <- get.colours(col.No)
+## Set graph output prefix ----
+prefix.louvain <- paste0("umap.custom.louv_embedding.DW.")
+
+## Plot graph on the UMAP layout ----
+ggraph::ggraph(g = umap.map.ig,
+               layout = "manual",
+               x = umap.custom$layout[,1],
+               y = umap.custom$layout[,2]) + 
+    geom_edge_link(width = 0.1, edge_colour = "grey66") + 
+    geom_node_point(aes(colour = louv)) + 
+    scale_colour_manual(values = colour.values)
+ggsave(file.path(gwumapDir, paste0(prefix.louvain, scaled, ".", kernel, ".bw", round(bw), ".tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+
+umap.map <- umap.layout_df  %>%
+    mutate("geometry" = polygons$geom_pol) %>%
+    mutate("louvain" = as.factor(membership(umap.map.clst.DW)))
+
+ggplot() + 
+    geom_sf(data = umap.map$geometry,
+            aes(fill = umap.map$louvain)) + 
+    scale_fill_manual(values = colour.values) +
+    labs(title = "Louvain clusters",
+         caption = paste0("knn = ", custom.config$n_neighbors,
+                           "\nminDist = ", custom.config$min_dist,
+                           "\nkernel = ", kernel,
+                           "\nbw = ", round(bw),
+                           "\nscaled = ", scaled),
+         fill = "Louvain clusters") + 
+    my_theme
+ggsave(file.path(gwumapDir, paste0(prefix.louvain, ".map.", scaled, ".", kernel, ".bw", round(bw), ".tiff")),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
