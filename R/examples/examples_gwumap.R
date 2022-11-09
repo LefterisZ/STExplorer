@@ -7,9 +7,6 @@ library(graphlayouts)
 library(igraph)
 library(ggraph)
 
-# library(plotly)
-
-rm(E,xy)
 
 # 1. Create a gwumap graphics output directory ----
 gwumapDir <- file.path(graphDir, "gwumap")
