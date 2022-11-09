@@ -343,6 +343,46 @@ ggsave(file.path(gwumapDir, paste0(prefix.gwumap, "_embedding.map.louvain.tiff")
        units = "in",
        dpi = 400)
 
+### Apply spatial weights to graph edges
+dist.Mat <- gw.dist(dp.locat = st_coordinates(polygons$geom_cntd),
+                    p = 2)
+a = 1
+b = 1
+dist.Mat.w1 <- ((1/(dist.Mat+a))+b)
+
+bw = 3*spot_diameter(spatialDir)
+kernel = "bisquare"
+
+dist.Mat.w2 <- gw.weight(vdist = dist.Mat, 
+                            bw = bw,
+                            kernel = kernel,
+                            adaptive = FALSE)
+
+umap.map.3.edgeW2 <- apply(umap.map.3.igraph, 1, function(x){
+    dist.Mat.w2[x[1],x[2]]
+})
+
+range(umap.map.3.edgeW2)
+E(umap.map.3.ig)$weights <- umap.map.3.edgeW2
+
+
+umap.map.3.ig.filt <- subgraph.edges(umap.map.3.ig, 
+                                     E(umap.map.3.ig)[E(umap.map.3.ig)$weights > 0], 
+                                     del=F)
+
+umap.map.3.clst.filt <- cluster_louvain(umap.map.3.ig.filt)
+membership(umap.map.3.clst.filt)
+plot(umap.map.3.clst, umap.map.3.ig.filt)
+V(umap.map.3.ig.filt)$louv <- as.factor(membership(umap.map.3.clst.filt))
+
+ggraph::ggraph(g = umap.map.3.ig.filt,
+               layout = "manual",
+               x = umap.custom.3$layout[,1],
+               y = umap.custom.3$layout[,2]) + 
+    geom_edge_link(width = 0.1, edge_colour = "grey66") + 
+    geom_node_point(aes(colour = louv)) + 
+    scale_colour_manual(values = c4a("wright25", 9))
+
 ## Apply spatial weights to UMAP layout ----
 ### Make sf point object ----
 umap.map.3.cntd <- umap.custom.3$layout %>% # retrieve the UMAP layout
