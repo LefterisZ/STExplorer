@@ -61,7 +61,8 @@ pkgCRAN <- c("Seurat", "cowplot", "igraph",
              "tidyverse", "GWmodel", 
              "gridExtra", "ggbeeswarm",
              "egg", "ggpubr", "scales", 
-             "pheatmap", "rlist", "kableExtra")
+             "pheatmap", "rlist", "kableExtra",
+             "graphlayouts", "dbscan")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
@@ -873,6 +874,7 @@ fgwc <- naspaclust::fgwc(data = inputFGWC,
 ```{r plot highest membership clusters, fig.keep='all', fig.height=8, fig.width=10}
 fgwc_clusters <- data.frame(geometry = polygons$geom_pol,
                             cluster = fgwc$cluster)
+rownames(fgwc_clusters) <- polygons$Barcode
 
 message("Fuzzy GW Clustering parameters used:")
 fgwc_param

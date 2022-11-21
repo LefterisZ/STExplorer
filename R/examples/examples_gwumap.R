@@ -1,9 +1,13 @@
 install.packages("umap")
+install.packages("uwot")
+install.packages("dbscan")
 install.packages("graphlayouts")
 install.packages("ggraph")
 install.packages("snahelper")
 library(umap)
-# library(graphlayouts)
+library(uwot)
+library(dbscan)
+library(graphlayouts)
 library(igraph)
 library(ggraph)
 
@@ -11,9 +15,15 @@ library(ggraph)
 # 1. Create a gwumap graphics output directory ----
 gwumapDir <- file.path(graphDir, "gwumap")
 
-# 2. Create input data from 500 most variable genes ----
+# 2a. Create input data from 500 most variable genes ----
 inputUMAP <- vst_df[, select] %>%
     as.data.frame() %>% 
+    .[nb_names,]
+# 2b. Create input data from the first 50 Principal Components
+## princomp function was used for PCA on 500 most variable genes
+### input to princomp was scaled
+inputUMAP.pca <- pca[["scores"]][,1:30] %>% 
+    as.data.frame() %>%
     .[nb_names,]
 
 # ---------------------------------------------------------------------------- #
@@ -624,12 +634,13 @@ V(umap.map.5.ig)$louv <- as.character(membership(umap.map.5.clst))
 # 10. Run GW-UMAP - weight knn statistical distance ----
 ## Customise configuration ----
 custom.config <- umap.defaults
-custom.config$n_neighbors <- 7
-custom.config$min_dist <- 0.01
+custom.config$n_neighbors <- 10
+custom.config$min_dist <- 0.2
+custom.config$n_components <- 2
 
 ## Run UMAP ----
 scaled <- "scaled"
-umap.custom <- umap(inputUMAP.scaled,
+umap.custom <- umap::umap(inputUMAP.scaled,
                       config = custom.config)
 
 umap.layout_df <- as.data.frame(umap.custom$layout)
@@ -672,7 +683,7 @@ umap.map.igraph.E <- umap.map.igraph.idx %>%
 umap.map.ig <- graph.data.frame(umap.map.igraph.E, directed = FALSE)
 umap.map.clst <- cluster_louvain(umap.map.ig)
 V(umap.map.ig)$louv <- as.character(membership(umap.map.clst))
-### Plot ----
+### Plot UMAP layout----
 ggraph::ggraph(g = umap.map.ig,
                layout = "manual",
                x = umap.custom$layout[,1],
@@ -681,6 +692,26 @@ ggraph::ggraph(g = umap.map.ig,
     geom_node_point(aes(colour = louv)) + 
     scale_colour_manual(values = c4a("wright25", 11))
 ggsave(file.path(gwumapDir, paste0(prefix.gwumap, ".louv.default.tiff")),
+       width = grDevices::dev.size(units = "in")[1],
+       height = grDevices::dev.size(units = "in")[2],
+       units = "in",
+       dpi = 400)
+### Plot map layout----
+umap.map <- umap.layout_df  %>%
+    mutate("geometry" = polygons$geom_pol) %>%
+    mutate("louvain" = as.factor(membership(umap.map.clst)))
+
+ggplot() + 
+    geom_sf(data = umap.map$geometry,
+            aes(fill = umap.map$louvain)) + 
+    scale_fill_manual(values = colour.values) +
+    labs(title = "Louvain clusters",
+         caption = paste0("knn = ", custom.config$n_neighbors,
+                          "\nminDist = ", custom.config$min_dist,
+                          "\nscaled = ", scaled),
+         fill = "Louvain clusters") + 
+    my_theme
+ggsave(file.path(gwumapDir, paste0(prefix.gwumap, ".map.louv.default.tiff")),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -699,8 +730,8 @@ umap.map.igraph.D <- umap.map.igraph.dist %>%
 dist.Mat <- gw.dist(dp.locat = st_coordinates(polygons$geom_cntd), p = 2)
 # a = 1
 # b = 1
-bw = (range(dist.Mat)[2])
-kernel = "boxcar"
+bw = (range(dist.Mat)[2])+4
+kernel = "bisquare"
 ### Calculate W distance matrix ----
 # dist.Mat.w1 <- 1/dist.Mat
 dist.Mat.w2 <- gw.weight(vdist = dist.Mat, 
@@ -749,29 +780,39 @@ V(umap.map.ig)
 I(umap.map.ig)
 
 ## LOUVAIN CLUSTERING with EDGE WEIGHTS ----
-umap.map.clst.DW <- cluster_louvain(umap.map.ig)
+umap.map.clst.DW <- cluster_louvain(umap.map.ig, weights = E(umap.map.ig)$weight)
 membership(umap.map.clst.DW)
 V(umap.map.ig)$louv <- as.character(membership(umap.map.clst.DW))
+order(V(umap.map.ig)$louv)
 col.No = length(umap.map.clst.DW)
 colour.values <- get.colours(col.No)
-## Set graph output prefix ----
+
+### calculate a layout with weights ----
+layout <- layout_as_tree(umap.map.ig)
+l = ""
+### Set graph output prefix ----
 prefix.louvain <- paste0("umap.custom.louv_embedding.DW.")
 
-## Plot graph on the UMAP layout ----
+### Plot graph on the UMAP layout ----
 ggraph::ggraph(g = umap.map.ig,
-               layout = "manual",
-               x = umap.custom$layout[,1],
-               y = umap.custom$layout[,2]) + 
-    geom_edge_link(width = 0.1, edge_colour = "grey66") + 
+               layout = "auto",
+                # x = umap.custom$layout[,1],
+                # y = umap.custom$layout[,2]
+               ) + 
+    geom_edge_link(aes(#width = E(umap.map.ig)$weight,
+                       colour = E(umap.map.ig)$weight), 
+                   # edge_colour = "grey66"
+                   ) + 
     geom_node_point(aes(colour = louv)) + 
-    scale_colour_manual(values = colour.values)
-ggsave(file.path(gwumapDir, paste0(prefix.louvain, scaled, ".", kernel, ".bw", round(bw), ".tiff")),
+    scale_colour_manual(values = colour.values) +
+    scale_edge_width(range = c(0.1, 2))
+ggsave(file.path(gwumapDir, paste0(prefix.louvain, scaled, ".", kernel, ".bw", round(bw), ".", l, ".tiff")),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
 
-## Plot graph on the tissue map ----
+### Plot graph on the tissue map ----
 umap.map <- umap.layout_df  %>%
     mutate("geometry" = polygons$geom_pol) %>%
     mutate("louvain" = as.factor(membership(umap.map.clst.DW)))
@@ -788,7 +829,7 @@ ggplot() +
                            "\nscaled = ", scaled),
          fill = "Louvain clusters") + 
     my_theme
-ggsave(file.path(gwumapDir, paste0(prefix.louvain, ".map.", scaled, ".", kernel, ".bw", round(bw), ".tiff")),
+ggsave(file.path(gwumapDir, paste0(prefix.louvain, ".map.", scaled, ".", kernel, ".bw", round(bw), ".", l, ".tiff")),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
@@ -803,10 +844,10 @@ membership(umap.map.clst.DW)
 V(umap.map.ig)$leid <- as.character(membership(umap.map.clst.DW))
 col.No = length(umap.map.clst.DW)
 colour.values <- get.colours(col.No)
-## Set graph output prefix ----
+### Set graph output prefix ----
 prefix.leiden <- paste0("umap.custom.leid_embedding.DW.")
 
-## Plot graph on the UMAP layout ----
+### Plot graph on the UMAP layout ----
 ggraph::ggraph(g = umap.map.ig,
                layout = "manual",
                x = umap.custom$layout[,1],
@@ -820,7 +861,7 @@ ggsave(file.path(gwumapDir, paste0(prefix.leiden, scaled, ".", kernel, ".bw", ro
        units = "in",
        dpi = 400)
 
-## Plot graph on the tissue map ----
+### Plot graph on the tissue map ----
 umap.map <- umap.layout_df %>%
     mutate("geometry" = polygons$geom_pol) %>%
     mutate("leiden" = as.factor(membership(umap.map.clst.DW)))
@@ -842,3 +883,166 @@ ggsave(file.path(gwumapDir, paste0(prefix.leiden, ".map.", scaled, ".", kernel, 
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
+
+## HDBSCAN CLUSTERING of UMAP embedding ----
+## Customise configuration ----
+data.in <- expand.grid(knn = c(7, 10, 13, 15, 20),
+                       minDist = c(0.001, 0.01, 0.1, 0.25, 0.5),
+                       lowDims = c(2, 3, 5, 10, 15),
+                       minPTS = c(6, 10, 15),
+                       stringsAsFactors = FALSE)
+
+apply(data.in, 1, function(x){
+    custom.config <- umap.defaults
+    custom.config$n_neighbors <- x[1]
+    custom.config$min_dist <- x[2]
+    custom.config$n_components <- x[3]
+    
+    ## Run UMAP ----
+    scaled <- "scaled"
+    umap.custom <- umap::umap(inputUMAP.pca,
+                              config = custom.config)
+    
+    ## Run HFBSCAN ----
+    umap.hdbsc.in <- data.frame(umap.custom$layout[,])
+    colnames(umap.hdbsc.in) <- paste0("UMAP", 1:dim(umap.custom$layout)[2])
+    
+    umap.map.clst.HDBSC <- hdbscan(umap.hdbsc.in, 
+                                   minPts = x[4],
+                                   verbose = TRUE)
+    
+    #minPts = umap.map.clst.HDBSC$hc$call$minPts
+    minPts = x[4]
+    knn = custom.config$n_neighbors
+    minDist = custom.config$min_dist
+    lowD = custom.config$n_components
+    col.No = length(unique(umap.map.clst.HDBSC$cluster))
+    colour.values <- get.colours(col.No)
+    ### Set graph output prefix ----
+    prefix.hdbscan <- paste0("umap.custom.HDBSCAN.")
+    
+    ### Plot graph on the tissue map ----
+    umap.map <- umap.hdbsc.in %>%
+        mutate("geometry" = polygons$geom_pol) %>%
+        mutate( "hdbscan" = as.factor(umap.map.clst.HDBSC$cluster))
+    
+    p <- ggplot() + 
+        geom_sf(data = umap.map$geometry,
+                aes(fill = umap.map$hdbscan)) + 
+        scale_fill_manual(values = colour.values) +
+        labs(title = "HDBSCAN clusters",
+             caption = paste0("knn = ", custom.config$n_neighbors,
+                              "\nminDist = ", custom.config$min_dist,
+                              "\nminPts = ", minPts,
+                              "\nlowDim = ", lowD,
+                              "\nscaled = ", scaled),
+             fill = "HDBSCAN clusters") + 
+        my_theme
+    #print(p)
+    ggsave(file.path(gwumapDir, paste0(prefix.hdbscan, minPts, ".map.pca.", scaled, ".knn", knn, ".minD", minDist, ".lowDim", lowD, ".tiff")),
+           plot = p,
+           width = grDevices::dev.size(units = "in")[1],
+           height = grDevices::dev.size(units = "in")[2],
+           units = "in",
+           dpi = 150)
+})
+
+## FUZZY CLUSTERING of UMAP embedding ----
+## Customise configuration ----
+data.in <- expand.grid(knn = c(7, 10, 13, 15, 20),
+                       minDist = c(0.001, 0.01, 0.1, 0.25, 0.5),
+                       lowDims = c(2, 3, 5, 10, 15),
+                       stringsAsFactors = FALSE)
+
+apply(data.in[76:125,], 1, function(x){
+    custom.config <- umap.defaults
+    custom.config$n_neighbors <- x[1]
+    custom.config$min_dist <- x[2]
+    custom.config$n_components <- x[3]
+    
+    fgwc_param <- c(kind = 'v', ncluster = 7, m = 1.1, distance = 'euclidean', 
+                    order = 2, alpha = 0.5, a = 1, b = 1, max.iter = 500, 
+                    error = 1e-5, randomN = 1)
+    
+    ## Run UMAP ----
+    scaled <- "scaled"
+    umap.custom <- umap::umap(inputUMAP.pca,
+                              config = custom.config)
+    
+    ## Run FGWC ----
+    umap.fgwc.in <- data.frame(umap.custom$layout[,])
+    colnames(umap.fgwc.in) <- paste0("UMAP", 1:dim(umap.custom$layout)[2])
+    
+    umap.map.clst.FGWC <- naspaclust::fgwc(data = umap.fgwc.in, 
+                                           pop = pop, 
+                                           distmat = dist.Mat,
+                                           algorithm = "classic",
+                                           fgwc_param = fgwc_param)
+    
+    knn = custom.config$n_neighbors
+    minDist = custom.config$min_dist
+    lowD = custom.config$n_components
+    col.No = length(unique(umap.map.clst.FGWC$cluster))
+    colour.values <- get.colours(col.No)
+    ### Set graph output prefix ----
+    prefix.fgwc <- paste0("umap.custom.FGWC.")
+    
+    ### Plot graph on the tissue map ----
+    umap.map <- umap.fgwc.in %>%
+        mutate("geometry" = polygons$geom_pol) %>%
+        mutate( "fgwc" = as.factor(umap.map.clst.FGWC$cluster))
+    
+    p <- ggplot() + 
+        geom_sf(data = umap.map$geometry,
+                aes(fill = umap.map$fgwc)) + 
+        scale_fill_manual(values = colour.values) +
+        labs(title = "FGWC clusters",
+             caption = paste0("knn = ", custom.config$n_neighbors,
+                              "\nminDist = ", custom.config$min_dist,
+                              "\nlowDim = ", lowD,
+                              "\nscaled = ", scaled),
+             fill = "FGWC clusters") + 
+        my_theme
+    #print(p)
+    ggsave(file.path(gwumapDir, paste0(prefix.fgwc, ".map.pca.", scaled, ".knn", knn, ".minD", minDist, ".lowDim", lowD, ".tiff")),
+           plot = p,
+           width = grDevices::dev.size(units = "in")[1],
+           height = grDevices::dev.size(units = "in")[2],
+           units = "in",
+           dpi = 150)
+})
+
+
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+# 10. Run GW-UMAP - weight gene expression ----
+## make observations matrix g x s ----
+obs <- counts[select,] %>% 
+    .[,nb_names]
+
+## make spatial weights matrix s x s ----
+### Set parameters ----
+dist.Mat <- gw.dist(dp.locat = st_coordinates(polygons$geom_cntd), p = 2)
+bw = (range(dist.Mat)[2])+4
+kernel = "bisquare"
+### Calculate W distance matrix ----
+w <- gw.weight(vdist = dist.Mat, 
+               bw = bw,
+               kernel = kernel,
+               adaptive = FALSE)
+### Plot a weighted distance example ----
+ggplot() +
+    geom_line(aes(x = dist.Mat[,1], y = w[,1]), 
+              colour = "black",
+              linewidth = 1.5) + 
+    geom_point(aes(x = dist.Mat[,1], y = w[,1]), 
+               colour = "skyblue", 
+               alpha = 0.4) + 
+    labs(title = kernel,
+         subtitle = paste0("bw = ", bw),
+         caption = paste0(scaled, " VST data")) +
+    ylab("weight") + 
+    xlab("distance") +
+    my_theme
+
+

@@ -448,7 +448,7 @@ inputFGWC <- vst_df[select] %>% # select 500 most variable genes
     .[nb_names,] # Re-order rows to match the polygon object row order
 
 # Set FGWC parameters
-fgwc_param <- c(kind = 'v', ncluster =7, m = 1.1, distance = 'euclidean', 
+fgwc_param <- c(kind = 'v', ncluster = 7, m = 1.1, distance = 'euclidean', 
                 order = 2, alpha = 0.5, a = 1, b = 1, max.iter = 500, 
                 error = 1e-5, randomN = 1)
 

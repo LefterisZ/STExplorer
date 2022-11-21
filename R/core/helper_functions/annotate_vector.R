@@ -1,6 +1,6 @@
 #' @name annotate_vector
 #' 
-#' @description a function to annotate any vector of of ENSGene IDs.
+#' @description a function to annotate any vector of ENSGene IDs.
 #' 
 #' @param data A vector with an ENSGIDs as input.
 #' @param biomart Biomart annotations of any organism. Can be generated using 
@@ -47,8 +47,8 @@ annotate_vector <- function(data, biomart, add, id = 1, check.names = FALSE,
         message(sum(is.na(biom.dt)), " rows in data are missing from biomart table")
         warning("Rows in data missing from the biomart table, it might mean that
                 you are using the wrong ensembl version to create the biomart.
-                Please check the ensembl version you used for the annotation of 
-                your data and generate a biomart table using the 'version' 
+                Please check the ensembl version you used for the annotation of
+                your data and generate a biomart table using the 'version'
                 parameter in the 'create_biomart' function")
         missing <- biomart[is.na(biom.dt)]
     }
@@ -60,6 +60,16 @@ annotate_vector <- function(data, biomart, add, id = 1, check.names = FALSE,
                           stringsAsFactors = FALSE,
                           check.names = check.names)
     } else if(output == "vector") {
+        if(is.null(annot.col)){
+            stop("You need to specify which column from the biomart you want as
+                 an output in vector format.
+                 --> If you didn't supply your own columns with the 'add' argument
+                 then the 'annot.col' argument needs to be one of 'gene_name',
+                 'biotype' or 'description'.
+                 --> If you supplied your own columns with the 'add' argument
+                 then make sure you typed the column of interest correctly for
+                 the 'annot.col' argument.")
+        }
         out <- pull(biomart[biom.dt,  annot.col]) # Use pull from dplyr to get the values in a vector
     } else {
         stop("Please give a valid output value: 'data.frame' OR 'vector'")

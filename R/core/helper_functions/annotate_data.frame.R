@@ -1,6 +1,6 @@
 #' @name annotate_data.frame
 #' 
-#' @description a function to annotate any data frame of datas or biological 
+#' @description a function to annotate any data frame of data or biological 
 #'              data that has a column of ENSGene IDs.
 #' 
 #' @param data A data frame with an ENSGID column or rownames as input.
