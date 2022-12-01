@@ -1,0 +1,49 @@
+#' @name get.gwCount.array
+#' 
+#' @description A function to produce a 3D array with dimensions s x g x s. 
+#'              Where s = spots (locations) and g = genes. Takes as input an 
+#'              s x g matrix of gene counts, an s x s distance matrix with 
+#'              weighted distances between locations. Returns as output a 3D
+#'              array with gene expression counts weighted for each location (or
+#'              for a number of selected locations).
+#' 
+#' @param obs A matrix containing the observation data, usually gene expression 
+#'            data where columns are the genes and rows are the locations.
+#' @param wdmat An n x n matrix (n = number of locations) of weighted distances 
+#'              between all locations.
+#' @param focus.n The indexes of the locations you want in focus. It can be a 
+#'                vector of indexes from locations that are of interest. Default
+#'                behaviour is for focus.n to be missing. This will result to  
+#'                all locations being considered.
+#' 
+#' @return A 3D array with dims = [s, g, focus.n]
+#' 
+#' @export
+
+
+get.gwCount.array <- function(obs, wdmat, focus.n){
+    
+    # Set array dimensions 
+    if(missing(focus.n)){
+        focus.n <- 1:nrow(obs) # indexes of locations to use (z-axis)
+    } else if(is.vector(focus.n) & is.numeric(focus.n)){
+        message("A selection of locations was provided...")
+    } else {
+        stop("The vector provided at the focus.n argument does not contain
+             numeric values only. Please make sure you provide location indexes only.")
+    }
+    
+    # Weight expression data
+    temp <- sapply(focus.n, .get.gw.counts, 
+                   obs = obs, wdmat = wdmat, 
+                   simplify = "array")
+    
+    return(temp)
+    
+}
+
+
+#------------------------------------------------------------#
+# obs = obs
+# wdmat = w
+# focus.n = 3

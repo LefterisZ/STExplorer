@@ -1,4 +1,6 @@
-#' A function to recover neighbour IDs for a specific spot
+#' @name get.nb.IDs
+#' 
+#' @description A function to recover neighbour IDs for a specific spot
 #' 
 #' 
 #' @param obj a data.frame-like object that contains neighbours for each spot as
@@ -6,7 +8,7 @@
 #' @param barcode a character or a vector of characters with the Barcode names of 
 #'             the spots we need to retrieve their neighbours.
 
-get_nb_IDs <- function(obj, barcode){
+get.nb.IDs <- function(obj, barcode){
     ## add a check here to check if there is a nb_IDs col available. If not look
     ## for a data col. If not again then print an error.
     for (b in 1:length(barcode)) {

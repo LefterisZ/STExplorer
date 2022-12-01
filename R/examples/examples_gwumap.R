@@ -760,7 +760,7 @@ ggsave(file.path(gwumapDir,
        dpi = 400)
 
 ## Build WEIGHTS vector for the graph edges ----
-umap.map.igraph.W <- get.weights(umap.map.igraph.E, dist.Mat.w2)
+umap.map.igraph.W <- get.edge.weights(umap.map.igraph.E, dist.Mat.w2)
 range(umap.map.igraph.W)
 
 ## Calculate WEIGHTED UMAP DISTANCES vector ----
@@ -889,7 +889,7 @@ ggsave(file.path(gwumapDir, paste0(prefix.leiden, ".map.", scaled, ".", kernel, 
 data.in <- expand.grid(knn = c(7, 10, 13, 15, 20),
                        minDist = c(0.001, 0.01, 0.1, 0.25, 0.5),
                        lowDims = c(2, 3, 5, 10, 15),
-                       minPTS = c(6, 10, 15),
+                       minPTS = c(8, 10, 15),
                        stringsAsFactors = FALSE)
 
 apply(data.in, 1, function(x){
@@ -897,7 +897,7 @@ apply(data.in, 1, function(x){
     custom.config$n_neighbors <- x[1]
     custom.config$min_dist <- x[2]
     custom.config$n_components <- x[3]
-    
+
     ## Run UMAP ----
     scaled <- "scaled"
     umap.custom <- umap::umap(inputUMAP.pca,
@@ -905,7 +905,7 @@ apply(data.in, 1, function(x){
     
     ## Run HFBSCAN ----
     umap.hdbsc.in <- data.frame(umap.custom$layout[,])
-    colnames(umap.hdbsc.in) <- paste0("UMAP", 1:dim(umap.custom$layout)[2])
+    colnames(umap.hdbsc.in) <- paste0("UMAP", 1:dim(umap.hdbsc.in)[2])
     
     umap.map.clst.HDBSC <- hdbscan(umap.hdbsc.in, 
                                    minPts = x[4],
@@ -938,7 +938,7 @@ apply(data.in, 1, function(x){
                               "\nscaled = ", scaled),
              fill = "HDBSCAN clusters") + 
         my_theme
-    #print(p)
+    print(p)
     ggsave(file.path(gwumapDir, paste0(prefix.hdbscan, minPts, ".map.pca.", scaled, ".knn", knn, ".minD", minDist, ".lowDim", lowD, ".tiff")),
            plot = p,
            width = grDevices::dev.size(units = "in")[1],
@@ -1018,7 +1018,9 @@ apply(data.in[76:125,], 1, function(x){
 # 10. Run GW-UMAP - weight gene expression ----
 ## make observations matrix g x s ----
 obs <- counts[select,] %>% 
-    .[,nb_names]
+    .[,nb_names] %>%
+    t() %>% 
+    as.data.frame()
 
 ## make spatial weights matrix s x s ----
 ### Set parameters ----
@@ -1045,4 +1047,135 @@ ggplot() +
     xlab("distance") +
     my_theme
 
+## make the array s x g x s ----
+### Set dimensions
+loc.n <- nrow(obs)
+var.n <- ncol(obs)
+umap.n <- loc.n
 
+obs.W <- array(data = 0, c(umap.n, loc.n, var.n))
+
+## weight expression ----
+### Select weights for focus point ----
+focus = 1
+w.focus <- w[focus,]
+### Apply weights ----
+sweep <- sweep(obs, 1, w.focus, "*")
+sweep <- colSums(sweep)
+sumW <- sum(w.focus)
+sweep <- sweep(obs, 2, sweep/sumW)
+sqrt.W <- sqrt(w.focus)
+sweep <- sweep(sweep, 1, sqrt.W, "*")
+
+## UMAP ----
+### Set parameters ----
+custom.config <- umap.defaults
+custom.config$n_neighbors <- 7
+custom.config$min_dist <- 0.1
+custom.config$n_components <- 2
+### Run UMAP ----
+umap <- umap::umap(sweep,
+                   config = custom.config)
+
+umap.layout <- as.data.frame(umap$layout[,])
+
+# ------------------------------------------- #
+# ------------------------------------------- #
+umap.knn <- umap$knn$indexes %>%
+    as.numeric() %>%
+    matrix(nrow = 1185, ncol = 7)
+
+umap.dist <- umap$knn$distances %>%
+    as.numeric() %>%
+    matrix(nrow = 1185, ncol = 7)
+
+dist.sweep <- dist(sweep) %>% 
+    as.matrix()
+
+n <- nrow(dist.sweep)
+k <- 7
+dist.sweep.knn <- matrix(0, ncol = k, nrow = n)
+dist.sweep.dist <- knn.mat
+for(i in 1:n){
+    dist.sweep.knn[i,] = order(dist.sweep[i,])[1:k]
+    dist.sweep.dist[i,] = dist.sweep[i,dist.sweep.knn[i,]]
+}
+
+dist.sweep.knn
+dist.sweep.dist
+
+rm(knn.mat, n, k, knd.mat)
+
+identical(umap.knn, dist.sweep.knn)
+identical(umap.dist, dist.sweep.dist)
+# ------------------------------------------- #
+# ------------------------------------------- #
+fgwc_param <- c(kind = 'u', ncluster = 7, m = 1.1, distance = 'euclidean', 
+                order = 2, alpha = 0.5, a = 1, b = 1, max.iter = 500, 
+                error = 1e-5, randomN = 1)
+opt_param <- c(vi.dist='uniform',npar=10,par.no=2,par.dist='euclidean',par.order=2,pso=TRUE,
+               same=10,type='sim.annealing',ei.distr='normal',vmax=0.7,wmax=0.9,wmin=0.4,
+               chaos=4,x0='F',map=0.7,ind=1,skew=0,sca=1)
+
+umap.fgwc.in <- umap.layout
+colnames(umap.fgwc.in) <- paste0("UMAP", 1:dim(umap.fgwc.in)[2])
+
+umap.map.clst.FGWC <- naspaclust::fgwc(data = umap.fgwc.in, 
+                                       pop = pop, 
+                                       distmat = dist.Mat,
+                                       algorithm = "abc",
+                                       fgwc_param = fgwc_param,
+                                       opt_param = opt_param)
+
+umap.map <- umap.fgwc.in %>%
+    mutate("geometry" = polygons$geom_pol) %>%
+    mutate( "fgwc" = as.factor(umap.map.clst.FGWC$cluster))
+
+ggplot() + 
+    geom_sf(data = umap.map$geometry,
+            aes(fill = umap.map$fgwc)) + 
+    scale_fill_manual(values = colour.values) +
+    labs(title = "FGWC clusters",
+         caption = paste0("knn = ", custom.config$n_neighbors,
+                          "\nminDist = ", custom.config$min_dist,
+                          "\nlowDim = ", lowD,
+                          "\nscaled = ", scaled),
+         fill = "FGWC clusters") + 
+    my_theme
+# ------------------------------------------- #
+# ------------------------------------------- #
+umap.hdbsc.in <- umap.layout
+colnames(umap.hdbsc.in) <- paste0("UMAP", 1:dim(umap.hdbsc.in)[2])
+umap.map.clst.HDBSC <- hdbscan(umap.hdbsc.in, 
+                               minPts = 12,
+                               gen_hdbscan_tree = TRUE,
+                               verbose = TRUE)
+
+plot(umap.map.clst.HDBSC)
+
+minPts = umap.map.clst.HDBSC$hc$call$minPts
+knn = custom.config$n_neighbors
+minDist = custom.config$min_dist
+lowD = custom.config$n_components
+col.No = length(unique(umap.map.clst.HDBSC$cluster))
+colour.values <- get.colours(col.No)
+### Set graph output prefix ----
+prefix.hdbscan <- paste0("umap.custom.HDBSCAN.")
+
+### Plot graph on the tissue map ----
+umap.map <- umap.hdbsc.in %>%
+    mutate("geometry" = polygons$geom_pol) %>%
+    mutate( "hdbscan" = as.factor(umap.map.clst.HDBSC$cluster))
+
+ggplot() + 
+    geom_sf(data = umap.map$geometry,
+            aes(fill = umap.map$hdbscan)) + 
+    scale_fill_manual(values = colour.values) +
+    labs(title = "HDBSCAN clusters",
+         caption = paste0("knn = ", custom.config$n_neighbors,
+                          "\nminDist = ", custom.config$min_dist,
+                          "\nminPts = ", minPts,
+                          "\nlowDim = ", lowD,
+                          "\nscaled = ", scaled),
+         fill = "HDBSCAN clusters") + 
+    my_theme
