@@ -23,7 +23,7 @@
 
 get.gwCount.array <- function(obs, wdmat, focus.n){
     
-    # Set array dimensions 
+    # Check indexes of locations 
     if(missing(focus.n)){
         focus.n <- 1:nrow(obs) # indexes of locations to use (z-axis)
     } else if(is.vector(focus.n) & is.numeric(focus.n)){

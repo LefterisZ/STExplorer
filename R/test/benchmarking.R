@@ -61,3 +61,27 @@ benchmark(
     )
 )
 
+
+
+
+
+
+benchmark(
+    "direct_call" <- {
+        d <- sapply(focus.n, function(X, method, p){
+            dist(data[,,X], method, p) %>% as.matrix()
+        }, method = "euclidian", p = 2, simplify = "array")
+    },
+    "indirect_call" <- {
+        get.dist.array(obs.W, focus.n = 1:2, method = "euclidean", p = 2)
+    },
+    replications = 100,
+    columns = c(
+        "test",
+        "replications",
+        "elapsed",
+        "relative",
+        "user.self",
+        "sys.self"
+    )
+)

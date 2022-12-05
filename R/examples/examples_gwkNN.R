@@ -57,7 +57,11 @@ ggplot() +
 obs.W <- get.gwCount.array(obs, w)
 
 # Calculate distances ----
-dist.W <- dist(obs.W[,,1], method = "euclidean", p = 2) %>% 
-    as.matrix()
+dist.W <- get.dist.array(obs.W, focus.n = c(1, 24, 1004), method = "euclidean", p = 2)
 
 # Get nearest neighbours ----
+knn.W <- get.gwKNN.list(dist.W, 7, focus.n = c(1, 2, 3))
+
+# Get the graphs ----
+graph.W <- get.gwGraph.array()
+
