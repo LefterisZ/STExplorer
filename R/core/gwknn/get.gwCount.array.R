@@ -38,12 +38,11 @@ get.gwCount.array <- function(obs, wdmat, focus.n){
                    obs = obs, wdmat = wdmat, 
                    simplify = "array")
     
+    ## add dimnames --> spot names as rows and columns
+    dimnames(temp)[[1]] <- rownames(obs)
+    dimnames(temp)[[2]] <- colnames(obs)
+    dimnames(temp)[[3]] <- rownames(obs)[focus.n]
+    
     return(temp)
     
 }
-
-
-#------------------------------------------------------------#
-# obs = obs
-# wdmat = w
-# focus.n = 3

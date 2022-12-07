@@ -15,7 +15,7 @@ get.gwKNN.list <- function(dists, k, focus.n){
     
     # Check indexes of locations 
     if(missing(focus.n)){
-        focus.n <- 1:nrow(obs) # indexes of locations to use (z-axis)
+        focus.n <- 1:dim(dists)[3] # indexes of locations to use (z-axis)
     } else if(is.vector(focus.n) & is.numeric(focus.n)){
         message("A selection of locations was provided...")
         message("Locations with indexes: ", paste(focus.n, collpse = " "))
@@ -32,7 +32,8 @@ get.gwKNN.list <- function(dists, k, focus.n){
                        },
                    dists = dists,
                    k = k)
+    # Set the indexes as names for the sub-lists
+    names(temp) <- dimnames(dists)[[1]][focus.n]
     
-    names(temp) <- focus.n
     return(temp)
 }

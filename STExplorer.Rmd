@@ -62,7 +62,7 @@ pkgCRAN <- c("Seurat", "cowplot", "igraph",
              "gridExtra", "ggbeeswarm",
              "egg", "ggpubr", "scales", 
              "pheatmap", "rlist", "kableExtra",
-             "graphlayouts", "dbscan")
+             "graphlayouts", "dbscan", "parallel")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(

@@ -36,32 +36,18 @@ ggplot() +
     my_theme
 
 # Make the array s x g x s ----
-# ## Set dimensions
-# loc.n <- nrow(obs) # number of locations (y-axis)
-# var.n <- ncol(obs) # number of genes (x-axis)
-# focus.n <- loc.n   # number of iterations (z-axis)
-# 
-# ## -------------------------------------------- ##
-# ### TO DO: 
-# #### add dimnames to the array:
-# #### dimnames=list(row.names,column.names,matrix.names)
-# obs.W <- array(data = 0, c(loc.n, var.n, focus.n)) #3D array: [no of rows, no of cols, no of arrays]
-# 
-# # Weight expression data
-# ## select focus point
-# focus <- 1
-# ## weight 
-# w.counts <- get.gw.counts(obs = obs, wdmat = w, focus = focus)
-# ## store
-# obs.W[,,focus] <- w.counts
 obs.W <- get.gwCount.array(obs, w)
 
 # Calculate distances ----
-dist.W <- get.dist.array(obs.W, focus.n = c(1, 24, 1004), method = "euclidean", p = 2)
+dist.W <- get.gwDist.array(obs.W, focus.n = c(1, 2, 3), method = "euclidean", p = 2)
 
 # Get nearest neighbours ----
 knn.W <- get.gwKNN.list(dist.W, 7, focus.n = c(1, 2, 3))
 
 # Get the graphs ----
-graph.W <- get.gwGraph.array()
+graph.W <- get.gwGraph.array(knn.W, focus.n = c(1, 2, 3))
+
+# Get edge frequencies ----
+edge.Frq <- get.edge.freq(graph.W)
+
 

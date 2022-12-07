@@ -13,4 +13,5 @@ gwpca.R
 visualize.R
 STExplorer.html
 STEx_gwpca.list.RData
+STEx_gwumap.RData
 data/graphics_out

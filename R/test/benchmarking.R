@@ -85,3 +85,30 @@ benchmark(
         "sys.self"
     )
 )
+
+
+benchmark(
+    "apply" <- {
+        edge.comb <- expand.grid(nodes, nodes, stringsAsFactors = FALSE) %>% # get all possible edges
+            mutate(temp = apply(., 1, sort.N.paste)) %>%
+            .[!duplicated(.$temp),]
+    },
+    "mclapply" <- {
+        edge.comb <- expand.grid(nodes, nodes, stringsAsFactors = FALSE) %>% # get all possible edges
+            t() %>%
+            data.frame()
+        temp = mclapply(edge.comb, sort.N.paste)
+        edge.comb <- edge.comb %>% 
+            mutate(temp = temp) %>%
+            .[!duplicated(.$temp),]
+    },
+    replications = 2,
+    columns = c(
+        "test",
+        "replications",
+        "elapsed",
+        "relative",
+        "user.self",
+        "sys.self"
+    )
+)

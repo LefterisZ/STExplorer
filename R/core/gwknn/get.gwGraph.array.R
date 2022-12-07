@@ -9,10 +9,13 @@
 #'              it is a list that contains sub-lists of two matrices. Each 
 #'              sub-list must have a matrix named "indexes" and a matrix named 
 #'              "distances".
+#'
+#' @param focus.n numeric vector of indexes of locations to be used. If nothing
+#'                is provided then all locations will be used.
 #' 
 #' @export
 
-get.gwGraph.array <- function(kList){
+get.gwGraph.array <- function(kList, focus.n){
     
     # Check that the list is OK
     if(!is.list(kList)){
@@ -21,7 +24,7 @@ get.gwGraph.array <- function(kList){
     
     # Check indexes of locations 
     if(missing(focus.n)){
-        focus.n <- 1:nrow(obs) # indexes of locations to use (z-axis)
+        focus.n <- 1:length(knn.W) # indexes of locations to use (z-axis)
     } else if(is.vector(focus.n) & is.numeric(focus.n)){
         message("A selection of locations was provided...")
         message("Locations with indexes: ", paste(focus.n, collpse = " "))
@@ -31,34 +34,13 @@ get.gwGraph.array <- function(kList){
     }
     
     # Get the sub-list names
-    names <- names(kList)
+    names <- names(kList)[focus.n]
     
     # Get the graphs
     temp <- sapply(names, 
-                   function(X, kList){
-                       
-                   },
-                   kList = kList)
+                   .get.gwGraph,
+                   kList = kList,
+                   simplify = "array")
     
     return(temp)
 }
-
-
-graph <- kList[[1]]$indexes  %>% t()
-colnames(graph) <- c("from", paste0("nb", 1:(dim(graph)[2]-1)))
-graph <- graph %>%
-    as.data.frame() %>%
-    pivot_longer(-from, names_to = NULL, values_to = "to")
-
-edgeW <- apply(graph, 1, 
-               function(x){
-                   dist.Mat.w1[x[1],x[2]]
-                   }
-               )
-
-dists = dist.W[,,1]
-kList = knn.W
-focus.n <- 1:3
-dists = dist.W[,,1]
-k = 7
-rm(dists, k, out, outer,kList,focus.n)
