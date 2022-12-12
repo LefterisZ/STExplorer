@@ -24,7 +24,7 @@ get.gwGraph.array <- function(kList, focus.n){
     
     # Check indexes of locations 
     if(missing(focus.n)){
-        focus.n <- 1:length(knn.W) # indexes of locations to use (z-axis)
+        focus.n <- 1:length(kList) # indexes of locations to use (z-axis)
     } else if(is.vector(focus.n) & is.numeric(focus.n)){
         message("A selection of locations was provided...")
         message("Locations with indexes: ", paste(focus.n, collpse = " "))
@@ -36,10 +36,14 @@ get.gwGraph.array <- function(kList, focus.n){
     # Get the sub-list names
     names <- names(kList)[focus.n]
     
+    # Progress info
+    message("Total number of graphs to generate: ", length(names))
+    
     # Get the graphs
-    temp <- sapply(names, 
+    temp <- sapply(seq_along(names), 
                    .get.gwGraph,
                    kList = kList,
+                   names = names,
                    simplify = "array")
     
     return(temp)

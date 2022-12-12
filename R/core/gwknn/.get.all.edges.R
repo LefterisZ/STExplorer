@@ -14,13 +14,15 @@
     # Set a function for the apply()
     ## sort and collapse
     sort.N.paste <- function(x){
-        paste0(sort(x), collapse = "")
+        paste0(sort(x), collapse = "_")
     }
     
     # Get the unique edges
     edge.comb <- expand.grid(nodes, nodes, stringsAsFactors = FALSE) %>% # get all possible edges
-        mutate(temp = apply(., 1, sort.N.paste)) %>% # get a temp column that will have duplicates
-        .[!duplicated(.$temp),] # remove those duplicates
+        mutate(flag = apply(., 1, sort.N.paste)) %>% # get a temp column that will have duplicates
+        .[!duplicated(.$flag),] # remove those duplicates
+    
+    colnames(edge.comb) <- c("from", "to", "flag")
     
     return(edge.comb)
 }
