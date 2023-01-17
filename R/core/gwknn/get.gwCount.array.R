@@ -11,7 +11,8 @@
 #'            data where columns are the genes and rows are the locations.
 #' @param wdmat An n x n matrix (n = number of locations) of weighted distances 
 #'              between all locations.
-#' @param focus.n The indexes of the locations you want in focus. It can be a 
+#' @param focus.n Numeric or character. The indexes (numeric) or the names 
+#'                (character) of the locations you want in focus. It can be a 
 #'                vector of indexes from locations that are of interest. Default
 #'                behaviour is for focus.n to be missing. This will result to  
 #'                all locations being considered.
@@ -27,10 +28,16 @@ get.gwCount.array <- function(obs, wdmat, focus.n){
     if(missing(focus.n)){
         focus.n <- 1:nrow(obs) # indexes of locations to use (z-axis)
     } else if(is.vector(focus.n) & is.numeric(focus.n)){
-        message("A selection of locations was provided...")
+        message("A selection of location indexes was provided...")
+        message("Locations with indexes: ", paste(focus.n, collpse = " "))
+    } else if(is.vector(focus.n) & is.character(focus.n)) {
+        message("A selection of location names was provided...")
+        message("Locations with names: ", paste(focus.n, collpse = " "))
+        focus.n <- match(focus.n, dimnames(obs)[[1]])
     } else {
         stop("The vector provided at the focus.n argument does not contain
-             numeric values only. Please make sure you provide location indexes only.")
+             numeric values OR character values only. 
+             Please make sure you provide location indexes only.")
     }
     
     # Weight expression data

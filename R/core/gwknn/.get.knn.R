@@ -24,11 +24,11 @@
                              }
                          ))
     ## c. add dimnames --> spot names
-    dimnames(distances)[[1]]
-    dimnames(neighbour_idx)[[1]]
+    # dimnames(distances)[[1]]
+    # dimnames(neighbour_idx)[[1]]
     
     # Prepare output
-    out = list(neighbor_ind, distances)
+    out = list(neighbour_idx, distances)
     names(out) <- c("indexes", "distances")
     
     return(out)

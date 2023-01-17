@@ -42,12 +42,12 @@ obs.W <- get.gwCount.array(obs, w)
 dist.W <- get.gwDist.array(obs.W, focus.n = c(1, 2, 3), method = "euclidean", p = 2)
 
 # Get nearest neighbours ----
-knn.W <- get.gwKNN.list(dist.W, 7, focus.n = c(1, 2, 3))
+knn.W <- get.gwKNN.list(dist.W, k = 7, focus.n = c(1, 2, 3))
 
 # Get the graphs ----
 graph.W <- get.gwGraph.array(knn.W, focus.n = c(1, 2, 3))
 
 # Get edge frequencies ----
-edge.Frq <- get.edge.freq(graph.W)
+edge.Frq <- get.edge.freq(graph.W, k = 7)
 
 
