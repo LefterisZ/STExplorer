@@ -10,20 +10,13 @@
 #' @param names a vector with the names of the locations in focus.
 #' 
 #' 
-# n = 1
-# kList = knn.W
-# names = names(knn.W)
-# k = 7
-# dists =dist.W[,,1]
-# wGraph = graph.W
-# rm(wGraph, nodes, n, kList, names, focus.nm,graph,edgeW,dists,distances, neighbour_idx,focus.n,temp,out)
 
 .get.gwGraph <- function(n, kList, names){
     
     # Set a function for the apply()
     ## sort and collapse
-    sort.N.paste <- function(x){
-        paste0(sort(x), collapse = "_")
+    .paste <- function(x){
+        paste0(x, collapse = "_")
     }
     
     # Print a message to show progress
@@ -49,9 +42,7 @@
     
     # Attach a flag to each edge (the concatenation of the sorted node indexes)
     graph <- graph %>% 
-        # transform(from = as.integer(from), 
-        #           to = as.integer(to)) %>% # transform to integers to sort arithmetically
-        mutate(flag = apply(., 1, sort.N.paste))
+        mutate(flag = apply(., 1, .paste))
     
     # Attach distances to graph df
     graph <- graph %>%
