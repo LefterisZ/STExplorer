@@ -6,7 +6,7 @@
 #' @param data A data frame with an ENSGID column or rownames as input.
 #' @param biomart Biomart annotations of any organism. Can be generated using 
 #'                the \code{read_biomart}.
-#' @param add a vector of biomart columns to add to the input data drame. 
+#' @param add a vector of biomart columns to add to the input data frame. 
 #'            Defaults to gene_name, biotype and description.
 #' @param id position or name of column in biomart that matches the ENSGIDs 
 #'           column or the rows names in input the data frame.

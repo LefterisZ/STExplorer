@@ -101,6 +101,7 @@ pkg.check <- lapply(
 # List all scripts in R folder and remove the ones located in the core folder.
 file.sources <- list.files(path = "./R/core",
                            pattern = "*.R$",
+                           all.files = TRUE,
                            recursive = TRUE,
                            full.names = TRUE,
                            ignore.case = TRUE)

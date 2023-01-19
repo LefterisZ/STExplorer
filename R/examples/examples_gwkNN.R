@@ -130,7 +130,7 @@ ggsave(file.path(gwknnDir, paste0("gwKNN.clust.", prefix.louvain, ".", res, ".ma
 # Cluster with Leiden ----
 clusters_Leid <- cluster_leiden(graph, 
                                 objective_function = "modularity",
-                                n_iterations = 2,
+                                n_iterations = 4,
                                 resolution_parameter = 0.75)
 membership(clusters_Leid)
 V(graph)$leid <- as.character(membership(clusters_Leid))
