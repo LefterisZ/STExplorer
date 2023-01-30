@@ -17,9 +17,6 @@
 
 .get.gw.counts <- function(focus, wdmat, obs){
     
-    # Set a progress message
-    message("Weighting gene expression based on location with index: ", focus)
-    
     # Select weights for focus point
     w.focus <- wdmat[focus,]
     sumW <- sum(w.focus)                       ## get the weights sum for focus
@@ -31,5 +28,10 @@
     w.obs.2 <- sweep(obs, 2, colS/sumW)        ## weight observations (2)
     w.obs <- sweep(w.obs.2, 1, sqrt.W, "*")## weight observations (final)
     
-    return(as.matrix(w.obs))
+    w.obs <- as.matrix(w.obs)
+    
+    Sys.sleep(0.01)
+    pr()
+    
+    return(w.obs)
 }

@@ -4,14 +4,11 @@
 #'              "From", "To" and "W.Dist". It is meant to be used internally  
 #'              from get.gwGraph.array().
 #' 
-#' @param n a number
-#' @param kList the list containing sub-lists of indexes and distances from kNNs.
-#' 
-#' @param names a vector with the names of the locations in focus.
+#' @param X a number. The location in focus.
 #' 
 #' 
 
-.get.gwGraph <- function(n, kList, names){
+.get.gwGraph <- function(X){
     
     # Set a function for the apply()
     ## sort and collapse
@@ -19,21 +16,15 @@
         paste0(x, collapse = "_")
     }
     
-    # Print a message to show progress
-    message("Generating graph ", n, "/", length(names))
-    
-    # Get the name of the location
-    focus.nm <- names[n]
-    
     # Build graph df From -> To
-    graph <- kList[[focus.nm]]$indexes # select indexes table
+    graph <- kList[[X]]$indexes # select indexes table
     colnames(graph) <- c("from", paste0("nb", 1:(dim(graph)[2]-1))) # add colnames
     graph <- graph %>%
         as.data.frame() %>%
         pivot_longer(-from, names_to = NULL, values_to = "to") # pivot long
     
     # Get weighted distances
-    edgeW <- kList[[focus.nm]]$distances # select distances table
+    edgeW <- kList[[X]]$distances # select distances table
     edgeW <- edgeW %>%
         as.data.frame() %>%
         dplyr::select(-c("V1")) %>% # remove first column because is self-neighbour
@@ -49,6 +40,8 @@
         mutate(wDist = edgeW,
                count = 1) %>% # add the weighted distances as a third column
         as.matrix()
+    
+    pr()
     
     return(graph)
 }

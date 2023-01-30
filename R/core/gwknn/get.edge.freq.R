@@ -44,13 +44,16 @@ get.edge.freq <- function(wGraph, focus.n, remove_0 = TRUE){
     # Check indexes of locations 
     if(missing(focus.n)){
         focus.n <- 1:dim(wGraph)[3] # indexes of locations to use (z-axis)
+        names(focus.n) <- dimnames(wGraph)[[3]] # give spot names to the indexes
     } else if(is.vector(focus.n) & is.numeric(focus.n)){
         message("A selection of location indexes was provided...")
         message("Locations with indexes: ", paste(focus.n, collpse = " "))
+        names(focus.n) <- dimnames(wGraph)[[3]][focus.n] # give names
     } else if(is.vector(focus.n) & is.character(focus.n)) {
         message("A selection of location names was provided...")
         message("Locations with names: ", paste(focus.n, collpse = " "))
-        focus.n <- match(focus.n, dimnames(wGraph)[[3]])
+        focus.n <- match(focus.n, dimnames(wGraph)[[3]]) # find the indexes
+        names(focus.n) <- dimnames(gwCounts)[[3]][focus.n] # give names
     } else {
         stop("The vector provided at the focus.n argument does not contain
              numeric values OR character values only. 
@@ -72,6 +75,8 @@ get.edge.freq <- function(wGraph, focus.n, remove_0 = TRUE){
     
     # Calculate the observed frequency of each edge
     edges <- mutate(edges, obsFreq = count/max(count))
+    
+    message("step 5/6: DONE!!")
     
     return(edges)
 }

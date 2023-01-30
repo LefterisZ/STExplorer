@@ -16,39 +16,81 @@
 #'                vector of indexes from locations that are of interest. Default
 #'                behaviour is for focus.n to be missing. This will result to  
 #'                all locations being considered.
+#' @param strategy a future plan strategy for parallelisation. The defaults is 
+#'                 multicore because it doesn't need to load the environment on 
+#'                 each worker and thus is more suitable for large datasets. For
+#'                 more info look at future package.
+#' @param workers the number of cores to use for parallelisation.
 #' 
 #' @return A 3D array with dims = [s, g, focus.n]
 #' 
 #' @export
 
 
-get.gwCount.array <- function(obs, wdmat, focus.n){
+get.gwCount.array <- function(obs, wdmat, focus.n, strategy = "multicore", 
+                              workers = 5){
     
     # Check indexes of locations 
     if(missing(focus.n)){
         focus.n <- 1:nrow(obs) # indexes of locations to use (z-axis)
+        names(focus.n) <- rownames(obs) # give spot names to the indexes
     } else if(is.vector(focus.n) & is.numeric(focus.n)){
         message("A selection of location indexes was provided...")
         message("Locations with indexes: ", paste(focus.n, collpse = " "))
+        names(focus.n) <- dimnames(obs)[[1]][focus.n] # give names
     } else if(is.vector(focus.n) & is.character(focus.n)) {
         message("A selection of location names was provided...")
         message("Locations with names: ", paste(focus.n, collpse = " "))
-        focus.n <- match(focus.n, dimnames(obs)[[1]])
+        focus.n <- match(focus.n, dimnames(obs)[[1]]) # find the indexes
+        names(focus.n) <- dimnames(obs)[[1]][focus.n] # give names
     } else {
         stop("The vector provided at the focus.n argument does not contain
              numeric values OR character values only. 
              Please make sure you provide location indexes only.")
     }
     
-    # Weight expression data
-    temp <- sapply(focus.n, .get.gw.counts, 
-                   obs = obs, wdmat = wdmat, 
-                   simplify = "array")
+    # # Weight expression data --> sequential and slow
+    # temp <- sapply(focus.n, .get.gw.counts,
+    #                obs = obs, wdmat = wdmat,
+    #                simplify = "array")
+    
+    # Weight expression data in parallel with future package
+    # check if there are enough cores
+    if(availableCores() <= workers) {
+        message("You have less cores available than the number of workers you 
+                asked for. Or you are asking to use all of your cores.")
+        message("Number of cores available: ", availableCores())
+        message("Number of workers asked: ", workers)
+        message("Re-assinging the worker number to availableCores - 1")
+        workers = availableCores() - 1
+        message("Number of workers given: ", workers)
+    }
+    
+    # set up strategy and progress handlers
+    plan(strategy = strategy, workers = workers)
+    handlers(global = TRUE)
+    handlers("progress")
+    
+    wCountProg_FUN <- function(focus.n, obs, wdmat){
+        pr <- progressr::progressor(along = focus.n)
+        future_sapply(focus.n, .get.gw.counts,
+                      obs = obs, wdmat = wdmat,
+                      simplify = "array",
+                      future.globals = "pr",
+                      USE.NAMES = TRUE)
+    }
+
+    temp <- wCountProg_FUN(focus.n = focus.n,
+                           obs = obs,
+                           wdmat = wdmat)
+
+    plan(strategy = "sequential")
     
     ## add dimnames --> spot names as rows and columns
     dimnames(temp)[[1]] <- rownames(obs)
     dimnames(temp)[[2]] <- colnames(obs)
-    dimnames(temp)[[3]] <- rownames(obs)[focus.n]
+    
+    message("step 1/6: DONE!!")
     
     return(temp)
     

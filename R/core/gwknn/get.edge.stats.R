@@ -18,6 +18,8 @@ get.edge.stats <- function(edge.frq){
         mutate(meanDist = wDistSum/count) %>%
         mutate(weight = 1/(meanDist/obsFreq))
     
+    message("step 6/6: DONE!!")
+    
     return(edge.frq)
     
 }

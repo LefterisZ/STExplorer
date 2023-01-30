@@ -54,40 +54,41 @@ seuratObj_combined <- merge(seurat_list[[1]], seurat_list[-1])
 ## 4.2.b if no multiple replicates exist:
 seuratObj_combined <- seurat_list[[1]]
 
-seuratObj_batch_corrected <- seuratObj_combined %>%
+seuratObj_batch_corrected2 <- seuratObj_combined %>%
     ## 4.3 normalise for cell to cell differences
     Seurat::NormalizeData(normalization.method = "LogNormalize",
                           scale.factor = 10000,
-                          verbose = FALSE) %>%
+                          verbose = TRUE) %>%
     ## 4.4 find genes to use for clustering
     FindVariableFeatures(selection.method = "vst", nfeatures = 2000) %>%
     ## 4.5 scale genes so level of expression is the similar for all genes
-    ScaleData(verbose = FALSE,
+    ScaleData(verbose = TRUE,
               vars.to.regress = c("detected",
                                   "total"))
 
 
 seuratObj_batch_corrected <- seuratObj_batch_corrected %>%
-    ## 4.6 dimension reduction --> linear
-    RunPCA(
-        features = VariableFeatures(seuratObj_batch_corrected),
-        npcs = 20,
-        verbose = FALSE
-    ) %>%
+    # 4.6 dimension reduction --> linear
+    RunPCA(features = VariableFeatures(seuratObj_batch_corrected),
+           npcs = 20,
+           verbose = TRUE) %>%
     ## 4.7 batch correction (use group.by.var = "id" --> from meta.data -is the sample ID-)
+    # run the below only if you have multiple slices combined. If not do not run
     RunHarmony("id", plot_convergence = TRUE, assay.use = "originalexp")
 
 
 #----------------------------------------------------#
 # 5. SEURAT CLUSTERING ----
 #----------------------------------------------------#
+# If you run harmony above then use reduction = "harmony". If not then use
+# reduction = "pca"
 seuratObj_batch_corrected <- seuratObj_batch_corrected %>%  
     ## 5.1 Find Nearest Neighbours
-    FindNeighbors(reduction = "harmony", dims = 1:10) %>%
+    FindNeighbors(reduction = "pca", dims = 1:10) %>%
     ## 5.2 Cluster the data
-    FindClusters(resolution = c(0.5)) %>%
+    FindClusters(resolution = c(0.8)) %>%
     # run non-linear dimension reduction for later visualisation
-    RunUMAP(reduction = "harmony", dims = 1:10, assay = "originalexp")
+    RunUMAP(reduction = "pca", dims = 1:10, assay = "originalexp")
 
 ## 5.4 save RDS
 #saveRDS(seuratObj_batch_corrected, batch_corrected_seurat_output)
@@ -104,19 +105,43 @@ for (i in 1:4) {
 #saveRDS(sce_list, sce_output)
 
 ## 5.7 plot the clusters
+# If transferred to the sce_list above run this:
 seurat_clust <- as.data.frame(colData(sce_list$Olfactory_Bulb))
+# If not, then run this:
+seurat_clust <- as.data.frame(seuratObj_batch_corrected@meta.data)
+seurat_clust$Barcode <- gsub("-1", ".1", seurat_clust$Barcode)
+
+map <- seurat_clust %>% 
+    left_join(polygons[,c("Barcode", "geom_pol")])
+
+col.No = length(unique(map$originalexp_snn_res.0.75))
+colour.values <- get.colours(col.No)
+
 ggplot(seurat_clust) + 
-    geom_point(aes(x = pixel_x, y = pixel_y, colour = cluster), size = 3) + 
-    scale_colour_brewer(type = "qual") +
-    scale_y_reverse() +
-    xlab("X coordinates (pixels)") +
-    ylab("Y coordinates (pixels)") +
-    ggtitle("Seurat Clustering") +
+    geom_sf(data = map$geom_pol,
+            aes(fill = map$originalexp_snn_res.0.75)) + 
+    scale_fill_manual(values = colour.values) +
+    labs(title = "Seurat clustering",
+         fill = "Clusters") + 
     my_theme
 
-ggsave(file.path(graphDir, "seurat_clustering_mob.tiff"),
+ggsave(file.path(graphDir, "seurat_clustering_mob_res075.tiff"),
        width = grDevices::dev.size(units = "in")[1],
        height = grDevices::dev.size(units = "in")[2],
        units = "in",
        dpi = 400)
+
+seurat_clust_out <- dplyr::select(seurat_clust, c(Barcode, cluster))
+write.csv(seurat_clust_out, file = "clusters_seurat.csv", row.names = FALSE)
+
+
+## 5.8 get the scaled/normalised count data in a df
+inputD_S <- as.data.frame(seuratObj_batch_corrected@assays$originalexp@scale.data)
+colnames(inputD_S) <- seurat_clust$Barcode
+
+## 5.9 get the normalised counts only in a df
+inputD_S.norm <- seuratObj_batch_corrected@assays$originalexp@data %>% 
+    as.matrix() %>% 
+    as.data.frame()
+colnames(inputD_S.norm) <- seurat_clust$Barcode
 

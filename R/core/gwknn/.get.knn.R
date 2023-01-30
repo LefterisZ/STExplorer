@@ -3,22 +3,25 @@
 #' @description A function to find the k nearest neighbours. Is used by the 
 #'              get.gwKNN.list function.
 #' 
-#' @param dists a matrix of distances
+#' @param X index of the slice to be evaluated
 #' @param k the number of neighbours
 #' 
 
 
-.get.knn <- function(dists, k){
+.get.knn <- function(X, k){
+    
+    # Get the slice from the array
+    dists.X <- dists[,,X]
     
     # Find closest neighbours
     ## a. get their distances
-    distances <- t(apply(dists, 1, 
+    distances <- t(apply(dists.X, 1, 
                       function(x){
                           sort(x)[1:k]
                           }
                       ))
     ## b. get their indexes
-    neighbour_idx <- t(apply(dists, 1,
+    neighbour_idx <- t(apply(dists.X, 1,
                          function(x){
                              names(sort(x)[1:k])
                              }
@@ -30,6 +33,8 @@
     # Prepare output
     out = list(neighbour_idx, distances)
     names(out) <- c("indexes", "distances")
+    
+    pr()
     
     return(out)
 }

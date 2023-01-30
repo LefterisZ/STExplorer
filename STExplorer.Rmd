@@ -63,7 +63,8 @@ pkgCRAN <- c("Seurat", "cowplot", "igraph",
              "egg", "ggpubr", "scales", 
              "pheatmap", "rlist", "kableExtra",
              "graphlayouts", "dbscan", 
-             "parallel", "sqldf")
+             "parallel", "sqldf", "future.apply", 
+             "progressr")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
@@ -413,6 +414,7 @@ spotTable <- data.frame(spotName = spotName)
 
 #filter out genes with less than 10 counts total in all spots
 inputD_filt <- inputD[!rowSums(inputD) < 10,]
+inputD_filt_annot <- annotate_data.frame(inputD_filt, biomart.mouse.98)
 
 dds <- DESeqDataSetFromMatrix(countData = inputD_filt,
                               colData = spotTable,
