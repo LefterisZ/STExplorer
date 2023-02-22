@@ -13,10 +13,11 @@ readSpacerangerD <- function(dir) {
     sce <- DropletUtils::read10xCounts(dir, version = "auto")
     
     ## Get the gene counts as data.frame
-    input_data <- data.frame(counts(sce))
+    input_data <- data.frame(as.matrix(assay(sce, "counts")))
     
     ## Add the barcodes of each spot as column names
-    colnames(input_data) <- sce$Barcode
+    colnames(input_data) <- sce$Barcode %>% 
+        gsub("-", ".", .)
     
     ## Return
     return(input_data)

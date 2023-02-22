@@ -1,11 +1,11 @@
 # folders <- list.files(inputDir, 
-#                       recursive = TRUE, 
-#                       pattern = "Results", 
-#                       include.dirs = TRUE)
+#                        recursive = TRUE, 
+#                        pattern = "Results", 
+#                        include.dirs = TRUE)
 
 get.QC.gene.counts <- function(inDir, folders){
     metrics <- list()
-    for(f in folders){
+    for (f in folders) {
         sampleDir <- f
         countsDir <- file.path(inDir, sampleDir, "filtered_feature_bc_matrix")
         message("Working on folder: ", f)

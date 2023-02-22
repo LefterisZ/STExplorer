@@ -64,7 +64,7 @@ pkgCRAN <- c("Seurat", "cowplot", "igraph",
              "pheatmap", "rlist", "kableExtra",
              "graphlayouts", "dbscan", 
              "parallel", "sqldf", "future.apply", 
-             "progressr")
+             "progressr", "aricode", "Rfast")
 
 ## Check if packages are installed and load them or install&load them if not.
 pkg.check <- lapply(
@@ -264,6 +264,20 @@ ggsave(file.path(tissue_mapDir, "voronoi_tessellation_wholeSlide.pdf"),
 
 **IMPORTANT NOTE:** Since there are going to be many plots, to make the code a bit shorter it is good practice to save a favourite ggplot theme and call it by its name. In my case, I have a custom-made theme that I use all the time. Below I save it as "my_theme" and use *+ my_theme* at the end of each ggplot call.
 ```{r save custom theme as my_theme}
+# Theme settings for spatial plots (maps)
+my_theme_s <- theme(axis.title = element_text(size = rel(2)),
+                  axis.line.y.left = element_blank(), 
+                  axis.line.x.bottom = element_blank(),
+                  axis.ticks = element_blank(),
+                  axis.text = element_blank(),
+                  plot.title = element_text(colour = "black", size = rel(2.5), hjust = 0.5),
+                  plot.subtitle = element_text(colour = "black", size = rel(1.7), hjust = 0.5),
+                  plot.margin = unit(c(10,10,10,10), "pt"),
+                  legend.title = element_text(colour = "black", size = rel(1.5)),
+                  legend.text = element_text(colour = "black", size = rel(1.2)),
+                  panel.background = element_rect(fill = "white"))
+
+# Theme settings for classic plots
 my_theme <- theme(axis.title = element_text(size = rel(2)),
                   axis.text = element_text(colour = "black", size = rel(1.2)),
                   axis.line.y.left = element_line(colour = "black"),
@@ -459,7 +473,7 @@ select <- order(row_vars, decreasing = TRUE)[seq_len(500)]
 
 ## 6. Perform Geographically Weighted PCA (GWPCA)
 
-### <a id="6.1"></a>6.1 Data prearation and single GWPCA run
+### 6.1 Data prearation and single GWPCA run
 *This code can be found in [STExplorer's](https://github.com/LefterisZ/STExplorer/tree/main/R) GitHub repo as STExplorer_analysis.R*
 
 ```{r gwpca single}

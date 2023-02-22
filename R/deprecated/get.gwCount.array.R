@@ -71,25 +71,25 @@ get.gwCount.array <- function(obs, wdmat, focus.n, strategy = "multicore",
     handlers(global = TRUE)
     handlers("progress")
     
-    wCountProg_FUN <- function(focus.n, obs, wdmat){
+    wCountProg_FUN <- function(focus.n, wdmat){
         pr <- progressr::progressor(along = focus.n)
         future_sapply(focus.n, .get.gw.counts,
-                      obs = obs, wdmat = wdmat,
+                      wdmat = wdmat,
                       simplify = "array",
-                      future.globals = "pr",
+                      future.globals = c("obs", "pr", "temp.list"),
+                      future.chunk.size = dim(wdmat)[1]/workers,
                       USE.NAMES = TRUE)
     }
 
     temp <- wCountProg_FUN(focus.n = focus.n,
-                           obs = obs,
                            wdmat = wdmat)
 
     plan(strategy = "sequential")
     
     ## add dimnames --> spot names as rows and columns
-    dimnames(temp)[[1]] <- rownames(obs)
-    dimnames(temp)[[2]] <- colnames(obs)
-    
+    # dimnames(temp)[[1]] <- rownames(obs)
+    # dimnames(temp)[[2]] <- colnames(obs)
+
     message("step 1/6: DONE!!")
     
     return(temp)

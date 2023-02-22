@@ -1,21 +1,21 @@
 #' @name .get.gw.counts
 #' 
 #' @description A function that weights gene expression data (counts) based on a 
-#'              focus location and a distance matrix created using a preferable 
+#'              focus location and on a distance matrix created using a preferable 
 #'              kernel.
 #' 
 #' @param obs A matrix containing the observation data, usually gene expression 
 #'            data where columns are the genes and rows are the locations.
 #' @param wdmat An n x n matrix (n = number of locations) of weighted distances 
 #'              between all locations.
-#' @param focus The index of the location in focus
+#' @param focus The row name of the location in focus
 #' 
 #' @return a weighted gene expression data matrix
 #' 
 #'
 
 
-.get.gw.counts <- function(focus, wdmat, obs){
+.get.gw.counts <- function(obs, focus, wdmat){
     
     # Select weights for focus point
     w.focus <- wdmat[focus,]
@@ -29,9 +29,9 @@
     w.obs <- sweep(w.obs.2, 1, sqrt.W, "*")## weight observations (final)
     
     w.obs <- as.matrix(w.obs)
-    
-    Sys.sleep(0.01)
-    pr()
+
+    # add the row name of the location in focus as an attribute
+    attr(w.obs, "focus") <- focus
     
     return(w.obs)
 }

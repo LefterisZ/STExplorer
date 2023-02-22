@@ -1,4 +1,4 @@
-#' @name get.QC.gene.expr
+#' @name get.QC.CountsPerSpot
 #' 
 #' @description get the total gene expression per spot
 #' 
@@ -10,10 +10,10 @@
 #' 
 #' @export
 
-get.QC.gene.expr <- function(count_table, select = NULL) {
+get.QC.CountsPerSpot <- function(count_table, select = NULL) {
   
   # Select specific spots
-  if(!is.null(select)){
+  if (!is.null(select)) {
     tmp <- count_table %>% 
       select(all_of(select))
   } else {
@@ -25,7 +25,7 @@ get.QC.gene.expr <- function(count_table, select = NULL) {
     colSums() %>% 
     as.data.frame() %>% 
     rownames_to_column(var = "Barcode") %>%
-    rename("tot_gene_expr" = ".")
+    dplyr::rename("tot_gene_expr" = ".")
   
   return(tmp)
   

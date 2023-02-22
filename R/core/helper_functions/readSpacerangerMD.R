@@ -19,10 +19,15 @@
 #' the tissue positions .csv file has headers then set it to TRUE. Default is 
 #' FALSE.
 #' 
-#' 
+#' @param flip a TRUE or FALSE value. Flip the coordinates on the X axis. 
+#'             Default TRUE.
 #' @export
 
-readSpacerangerMD <- function(dir, file, res = "low", header = FALSE) {
+readSpacerangerMD <- function(dir, 
+                              file, 
+                              res = "low", 
+                              header = FALSE, 
+                              flip = TRUE) {
     
     ## read-in the csv file and add colnames
     input_data <- read.csv(file.path(dir, file), 
@@ -35,12 +40,24 @@ readSpacerangerMD <- function(dir, file, res = "low", header = FALSE) {
                                                   "scalefactors_json.json"))
     
     ## calculate spot X/Y position in pixels
-    if(res == "high"){
+    if (res == "high") {
         input_data$pixel_x <- input_data$Image_X * scale_f$tissue_hires_scalef
         input_data$pixel_y <- input_data$Image_Y * scale_f$tissue_hires_scalef
-    }else if(res == "low"){
+    }else if (res == "low") {
         input_data$pixel_x <- input_data$Image_X * scale_f$tissue_lowres_scalef
         input_data$pixel_y <- input_data$Image_Y * scale_f$tissue_lowres_scalef
+    }
+    
+    ## flip coordinates on the X axis to match image.
+    if (flip) {
+        input_data <- input_data %>% 
+            mutate(pixel_x = -1*pixel_x)
+        
+        rotated <- spdep::Rotation(input_data[,c("pixel_x", "pixel_y")],
+                                   angle = pi)
+        
+        input_data$pixel_x <- rotated[,1]
+        input_data$pixel_y <- rotated[,2]
     }
     
     ## Return

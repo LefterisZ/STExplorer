@@ -1,4 +1,4 @@
-#' @name get.QC.gene.number
+#' @name get.QC.GenesPerSpot
 #' 
 #' @description get the number of genes found in each spot
 #' 
@@ -10,17 +10,17 @@
 #' 
 #' @export
 
-get.QC.gene.number <- function(count_table, select = NULL) {
+get.QC.GenesPerSpot <- function(count_table, select = NULL) {
   
-  # Select specific spots
-  if(!is.null(select)){
+  ## Select specific spots
+  if (!is.null(select)) {
     tmp <- count_table %>% 
       select(all_of(select))
   } else {
     tmp <- count_table
   }
   
-  # Find how many genes are expressed (gene expression > 0)
+  ## Find how many genes are expressed (gene expression > 0)
   tmp <- tmp > 0
   tmp <- as.data.frame(tmp) %>% 
     colSums() %>% 
