@@ -1,12 +1,13 @@
 BiocManager::install("clusterProfiler")
-#BiocManager::install("fgsea")
+BiocManager::install("fgsea")
 BiocManager::install("msigdbr")
 library(clusterProfiler)
-#library(fgsea)
+library(fgsea)
 library(msigdbr)
 
 pc <- 1
 focus <- 1
+x <- 1
 
 # Generate term2gene object
 msigdbr_show_species() # check available species
@@ -54,10 +55,10 @@ msigdbr_t2g_C6 <- msigdbr_C6_df %>%
     as.data.frame()
 
 
-msigdbr_t2g <- msigdbr_t2g_H
+msigdbr_t2g <- msigdbr_t2g_C6
 
 # get input dataset from gwpca
-inputGSEA <- pca_gw.inUse$loadings[,,pc]
+inputGSEA <- pcagw_ste$loadings[,,pc]
 
 # Run GSEA for all locations
 gsea.list.H <- lapply(1:dim(inputGSEA)[1], function(x){
@@ -65,16 +66,17 @@ gsea.list.H <- lapply(1:dim(inputGSEA)[1], function(x){
     # Generate geneList
     geneList <- inputGSEA[x,] %>%
         .[order(inputGSEA[x,], decreasing = TRUE)]
-    geneList #check they are descending order
+    # geneList #check they are descending order
     
     # Run GSEA
     gsea <- GSEA(geneList, 
                  minGSSize = 5,
                  pvalueCutoff = 0.05,
                  TERM2GENE = msigdbr_t2g,
-                 pAdjustMethod = "fdr")
+                 pAdjustMethod = "none",
+                 verbose = FALSE)
     
-    if(dim(gsea@result)[1] == 0){
+    if (dim(gsea@result)[1] == 0) {
         na <- c(rep(NA, dim(gsea@result)[2])) %>%
             t() %>%
             as.data.frame()
@@ -93,11 +95,10 @@ gsea_H <-  gsea_H %>%
     dplyr::group_by(Location) %>%
     dplyr::arrange(NES, .by_group = TRUE) %>% 
     slice_max(NES, n = 1, with_ties = FALSE) %>%
-    column_to_rownames(var = "Location") %>%
-    .[nb_names,]
+    column_to_rownames(var = "Location")
 
 gsea_H.map <- data.frame(gsea_H,
-                         "geometry" = polygons$geom_pol) %>%
+                         "geometry" = gwpca$geometry) %>%
     mutate(Pathway = gsub("HALLMARK_", "", ID))
 
 
@@ -113,6 +114,5 @@ ggplot() +
             show.legend = TRUE) + 
     scale_fill_manual(values = colour.values) +
     labs(title = NULL,
-         fill = "Currated Pathways") + 
-    my_theme +
-    theme(legend.position="none")
+         fill = "Hallmark\nGene Sets") + 
+    theme(legend.position = "right")

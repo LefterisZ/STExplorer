@@ -56,7 +56,8 @@ annotate_data.frame <- function(data, biomart, add, id = 1, column = NA,
     }
     
     if(any(is.na(biom.dt))){
-        message(sum(is.na(biom.dt)), " rows in data are missing from biomart table")
+        message(sum(is.na(biom.dt)), 
+                " rows in data are missing from biomart table")
         warning("Rows in data missing from the biomart table, it might mean that
                 you are using the wrong ensembl version to create the biomart.
                 Please check the ensembl version you used for the annotation of 

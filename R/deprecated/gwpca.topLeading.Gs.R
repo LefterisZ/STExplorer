@@ -3,7 +3,7 @@
 #' @param gwpca a gwpca output.
 #' @param pc.no the Principal Component (PC) to be examined.
 #' @param genes.n an integer indicating how many genes you want to be included.
-#' @sf.geom the geometry column from an sf object containing a polygons 
+#' @param sf.geom the geometry column from an sf object containing a polygons 
 #'          geometry column to be used for mapping. It can be a vector of size
 #'          same as the number of locations in gwpca output or in a form of: 
 #'          \code{sf$geomcolumn}.

@@ -31,10 +31,10 @@ create_biomart <- function(organism = "human", attributes, version = NULL,
                     yeast     = "scerevisiae")
     
     #### Check if organism is in the list ####
-    if(organism %in% names(common.nms)){
+    if (organism %in% names(common.nms)) {
         organism <- common.nms[[organism]]
         message("BioMart organism used is: ", organism)
-    } else if(organism %in% common.nms){
+    } else if (organism %in% common.nms) {
         message("BioMart organism used is: ", organism)
     } else {
         warning("Organism not in the common names list.\nPlease be sure you are using the right format:\nfirst letter of genus and full species name like hsapiens")
@@ -43,14 +43,14 @@ create_biomart <- function(organism = "human", attributes, version = NULL,
     #### Prepare to search ####
     organism <- paste0(organism, "_gene_ensembl")
     release <- version
-    if(is.null(version)){
+    if (is.null(version)) {
         x.bm <- biomaRt::listEnsembl()
         release <- x.bm$version[x.bm$biomart == "genes"]
         release <- gsub("Ensembl Genes ", "", release)
-        message("Using Ensembl release ", release)
+        message("Using latest Ensembl release ", release)
     } else {
         x.bm <- biomaRt::listEnsembl(version = version)
-        message("Using Ensembl release ", release)
+        message("Using requested Ensembl release ", release)
     }
     
     #### Get the organism specific ensembl biomart ####
@@ -59,7 +59,7 @@ create_biomart <- function(organism = "human", attributes, version = NULL,
                                       version = version)
     
     #### Perform default search in the downloaded biomart ####
-    if(missing(attributes)){
+    if (missing(attributes)) {
         # Build default attributes list
         default.attr <- c("ensembl_gene_id","external_gene_name", "gene_biotype",
                           "chromosome_name", "start_position", "end_position",
@@ -75,16 +75,16 @@ create_biomart <- function(organism = "human", attributes, version = NULL,
         bm$description <- gsub(" \\[.*\\]$", "" , bm$description)
         
         # Remove white space in version 92
-        if(release == 92){
+        if (release == 92) {
             bm$description <- trimws(bm$description)
             bm <- dplyr::arrange(bm, id)
         }
         
         # Remove features starting with CHR_
-        if(!patch){ 
+        if (!patch) { 
             n.bm <- nrow(bm)
             bm <- dplyr::filter(bm, substr(chromosome,1,4) != "CHR_")
-            if(n.bm != nrow(bm)){
+            if (n.bm != nrow(bm)) {
                 message("Removed ", n.bm - nrow(bm), " features on patch CHR_*") 
             }
         }
@@ -94,11 +94,11 @@ create_biomart <- function(organism = "human", attributes, version = NULL,
         bm <- biomaRt::getBM(attributes = attributes, mart = ensembl.bm, ...)
         
         # Remove features starting with CHR_
-        if(!patch){
-            if("chromosome_name" %in% colnames(bm)){
+        if (!patch) {
+            if ("chromosome_name" %in% colnames(bm)) {
                 n.bm <- nrow(bm)
                 bm <- dplyr::filter(bm, substr(chromosome_name,1,4) != "CHR_")
-                if(n.bm != nrow(bm)){
+                if (n.bm != nrow(bm)) {
                     message("Removed ", n.bm - nrow(bm), " features on patch CHR_*")
                 } 
             }

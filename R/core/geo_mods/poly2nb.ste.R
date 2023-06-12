@@ -36,20 +36,20 @@ poly2nb.ste <- function(pls, snap = 0, remove = TRUE, show = FALSE,
     
     # Find the locations with no neighbours
     no.nb.1 <- names(nbs)[unlist(lapply(nbs, function(x) sum(x) == 0))]
-    if(is_empty(no.nb.1)) {
+    if (is_empty(no.nb.1)) {
         message("Every location in the dataset has at least 1 neighbour")
-    } else if(!is_empty(no.nb.1)) {
+    } else if (!is_empty(no.nb.1)) {
         message(length(no.nb.1), " locations in the dataset have no neighbours:")
         print(no.nb.1)
     }
     
     # Show the coordinates of the neighbourless locations
-    if(show){
+    if (show) {
         check <- sum(columns %in% colnames(pls))
-        if(check == 3){
+        if (check == 3) {
             no.nb.2 <- filter(pls, Barcode %in% no.nb.1) %>%
                 st_drop_geometry() %>%
-                select(all_of(columns))
+                dplyr::select(all_of(columns))
             print(no.nb.2)
         } else {
             stop("You've set 'show = TRUE' but the object provided in the 'pls' 
@@ -61,7 +61,7 @@ poly2nb.ste <- function(pls, snap = 0, remove = TRUE, show = FALSE,
     }
     
     # Remove the neighbourless locations
-    if(remove){
+    if (remove) {
         
         # Remove the neighbourless locations from the pls input
         pls.2 <- pls[!rownames(pls) %in% no.nb.1,]

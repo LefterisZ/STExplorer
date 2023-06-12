@@ -23,10 +23,16 @@ get.QC.GenesPerSpot <- function(count_table, select = NULL) {
   ## Find how many genes are expressed (gene expression > 0)
   tmp <- tmp > 0
   tmp <- as.data.frame(tmp) %>% 
-    colSums() %>% 
-    as.data.frame() %>% 
-    rownames_to_column(var = "Barcode") %>%
-    rename("gene_number" = ".")
+      colSums() %>% 
+      as.data.frame() %>% 
+      rownames_to_column(var = "Barcode") %>%
+      rename("GenesPerSpot" = ".") %>% 
+      arrange(GenesPerSpot) %>%
+      mutate(Barcode = factor(Barcode, levels = Barcode),
+             aa = 1:nrow(.))
+  
+  knee <- kneedle(tmp$aa, tmp$GenesPerSpot)
+  attr(tmp, "knee") <- knee
   
   return(tmp)
   

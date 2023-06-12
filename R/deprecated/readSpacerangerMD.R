@@ -25,6 +25,7 @@
 
 readSpacerangerMD <- function(dir, 
                               file, 
+                              json = "scalefactors_json.json",
                               res = "low", 
                               header = FALSE, 
                               flip = TRUE) {
@@ -36,8 +37,7 @@ readSpacerangerMD <- function(dir,
                             "Spot_X", "Image_Y", "Image_X")
     
     ## import the scale factors
-    scale_f <- jsonlite::fromJSON(txt = file.path(dir, 
-                                                  "scalefactors_json.json"))
+    scale_f <- jsonlite::fromJSON(txt = file.path(dir, json))
     
     ## calculate spot X/Y position in pixels
     if (res == "high") {

@@ -67,15 +67,18 @@ seuratObj_batch_corrected2 <- seuratObj_combined %>%
                                   "total"))
 
 
-seuratObj_batch_corrected <- seuratObj_batch_corrected %>%
+seuratObj_batch_corrected <- seuratObj_batch_corrected2 %>%
     # 4.6 dimension reduction --> linear
-    RunPCA(features = VariableFeatures(seuratObj_batch_corrected),
+    RunPCA(features = VariableFeatures(seuratObj_batch_corrected2),
            npcs = 20,
            verbose = TRUE) %>%
     ## 4.7 batch correction (use group.by.var = "id" --> from meta.data -is the sample ID-)
     # run the below only if you have multiple slices combined. If not do not run
     RunHarmony("id", plot_convergence = TRUE, assay.use = "originalexp")
 
+saveRDS(seuratObj_batch_corrected_norm, file = paste0(outputDir, "DLPFC_151673_counts_Seurat_Norm.rds"))
+saveRDS(seuratObj_batch_corrected2, file = paste0(outputDir, "DLPFC_151673_counts_Seurat_Norm_VST_Var2000_Scaled.rds"))
+saveRDS(seuratObj_combined, file = paste0(outputDir, "DLPFC_151673_SeuratObject.rds"))
 
 #----------------------------------------------------#
 # 5. SEURAT CLUSTERING ----
