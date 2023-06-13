@@ -245,13 +245,10 @@ is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$symbol)
 sfe <- addPerLocQC(sfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
 sfe <- addGeometries(sfe, samples = sampleDir, sample_id = sampleNames, res = "fullres")
 sfe <- addPerGeneQC(sfe, assay = "counts", version = 77)
-sfe <- get.spatialNeighGraphs(sfe, sampleNames, type = "knearneigh", style = "W", distMod = "raw", k = 6)
-sfe <- addDistMat(sfe, p = 2)
 
 colData(sfe)
 rowData(sfe)
 colGeometries(sfe)
-colGraphs(sfe)
 
 ## Select library size threshold
 qc_lib_size <- colData(sfe)$sum < 700
@@ -287,6 +284,11 @@ plotQC(sfe, type = "spots",
 
 ## remove combined set of low-quality spots
 sfe <- sfe[, !colData(sfe)$discard]
+
+## add neighbour graph and distance matrix
+sfe <- get.spatialNeighGraphs(sfe, sampleNames, type = "knearneigh", style = "W", distMod = "raw", k = 6)
+sfe <- addDistMat(sfe, p = 2)
+colGraphs(sfe)
 
 ## Calculate library size factors
 sfe <- computeLibraryFactors(sfe)
@@ -383,11 +385,11 @@ plotGWPCA_leadingG(gwpca = pcagw_ste,
                    arrange = TRUE)
 
 plotGWPCA_leadingG(gwpca = pcagw_ste,
-                   comps = 1:4,
+                   comps = 1,
                    type = "multi",
                    arrange = TRUE)
 
-pcagw_ste <- gwpca.propVar(gwpca = pcagw_ste, n_comp = 2:10, sfe = sfe)
+pcagw_ste <- gwpca_PropVar(gwpca = pcagw_ste, n_comp = 2:10, sfe = sfe)
 
 plotGWPCA_ptv(gwpca = pcagw_ste,
               comps = 1:10,

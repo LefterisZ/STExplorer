@@ -59,8 +59,13 @@ plotGWPCA_global <- function(gwpca,
     } else if (type == "scatter") {
         ## Extract scores for two components
         scores <- gwpca$pca$scores[, comps]
+        if (is.null(scores)) {
+            cat("To be able to plot a scatter plot of PCs you need to run the",
+                "`gwpcaSTE` function with the `scores` argument set to TRUE.\n")
+            stop()
+        }
         df <- data.frame(scores[, comps[1]], scores[, comps[2]])
-        colnames(df) <- sprintf("PC%d", seq_along(pvar))
+        colnames(df) <- sprintf("PC%d", seq_along(colnames(scores)))
     }
     
     ## Plot types for global PCA results
