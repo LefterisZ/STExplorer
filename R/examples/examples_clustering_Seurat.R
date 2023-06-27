@@ -1,20 +1,26 @@
+library("Seurat")
+library("SCFunctionsV3")
+library("Spaniel")
+library("harmony")
 
 #----------------------------------------------------#
 # 1. SET FILE PATHS ----
 #----------------------------------------------------#
 ## Input data folder ----
+projDir <- file.path("/Users/b9047753/Documents/Projects_1D/Visium_Liver/", "data")
+inputDir <- file.path(projDir, "spaceranger_outs")
 sampleName  <- list.files(path = inputDir)
 dataDir <- file.path(inputDir, sampleName)
-
+ground_truth <- read_table("/Users/b9047753/Documents/Projects_1D/Visium_Liver/data/spaceranger_outs/Human_Liver_Steatotic/Human_Liver_Steatotic_JBO019_Results/outs/spatial/spotzonationGroup.txt")
 #----------------------------------------------------#
 # 2. CREATE AN INFO TABLE ----
 #----------------------------------------------------#
 ## Create a sampleInfo table ----
-filefolders <- list.files(dataDir)
+filefolders <- paste0(list.files(dataDir), "/outs")
 id <- filefolders %>% gsub("results_", "", .) %>% gsub("_Results", "", .)
 section <- id %>% gsub(".*_", "", .)
 sampleInfo <- data.frame(
-    fileFolders = filefolders,
+    fileFolders = paste0(filefolders, "/outs"),
     id = id,
     tissue = sampleName,
     section = section
@@ -76,9 +82,11 @@ seuratObj_batch_corrected <- seuratObj_batch_corrected2 %>%
     # run the below only if you have multiple slices combined. If not do not run
     RunHarmony("id", plot_convergence = TRUE, assay.use = "originalexp")
 
-saveRDS(seuratObj_batch_corrected_norm, file = paste0(outputDir, "DLPFC_151673_counts_Seurat_Norm.rds"))
-saveRDS(seuratObj_batch_corrected2, file = paste0(outputDir, "DLPFC_151673_counts_Seurat_Norm_VST_Var2000_Scaled.rds"))
-saveRDS(seuratObj_combined, file = paste0(outputDir, "DLPFC_151673_SeuratObject.rds"))
+seuratObj_batch_corrected_norm <- seuratObj_batch_corrected@assays$originalexp@data
+
+saveRDS(seuratObj_batch_corrected_norm, file = paste0(outputDir, "HumanLiverJBO019_counts_Seurat_Norm.rds"))
+saveRDS(seuratObj_batch_corrected2, file = paste0(outputDir, "HumanLiverJBO019_counts_Seurat_Norm_VST_Var2000_Scaled.rds"))
+saveRDS(seuratObj_combined, file = paste0(outputDir, "HumanLiverJBO019_SeuratObject.rds"))
 
 #----------------------------------------------------#
 # 5. SEURAT CLUSTERING ----
@@ -89,7 +97,7 @@ seuratObj_batch_corrected <- seuratObj_batch_corrected %>%
     ## 5.1 Find Nearest Neighbours
     FindNeighbors(reduction = "pca", dims = 1:10) %>%
     ## 5.2 Cluster the data
-    FindClusters(resolution = c(0.8)) %>%
+    FindClusters(resolution = 0.8) %>%
     # run non-linear dimension reduction for later visualisation
     RunUMAP(reduction = "pca", dims = 1:10, assay = "originalexp")
 
@@ -101,7 +109,7 @@ ids <- sampleInfo$id
 for (i in 1:4) {
     id <- ids[i]
     sce_list[[i]]$cluster <-
-        seuratObj_batch_corrected[, seuratObj_batch_corrected$id == id]$originalexp_snn_res.0.5
+        seuratObj_batch_corrected[, seuratObj_batch_corrected$id == id]$originalexp_snn_res.0.8
 }
 
 ## 5.6 save RDS again with added clusters
@@ -109,30 +117,33 @@ for (i in 1:4) {
 
 ## 5.7 plot the clusters
 # If transferred to the sce_list above run this:
-seurat_clust <- as.data.frame(colData(sce_list$Olfactory_Bulb))
+seurat_clust <- as.data.frame(colData(sce_list$`Human_Liver_Steatotic_JBO019_Results/outs`))
 # If not, then run this:
 seurat_clust <- as.data.frame(seuratObj_batch_corrected@meta.data)
 seurat_clust$Barcode <- gsub("-1", ".1", seurat_clust$Barcode)
 
+# map <- seurat_clust %>% 
+#     left_join(polygons[,c("Barcode", "geom_pol")])
+geoms <- data.frame(geometry = colGeometry(sfe,"spotHex"), 
+                    Barcode = colData(sfe)$Barcode)
 map <- seurat_clust %>% 
-    left_join(polygons[,c("Barcode", "geom_pol")])
+    left_join(geoms) %>% 
+    left_join(ground_truth) %>% 
+    select(cluster, annotation, geometry)
+map <- map[!st_is_empty(map$geometry),]
 
-col.No = length(unique(map$originalexp_snn_res.0.75))
-colour.values <- get.colours(col.No)
+col.No = length(unique(map$cluster))
+colour.values <- get.colours(col.No*3)
 
-ggplot(seurat_clust) + 
-    geom_sf(data = map$geom_pol,
-            aes(fill = map$originalexp_snn_res.0.75)) + 
+map <- reshape2::melt(map, measure.vars = c("cluster", "annotation"))
+
+ggplot(data = map) + 
+    geom_sf(aes(geometry = geometry, fill = value)) + 
     scale_fill_manual(values = colour.values) +
+    facet_wrap(~variable) + 
     labs(title = "Seurat clustering",
          fill = "Clusters") + 
-    my_theme
-
-ggsave(file.path(graphDir, "seurat_clustering_mob_res075.tiff"),
-       width = grDevices::dev.size(units = "in")[1],
-       height = grDevices::dev.size(units = "in")[2],
-       units = "in",
-       dpi = 400)
+    theme_void()
 
 seurat_clust_out <- dplyr::select(seurat_clust, c(Barcode, cluster))
 write.csv(seurat_clust_out, file = "clusters_seurat.csv", row.names = FALSE)

@@ -229,17 +229,17 @@ file.sources <- list.files(path = "../STExplorer/R/core",
                            ignore.case = TRUE)
 sapply(file.sources, source, local = .GlobalEnv)
 
-sampleDir <- "/Users/b9047753/Documents/Projects_1D/Visium_Liver/data/spaceranger_outs/Human_Liver_Steatotic/Human_Liver_Steatotic_JBO019_Results"
+sampleDir <- "/Users/b9047753/Documents/Projects_1D/Visium_Liver/data/spaceranger_outs/Human_Liver/Human_Liver_Steatotic_JBO019_Results"
 sampleNames <- "JBO019"
 sfe <- read10xVisiumSFE(samples = sampleDir, 
                         sample_id = sampleNames, 
-                        type = "sparse", 
+                        type = "HDF5", 
                         data = "filtered", 
                         images = "lowres", 
                         style = "W", 
                         zero.policy = TRUE)
 
-ground_truth <- read_table("/Users/b9047753/Documents/Projects_1D/Visium_Liver/data/spaceranger_outs/Human_Liver_Steatotic/Human_Liver_Steatotic_JBO019_Results/outs/spatial/spotzonationGroup.txt")
+ground_truth <- readr::read_table("/Users/b9047753/Documents/Projects_1D/Visium_Liver/data/spaceranger_outs/Human_Liver/Human_Liver_Steatotic_JBO019_Results/outs/spatial/spotzonationGroup.txt")
 
 is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$symbol)
 sfe <- addPerLocQC(sfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
@@ -251,21 +251,21 @@ rowData(sfe)
 colGeometries(sfe)
 
 ## Select library size threshold
-qc_lib_size <- colData(sfe)$sum < 700
+qc_lib_size <- colData(sfe)$sum < 1000 | colData(sfe)$sum > 45000
 ## Check how many spots are filtered out
 table(qc_lib_size)
 ## Add threshold in colData
 colData(sfe)$qc_lib_size <- qc_lib_size
 
 ## Select expressed genes threshold
-qc_detected <- colData(sfe)$detected < 500
+qc_detected <- colData(sfe)$detected < 550 | colData(sfe)$detected > 6000
 ## Check how many spots are filtered out
 table(qc_detected)
 ## Add threshold in colData
 colData(sfe)$qc_detected <- qc_detected
 
 ## Select expressed genes threshold
-qc_mito <- colData(sfe)$subsets_mito_percent > 25
+qc_mito <- colData(sfe)$subsets_mito_percent > 22
 ## Check how many spots are filtered out
 table(qc_mito)
 ## Add threshold in colData
@@ -286,7 +286,7 @@ plotQC(sfe, type = "spots",
 sfe <- sfe[, !colData(sfe)$discard]
 
 ## add neighbour graph and distance matrix
-sfe <- get.spatialNeighGraphs(sfe, sampleNames, type = "knearneigh", style = "W", distMod = "raw", k = 6)
+sfe <- addSpatialNeighGraphs(sfe, sampleNames, type = "knearneigh", style = "W", distMod = "raw", k = 6)
 sfe <- addDistMat(sfe, p = 2)
 colGraphs(sfe)
 
@@ -299,10 +299,11 @@ summary(sizeFactors(sfe))
 sfe <- logNormCounts(sfe)
 
 # FEATURE SELECTION
+rowData(sfe)[["JBO019.s_logMean"]] <- rowSums(assay(sfe, "logcounts")) / rowData(sfe)[["JBO019.nLocations"]]
 is_zero <- rowData(sfe)$total == 0
-is_low <- (rowData(sfe)$JBO019.s_mean <= 1.5 & 
-             rowData(sfe)$JBO019.sparsity < 0.99)
-discard_gs <- is_zero | is_mito | is_low
+is_logLow <- rowData(sfe)[[paste0(sampleName,".s_logMean")]] <= 1
+discard_gs <- is_zero | is_mito | is_logLow
+table(discard_gs)
 
 rowData(sfe)$discard <- discard_gs
 # remove mitochondrial genes
@@ -341,7 +342,7 @@ robust = FALSE
 my.cl <- parallel::makeCluster(availableCores() - 1, type = 'FORK')
 
 # >>> it returns an error when inside the markdown. Maybe run with verbose = FALSE
-pcagw_ste <- gwpcaSTE(obj = sfe, 
+pcagw_ste <- gwpcaSTE(sfe = sfe, 
                       assay = "logcounts",
                       vars = vars, 
                       p = p, 
@@ -400,12 +401,12 @@ plotGWPCA_ptv(gwpca = pcagw_ste,
               type = "map")
 # calculate discrepancies outside of GWPCA
 discrepancy <- gwpca_cvSTE(bw = bw,
-                            x = as.matrix(t(assay(sfe, "logcounts")[vars,])),
-                            dMat = gw.dist(spatialCoords(sfe), p = 1),
-                            k = 20,
-                            loc = spatialCoords(sfe),
-                            verbose = TRUE,
-                            cvContrib = TRUE)
+                           x = as.matrix(t(assay(sfe, "logcounts")[vars,])),
+                           dMat = gw.dist(spatialCoords(sfe), p = 1),
+                           k = 20,
+                           loc = spatialCoords(sfe),
+                           verbose = TRUE,
+                           cvContrib = TRUE)
 
 plotGWPCA_discr(pcagw_ste, type = "box")
 plotGWPCA_discr(pcagw_ste, type = "map")

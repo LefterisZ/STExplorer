@@ -1,20 +1,37 @@
-#' @name get.colours
-#' 
-#' @description 
-#' 
-#' @param 
-#' 
+#' Get a vector of colours for plotting
+#'
+#' This function returns a vector of colours from pre-defined palettes based on
+#' the desired number of colours.
+#'
+#' @param number The desired number of colours.
+#'
+#' @return A vector of colours.
+#'
+#' @details This function selects colours from various pre-defined palettes to
+#' accommodate the desired number of colours. It supports up to 167 colours. If
+#' a number greater than 167 is provided, an error is thrown.
+#'
+#' @importFrom cols4all c4a
+#'
+#' @seealso [c4a()] from the \code{\link{cols4all}} package.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @examples
+#' get.colours(10)
+#'
 #' @export
 
-get.colours <- function(number){
+getColours <- function(number){
     if (number > 167) {
-        stop("The plot needs more than 167 colours. 
+      cat("The plot needs more than 167 colours.
              Please consider plotting it using the default ggplot colour scheme.
              You can also provide a manual selection of more than 100 colours to
              the ggplot function.")
+      stop()
     }
-    
-    
+
+
     # Set some palettes in a list
     col.list <- list(palette36 = c4a("palette36"),
                      glasbey.32 = c4a("glasbey"),
@@ -22,7 +39,7 @@ get.colours <- function(number){
                      wright25 = c4a("wright25"),
                      light24 = c4a("light24"),
                      dark24 = c4a("dark24"))
-    
+
     # Select the right number of colours needed
     if (number <= 25) {
         colours <- col.list$wright25[1:number]
@@ -54,6 +71,6 @@ get.colours <- function(number){
                      col.list$glasbey.32,
                      col.list$dark24[1:(number - 143)])
     }
-    
+
     return(colours)
 }
