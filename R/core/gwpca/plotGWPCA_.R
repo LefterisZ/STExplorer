@@ -23,6 +23,7 @@
 #'
 #' @importFrom ggplot2 geom_point geom_line ggplot labs theme ylim
 #' @importFrom ggplot2 theme_classic aes
+#' @importFrom methods is
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -51,12 +52,14 @@
 #' plotGWPCA_global(gwpca, type = "scree")
 #'
 #' # Plot scatter plot of PCA results for components 1 and 2
+#' \dontrun{
 #' plotGWPCA_global(gwpca, type = "scatter", comps = c(1, 2))
-#'
+#' }
 #' # Customize the appearance of points in the scatter plot
+#' \dontrun{
 #' plotGWPCA_global(gwpca, type = "scatter",
 #' point_args = list(size = 3, color = "red"))
-#'
+#' }
 #' @export
 plotGWPCA_global <- function(gwpca,
                              comps = 1:10,
@@ -287,6 +290,7 @@ plotGWPCA_leadingG <- function(gwpca,
 #' @importFrom ggplot2 theme_classic theme_void facet_wrap aes
 #' @importFrom ggplot2 scale_fill_viridis_c scale_fill_manual
 #' @importFrom magrittr %>%
+#' @importFrom dplyr n_distinct all_of
 #'
 #' @details
 #' The comps argument is passed down to select the aggregates of components to
@@ -308,20 +312,18 @@ plotGWPCA_leadingG <- function(gwpca,
 #' # Load required packages
 #' library(ggplot2)
 #'
-#' # Generate example data
-#' set.seed(123)
-#' n <- 100
-#' gene_data <- matrix(rnorm(n * 10), ncol = 10)
-#' coord_data <- data.frame(x = rnorm(n), y = rnorm(n))
+#' # Load data
+#' data(gwpca)
+#' data(sfe)
 #'
-#' # Run GWPCA
-#' gw <- gwpca(gene_data, coord_data)
+#' # Add PTV data
+#' gwpca <- gwpca_PropVar(gwpca = gwpca, n_comp = 2:10, sfe = sfe)
 #'
 #' # Plot PTV as violin plot
-#' plotGWPCA_ptv(gw, comps = 1:5, type = "violin")
+#' plotGWPCA_ptv(gwpca, comps = 1:5, type = "violin")
 #'
 #' # Plot PTV as map
-#' plotGWPCA_ptv(gw, comps = 1:5, type = "map")
+#' plotGWPCA_ptv(gwpca, comps = 1:5, type = "map")
 #'
 #' @export
 plotGWPCA_ptv <- function(gwpca,
@@ -491,22 +493,15 @@ plotGWPCA_ptv <- function(gwpca,
 #' @importFrom reshape2 melt
 #' @importFrom scales alpha
 #' @importFrom magrittr %>%
+#' @importFrom S4Vectors isEmpty
 #'
 #' @returns The function returns the created plot.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @examples
-#' # Load required packages
-#' library(ggplot2)
-#' library(sf)
-#'
-#' # Generate example data
-#' data <- data.frame(
-#'   cvs = rnorm(100, mean = 0, sd = 1),
-#'   geometry = st_sfc(st_point(x = runif(100), y = runif(100)))
-#' )
-#' gwpca <- list(CV = data$cvs, geometry = data$geometry)
+#' # Load data
+#' data(gwpca)
 #'
 #' # Plot discrepancies as a boxplot
 #' plotGWPCA_discr(gwpca, type = "box")
@@ -654,7 +649,7 @@ plotGWPCA_discr <- function(gwpca,
 #' the heatmap using the `pheatmap` function.
 #'
 #' @importFrom pheatmap pheatmap
-#' @importFrom dplyr select starts_with left_join mutate if_else
+#' @importFrom dplyr select starts_with left_join mutate if_else ends_with
 #' @importFrom tibble rownames_to_column column_to_rownames
 #' @importFrom scales grey_pal
 #' @importFrom magrittr %>%
@@ -664,11 +659,23 @@ plotGWPCA_discr <- function(gwpca,
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @examples
-#' sfe <- read10xVisiumSFE(samples = sampleDir, sample_id = sampleNames, ...)
-#' plotGWPCA_discrHeatmap(sfe, assay = "logcounts",
-#' focus = c(barcode1, barcode2),
-#' dMetric = "euclidean", sample_id = "sample1",
-#' bw = 2, mean.diff = 1, show.vars = "top", scale = "row", gene.names = FALSE)
+#' # Load data
+#' data(sfe)
+#'
+#' # Set parameters
+#' assay <- "logcounts"
+#' focus <- colnames(sfe)[1] # outlier Barcode
+#' sample_id <- "JBO019"
+#' dMetric <- "euclidean"
+#' bw <- 450
+#' show.vars <- "top"
+#'
+#' # Plot
+#' plotGWPCA_discrHeatmap(sfe, assay = assay,
+#' focus = focus,
+#' dMetric = dMetric, sample_id = sample_id,
+#' bw = bw, mean.diff = 1, show.vars = show.vars, scale = "row",
+#' gene.names = TRUE)
 #'
 #' @export
 plotGWPCA_discrHeatmap <- function(sfe,

@@ -39,7 +39,7 @@
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @importFrom dplyr mutate select filter across starts_with if_else
-#' @importFrom dplyr left_join
+#' @importFrom dplyr left_join ends_with
 #' @importFrom tibble column_to_rownames
 #' @importFrom Matrix rowMeans
 #' @importFrom SpatialFeatureExperiment colData rowData
@@ -54,6 +54,24 @@
 #' - annot: Data frame containing the annotation data for the genes.
 #' If exportExpression is TRUE, the function returns a data frame containing the
 #' gene data that were used in the discrepancy heatmap.
+#'
+#' @examples
+#' # Load data
+#' data(sfe)
+#'
+#' # Set parameters
+#' assay <- "logcounts"
+#' focus <- colnames(sfe)[1] # outlier Barcode
+#' sample_id <- "JBO019"
+#' dMetric <- "euclidean"
+#' bw <- 450
+#' show.vars <- "top"
+#'
+#' # Get Gene expression data
+#' discData <- getDiscrepancyGeneData(sfe, assay = assay, focus = focus,
+#' dMetric = dMetric, sample_id = sample_id, bw = bw, show.vars = show.vars)
+#' class(discData)
+#' names(discData)
 #'
 #' @export
 getDiscrepancyGeneData <- function(sfe,
@@ -183,10 +201,16 @@ getDiscrepancyGeneData <- function(sfe,
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @examples
+#' # Load data
 #' data(sfe)
 #' data(gwpca)
-#' sample_id <-  "JBO019"
-#' discData <- getDiscrepancyData(sfe, gwpca, sample_id)
+#'
+#' # Set sample name
+#' sample_id <- "JBO019"
+#'
+#' # Get Location data
+#' discData <- getDiscrepancyLocData(sfe, gwpca, sample_id)
+#' head(discData)
 #'
 #' @export
 getDiscrepancyLocData <- function(sfe, gwpca, sample_id) {

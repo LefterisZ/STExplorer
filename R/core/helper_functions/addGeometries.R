@@ -66,7 +66,6 @@ addGeometries <- function(sfe,
 
   ## Add Hexagons
   sfe <- add.spotHex(sfe = sfe,
-                     samples = samples,
                      sample_id = sample_id,
                      res = res)
 

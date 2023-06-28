@@ -24,19 +24,56 @@
 #' @param annot.col the annotation column to be returned as vector. Only needed
 #' if output = "vector"
 #'
-#' @importFrom tibble as_tibble
+#' @details
+#' This function annotates a data frame (`data`) using a biomart database
+#' (`biomart`). It matches the rows of the data frame with the corresponding
+#' entries in the biomart based on the provided identifier (`id`) in the
+#' biomart. If the data frame has a column with ENGene IDs then that specific
+#' column (`column`) must be specified as an integer.
 #'
-#' @seealso \code{\link{createBiomart}}
+#' If no specific biomart columns are provided in the `add` argument, the
+#' function will add the following default columns: "gene_name", "biotype",
+#' "description". If the biomart contains a column named "human_homolog", it
+#' will be included in the annotation as well.
+#'
+#' If there is a successful match between the data frame and the biomart, the
+#' annotated data is returned as a data frame or a vector based on the
+#' specified `output` argument. The output data frame includes the original
+#' data, the matching biomart columns, and an identifier column (`id`)
+#' containing the row names of the input data frame.
+#'
+#' If some rows in the data frame are missing from the biomart table, a warning
+#' message is displayed, indicating that the biomart might have been created
+#' using a different Ensembl version. Users are advised to verify the Ensembl
+#' version used for annotation and ensure consistency with the biomart table.
+#'
+#' @importFrom tibble as_tibble
+#' @importFrom SpatialFeatureExperiment rowData
+#'
+#' @return An annotated data frame or vector based on the specified `output`
+#' argument.
+#'
+#' @seealso \code{\link{createBiomart}}, \code{\link[tibble]{as_tibble}} to
+#' convert the output to a tibble if necessary. \code{\link[biomaRt]{useMart}}
+#' and \code{\link[biomaRt]{getBM}} to access and retrieve data from the biomart
+#'  database.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @examples
-#' data(data)
-#' biomart <- create_biomart(organism = "human")
-#' annotated_df <- annotateDataFrame(data, biomart = biomart)
+#' library(SpatialFeatureExperiment)
+#'
+#' # Load data
+#' data(sfe)
+#' df <- rowData(sfe)[,c(5:8)]
+#'
+#' # Create a biomart
+#' biomart <- createBiomart(organism = "human")
+#'
+#' # Annotate tha dataframe
+#' annotated_df <- annotateDataFrame(df, biomart = biomart)
 #'
 #' @export
-
 annotateDataFrame <- function(data, biomart, add, id = 1, column = NA,
                                 check.names = FALSE, output = "data.frame",
                                 annot.col = NULL){
@@ -78,9 +115,9 @@ annotateDataFrame <- function(data, biomart, add, id = 1, column = NA,
                     "mean that you are using the wrong ensembl version to",
                     "create the biomart.\n",
                     "Please check the ensembl version you used for the",
-                    "annotation of your data when you mapped the reads to the",
-                    "genome and generate a biomart table using the 'version'",
-                    "parameter in the 'createBiomart' function.\n"))
+                    "annotation of your data when you mapped the reads to \n",
+                    "the genome and generate a biomart table using the ",
+                    "'version' parameter in the 'createBiomart' function.\n"))
     }
 
     #### Output the data ####

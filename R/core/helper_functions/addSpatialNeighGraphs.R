@@ -30,7 +30,7 @@
 #' @param distMod default “idw”; the intended type of distance modelling, can
 #' take values “raw”, “idw”, “exp”, and “dpd”. Argument passed to \code{spdep}'s
 #' \code{nb2listwdist} function. For more information about the individual
-#' distance models visit the \code{spdep}'s documentation and vignette. The
+#' distance models visit the \code{spdep}'s documentation and vignette. It
 #' uses the \code{nb2listw} instead of the \code{nb2listwdist} function and it
 #' does not model the distance weights between the neighbours.
 #'
@@ -72,9 +72,10 @@
 #' spatial relationships.
 #'
 #' @importFrom spdep poly2nb tri2nb soi.graph gabrielneigh relativeneigh
-#' @importFrom spdep nb2listw nb2listwdist knearneigh dnearneigh
+#' @importFrom spdep nb2listw nb2listwdist knearneigh dnearneigh knn2nb
+#' @importFrom spdep graph2nb
 #' @importFrom SpatialFeatureExperiment colData colGeometries spatialCoords
-#' @importFrom SpatialFeatureExperiment colGraphs
+#' @importFrom SpatialFeatureExperiment colGraph `colGraph<-`
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -89,12 +90,12 @@
 #' data(sfe)
 #'
 #' # Add spatial neighbour graphs in the provided SFE object
-#' sfe <- addSpatialNeighGraphs(sfe = sfe, sample_id = "sample1",
-#' type = "poly2nb")
+#' sfe <- addSpatialNeighGraphs(sfe = sfe, sample_id = "JBO019",
+#' type = "knearneigh", style = "W", distMod = "raw", k = 6, sfe_out = TRUE)
 #'
 #' # Get the generated neighbour graph as an object of its own
-#' nbr_graph <- addSpatialNeighGraphs(sfe = sfe, sample_id = "sample1",
-#' type = "poly2nb", sfe = FALSE)
+#' nbr_graph <- addSpatialNeighGraphs(sfe = sfe, sample_id = "JBO019",
+#' type = "knearneigh", style = "W", distMod = "raw", k = 6, sfe_out = FALSE)
 #'
 #' @export
 addSpatialNeighGraphs <- function(sfe,

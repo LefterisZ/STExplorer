@@ -22,6 +22,7 @@
 #' easy reference and linking between the two.
 #'
 #' @importFrom SpatialFeatureExperiment spatialCoords colGeometry
+#' @importFrom SpatialFeatureExperiment `colGeometry<-`
 #' @importFrom sf st_as_sf
 #' @importFrom magrittr %>%
 #'

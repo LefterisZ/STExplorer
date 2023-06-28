@@ -28,6 +28,7 @@
 #' @returns The modified SpatialFeaturesExperiment object with added barcode
 #' columns.
 #' @importFrom SpatialFeatureExperiment colData
+#' @importFrom SpatialFeatureExperiment `colData<-`
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

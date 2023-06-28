@@ -56,18 +56,17 @@
 #' @examples
 #' # Load Geographically Weighted principal component analysis data
 #' data(gwpca)
+#' data(sfe)
 #'
 #' # Identify single leading gene per location for PC1 and PC2
-#' leading_genes_single <- gwpca_LeadingGene(gwpca = pca,
-#' sfe = spatial_features,
-#' pc_nos = c(1, 2), type = "single",
-#' method = "membership", names = "id")
+#' leading_genes_single <- gwpca_LeadingGene(gwpca = gwpca,
+#' sfe = sfe, pc_nos = c(1, 2), type = "single", names = "id")
 #'
 #' # Identify top 3 leading genes per location for PC3 and PC4
-#' leading_genes_multi <- gwpca_LeadingGene(gwpca = pca,
-#' sfe = spatial_features,
-#' pc_nos = c(3, 4), type = "multi",
-#' genes_n = 3, method = "order",
+#' leading_genes_multi <- gwpca_LeadingGene(gwpca = gwpca,
+#' sfe = sfe,
+#' pc_nos = c(1, 2), type = "multi",
+#' genes_n = 3, method = "membership",
 #' names = "gene_names")
 #'
 #' @export
@@ -96,9 +95,13 @@ gwpca_LeadingGene <- function(gwpca,
 
   ## Concatenate to a data frame
   result <- do.call(cbind.data.frame, leading_genes)
-  colnames(result)[colnames(result) == "id"] <- paste0("id", pc_nos)
-  colnames(result)[colnames(result) == "gene_names"] <- paste0("gene_names",
-                                                               pc_nos)
+  if (names == "id") {
+    colnames(result)[colnames(result) == "id"] <- paste0("id", pc_nos)
+  } else {
+    colnames(result)[colnames(result) == "gene_names"] <- paste0("gene_names",
+                                                                 pc_nos)
+  }
+
   result$geometry <- colGeometry(sfe, "spotHex")
 
   ## Select ENSG IDs or gene names to be in the final output

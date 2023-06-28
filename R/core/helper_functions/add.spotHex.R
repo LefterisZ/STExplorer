@@ -13,6 +13,8 @@
 #' addition based on the tilt of pixel coordinates.
 #'
 #' @param sfe The \code{SpatialFeaturesExperiment} object.
+#' @param samples The samples' folder path as provided at
+#' \code{\link{read10xVisiumSFE}}.
 #' @param sample_id A character string specifying unique sample identifiers, one
 #' or each directory specified via \code{samples} when you loaded the SFE object
 #' using the \code{read10xVisiumSFE} function.
@@ -27,6 +29,7 @@
 #' @importFrom SpatialFeatureExperiment colGeometry
 #' @importFrom S4Vectors metadata
 #' @importFrom magrittr %>%
+#' @importFrom utils read.csv
 #'
 #' @seealso \code{\link{read10xVisiumSFE}}
 #'
@@ -38,6 +41,7 @@
 # (problems with colData and SFE? Maybe export spatialCoords work and then
 # add to SFE ONLY the hexagons.)
 add.spotHex <- function(sfe,
+                        samples,
                         sample_id,
                         res = c("lowres", "hires", "fullres")) {
     ## Prepare required data

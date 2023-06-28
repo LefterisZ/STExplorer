@@ -27,11 +27,12 @@
 #' @importFrom SpatialFeatureExperiment colGeometry
 #'
 #' @examples
-#' # Assuming gwpca_obj is a gwpca object and sfe_obj is an SFE object:
+#' # Load data
 #' data(sfe)
 #' data(gwpca)
-#' result <- gwpca.prop.var(gwpca, n_comp = 2:10, sfe = sfe)
-#' print(result)
+#'
+#' # Calculate percentage of Variation
+#' gwpca <- gwpca_PropVar(gwpca, n_comp = 2:10, sfe = sfe)
 #'
 #' @export
 gwpca_PropVar <- function(gwpca, n_comp, sfe){

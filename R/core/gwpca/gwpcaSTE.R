@@ -77,7 +77,9 @@
 #' elocat <-  colnames(sfe)[1:50]
 #'
 #' # Run GWPCA -----------------------------
+#' \dontrun{
 #' pcagw <- gwpcaSTE(sfe = sfe, elocat = elocat, vars = vars, bw = bw)
+#' }
 #'
 #' @export
 gwpcaSTE <- function(sfe,
@@ -140,7 +142,7 @@ gwpcaSTE <- function(sfe,
                             .robust = robust,
                             .cv = cv,
                             .verbose = verbose)
-  print(gwpca_result)
+  # print(gwpca_result)
   ## fetch end time
   e <- Sys.time()
   ## return difference
@@ -206,11 +208,16 @@ gwpcaSTE <- function(sfe,
 #'
 #' @examples
 #' # Example usage
-#' bw <- 0.1
-#' x <- matrix(rnorm(1000), ncol = 10)
-#' loc <- matrix(rnorm(100), ncol = 2)
-#' dMat <- dist(loc)
+#' # Set parameters
+#' bw <- 0.5
 #' k <- 5
+#'
+#' # Create toy matrices
+#' x <- matrix(rnorm(1000), ncol = 10)
+#' loc <- abs(matrix(rnorm(200), ncol = 2))
+#' dMat <- GWmodel::gw.dist(loc)
+#'
+#' # Calculate
 #' gwpca_cvSTE(bw, x, loc, dMat, k)
 #'
 #' @export
@@ -238,9 +245,9 @@ gwpca_cvSTE <- function(bw,
 
     ## Select the type of WPCA
     if (robust == FALSE) {
-        pcafun = wpca
+        pcafun = wpca.ste
     } else {
-        pcafun = rwpca
+        pcafun = rwpca.ste
     }
 
     ## Pre-allocate space
@@ -333,24 +340,30 @@ gwpca_cvSTE <- function(bw,
 #'
 #' @examples
 #' # Load a SpatialFeatureExperiment object
-#' data("sfe")
+#' data(sfe)
 #'
 #' # Prepare some parameters
 #' vars <- rownames(sfe)[1:50]
 #'
 #' # Find the optimal bandwidth using basic GWPCA
-#' bw <- gwpca_bwSTE(sfe = example_sfe, vars = vars)
+#' \dontrun{
+#' bw <- gwpca_bwSTE(sfe = sfe, vars = vars)
 #' bw
+#' }
 #'
 #' # Find the optimal bandwidth using robust GWPCA and an adaptive kernel
-#' bw <- gwpca_bwSTE(sfe = example_sfe, vars = vars,
+#' \dontrun{
+#' bw <- gwpca_bwSTE(sfe = sfe, vars = vars,
 #' robust = TRUE, adaptive = TRUE)
 #' bw
+#' }
 #'
 #' # Find the optimal bandwidth using a pre-calculated distance matrix
+#' \dontrun{
 #' dMat <- gw.dist(dp.locat = spatialCoords(sfe), p = 2)
-#' bw <- gwpca_bwSTE(sfe = example_sfe, vars = vars, dMat = dMat)
+#' bw <- gwpca_bwSTE(sfe = sfe, vars = vars, dMat = dMat)
 #' bw
+#' }
 #'
 #' @export
 gwpca_bwSTE <- function(sfe,
@@ -458,6 +471,7 @@ gwpca_bwSTE <- function(sfe,
 #' @param ... Not used currently. Left for future additions.
 #'
 #' @importFrom stats printCoefmat
+#' @importFrom methods as
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

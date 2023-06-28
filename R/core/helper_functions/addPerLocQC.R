@@ -5,7 +5,7 @@
 #' @description
 #' A function to add a series of location (spot)-related QC metrics..
 #'
-#' @param obj The SpatialFeatureExperiment object.
+#' @param sfe The SpatialFeatureExperiment object.
 #'
 #' @param gTruth A dataframe that contains the ground truth for your dataset.
 #' It needs to have at least 3 columns. One column named "Barcode" with the
@@ -25,9 +25,14 @@
 #' @importFrom scater addPerCellQC
 #'
 #' @examples
-#' data(sfe)
+#' # Load data
+#' data(sfe_raw)
 #' data(gTruth)
-#' sfe <- addPerLocQC(sfe, gTruth = gTruth, assay = "counts", MARGIN = 1)
+#'
+#' # Calculate location QC stats
+#' \dontrun{
+#' sfe <- addPerLocQC(sfe, gTruth = gTruth, assay = "counts", MARGIN = 2)
+#' }
 #'
 #' @seealso \code{\link{addPerCellQC}}, \code{\link{add.barcodes}},
 #' \code{\link{add.gTruth}}, \code{\link{add.index}},
@@ -36,29 +41,29 @@
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @export
-addPerLocQC <- function(obj,
+addPerLocQC <- function(sfe,
                         gTruth = NULL,
                         assay = "counts",
                         MARGIN,
                         ...) {
 
   ## Add Barcodes as column
-  obj <- add.barcodes(obj)
+  sfe <- add.barcodes(sfe)
 
   ## Add custom annotations (if are available)
   if (!is.null(gTruth)) {
-    obj <- add.gTruth(obj, gtruth = gTruth)
+    sfe <- add.gTruth(sfe, gtruth = gTruth)
   }
 
   ## Add index column
-  obj <- add.index(obj)
+  sfe <- add.index(sfe)
 
   ## Add locational sparsity
-  obj <- get.QC.Sparsity(obj, assay = assay, MARGIN = MARGIN)
+  sfe <- get.QC.Sparsity(sfe, assay = assay, MARGIN = MARGIN)
 
   ## Add other locational QC metrics from scatter package
-  obj <- addPerCellQC(obj, ...)
+  sfe <- addPerCellQC(sfe, ...)
 
-  return(obj)
+  return(sfe)
 
 }

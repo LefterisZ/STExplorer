@@ -1,4 +1,5 @@
 #' Create a BioMart table
+#'
 #' @name createBiomart
 #'
 #' @description A function that creates biomart tables containing Ensembl
@@ -36,13 +37,15 @@
 #'
 #' @examples
 #' # Create Human BioMart
-#' create_biomart(organism = "human")
+#' bm <- createBiomart(organism = "human", version = NULL)
+#' head(bm)
 #'
-#' # Create Mouse  BioMart
-#' create_biomart(organism = "mouse",
-#'                attributes = c("ensembl_gene_id",
-#'                "external_gene_name", "gene_biotype"),
-#'                version = "GRCh38")
+#' # Create Mouse BioMart
+#' bm <- createBiomart(organism = "mouse",
+#' attributes = c("ensembl_gene_id","external_gene_name",
+#' "gene_biotype", "chromosome_name"),
+#' version = NULL)
+#' head(bm)
 #'
 #' @seealso \code{\link{listEnsembl}}, \code{\link{useEnsembl}},
 #' \code{\link{getBM}}

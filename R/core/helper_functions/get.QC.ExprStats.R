@@ -24,6 +24,8 @@
 #' @importFrom sparseMatrixStats rowMaxs
 #' @importFrom SpatialFeatureExperiment rowData colData
 #' @importFrom SummarizedExperiment assay
+#' @importFrom stats sd median
+#'
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

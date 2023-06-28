@@ -18,7 +18,9 @@
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @examples
-#' get.colours(10)
+#' # Get a set of 10 colours
+#' colours <- getColours(10)
+#' colours
 #'
 #' @export
 

@@ -20,6 +20,8 @@
 #'   indicates a non-outlier.
 #' }
 #'
+#' @importFrom stats quantile
+#'
 #' @examples
 #' # Generate a vector of random data
 #' data <- rnorm(100)

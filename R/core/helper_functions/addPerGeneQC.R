@@ -20,7 +20,8 @@
 #' @param mirror Specify an Ensembl mirror to connect to. The valid options here
 #' are 'www', 'uswest', 'useast', 'asia'. If no mirror is specified the primary
 #' site at www.ensembl.org will be used. Mirrors are not available for the
-#' Ensembl Genomes databases.
+#' Ensembl Genomes databases. The mirror and the version arguments cannot be
+#' used together.
 #'
 #' @param ... further arguments passed to \code{addPerFeatureQC}, to pass
 #'  to \code{perFeatureQCMetrics}.
@@ -28,13 +29,14 @@
 #' @importFrom scater addPerFeatureQC
 #' @importFrom Matrix rowSums
 #' @importFrom SpatialFeatureExperiment rowData colData
+#' @importFrom SummarizedExperiment rowData<-
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @examples
-#' data(sfe)
-#' sfe <- addPerGeneQC(sfe, assay = "counts", organism = "human",
-#' version = "99", mirror = "www")
+#' data(sfe_raw)
+#' sfe <- addPerGeneQC(sfe_raw, assay = "counts", organism = "human",
+#' version = NULL, mirror = NULL)
 #'
 #' @seealso \code{\link{addPerFeatureQC}}, \code{\link{get.QC.Sparsity}},
 #' \code{\link{get.QC.FindZeroExpr}}, \code{\link{get.QC.ExprStats}},
@@ -46,7 +48,7 @@ addPerGeneQC <- function(sfe,
                         assay = "counts",
                         organism = "human",
                         version = NULL,
-                        mirror = "www",
+                        mirror = NULL,
                         ...) {
   ## Add Biomart annotations
   if (is.null(version)) {
