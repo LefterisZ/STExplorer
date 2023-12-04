@@ -21,6 +21,9 @@ fgwcSTE(
 \code{MetaSpatialFeatureExperiment} object containing spatial expression
 data.}
 
+\item{sample_id}{A character string indicating the name of the sample. It is
+required when the \code{m_sfe} argument is provided with a MetaSFE object.}
+
 \item{data}{an object of data with d>1. Can be \code{matrix} or
 \code{data.frame}. If your data is univariate, bind it with \code{1} to get
 a data frame with 2 columns.}
@@ -28,6 +31,8 @@ a data frame with 2 columns.}
 \item{pop}{an n*1 vector contains population.}
 
 \item{distMat}{an n*n distance matrix between regions.}
+
+\item{dMetric}{Character string specifying the distance metric.}
 
 \item{algorithm}{algorithm used for FGWC}
 
@@ -185,10 +190,12 @@ Stochastic Algorithms: Foundations and Applications, 169--178. Springer
 Berlin Heidelberg. doi: 10.1007/978-3-642-04944-6_14,
 \url{https://doi.org/10.1007/978-3-642-04944-6_14}.
 }
+}
 \seealso{
-\code{\link{fgwcuv}} \code{\link{abcfgwc}} \code{\link{fpafgwc}}
-\code{\link{gsafgwc}} \code{\link{hhofgwc}} \code{\link{ifafgwc}}
-\code{\link{psofgwc}} \code{\link{tlbofgwc}}
+\code{\link[naspaclust]{fgwcuv}}, \code{\link[naspaclust]{abcfgwc}},
+\code{\link[naspaclust]{fpafgwc}}, \code{\link[naspaclust]{gsafgwc}},
+\code{\link[naspaclust]{hhofgwc}}, \code{\link[naspaclust]{ifafgwc}},
+\code{\link[naspaclust]{psofgwc}}, \code{\link[naspaclust]{tlbofgwc}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

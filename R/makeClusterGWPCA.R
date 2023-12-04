@@ -20,6 +20,8 @@
 #'
 #' @keywords parallel computing, cluster, GWPCA
 #'
+#' @importFrom parallelly availableCores
+#'
 #' @rdname makeClusterGWPCA
 #'
 #' @examples

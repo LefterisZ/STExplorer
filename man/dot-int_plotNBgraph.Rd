@@ -28,8 +28,8 @@ selected sample. It allows the option to overlay the tissue image on the
 graph. The capture area limits are considered for proper spatial alignment.
 }
 \seealso{
-\code{\link{ggplot}}, \code{\link{tidyterra::geom_spatraster_rgb}},
-\code{\link{ggplot2::geom_sf}}
+\code{\link[ggplot2]{ggplot}}, \code{\link[tidyterra]{geom_spatraster_rgb}},
+\code{\link[ggplot2]{geom_sf}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

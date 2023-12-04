@@ -38,7 +38,7 @@
 #' gwpca <- gwpca_PropVar(gwpca, n_comp = 2:10, sfe = sfe)
 #'
 #' @export
-gwpca_PropVar <- function(gwpca, n_comp, sfe, sample_id = NULL){
+gwpca_PropVar <- function(gwpca, n_comp, m_sfe, sample_id = NULL){
   ## SFE or metaSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 

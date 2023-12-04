@@ -27,7 +27,7 @@ of the SpatialFeatureExperiment object. Users need to specify the distance
 metric (Euclidean, Manhattan, or Minkowski) used for the stored matrix.
 }
 \seealso{
-\code{\link[colData]{colData}}
+\code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

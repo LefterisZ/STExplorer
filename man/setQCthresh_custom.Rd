@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCthresh_custom}
 \alias{setQCthresh_custom}
-\alias{setQCthresh}
 \title{Set QC Thresholds using Custom Metrics}
 \usage{
 setQCthresh_custom(msfe, sample_id = TRUE, MARGIN, qcMetric)
@@ -56,7 +55,7 @@ msfe <- setQCthresh_custom(msfe,
 }
 \seealso{
 \code{\link{.int_custom_1}}, \code{\link{.int_custom_2}},
-\code{\link[colData]{colData}}
+\code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

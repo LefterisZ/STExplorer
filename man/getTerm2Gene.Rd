@@ -9,11 +9,12 @@ getTerm2Gene(user_data = NULL, msig_data = NULL, cat = NULL, subcat = NULL)
 \arguments{
 \item{user_data}{A user-supplied term-to-gene data frame (optional).}
 
+\item{msig_data}{A term-to-gene data frame as generated using the
+\code{getMSigDBData} function.}
+
 \item{cat}{Filter for "gs_cat" (e.g., "C2", "C3").}
 
 \item{subcat}{Filter for "gs_subcat" (e.g., "GO:BP", "CGP").}
-
-\item{species}{The target species for MSigDB data retrieval.}
 }
 \value{
 A term-to-gene data frame with columns "term" and "gene."
@@ -36,6 +37,6 @@ t2g <- getTerm2Gene(msig_data = data, cat = C1, subcat = "")
 # the 'subcat' argument.
 
 #' @seealso
-\code{\link{clusterProfiler::GSEA}}
+\code{\link[clusterProfiler]{GSEA}}
 
 }

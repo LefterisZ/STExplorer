@@ -29,8 +29,9 @@ distance metric (Euclidean, Manhattan, or Minkowski). The resulting distance
 matrix is stored in the metadata of the SpatialFeatureExperiment object.
 }
 \seealso{
-\code{\link{gw.dist}}, \code{\link[spatialCoords]{spatialCoords}},
-\code{\link[colData]{colData}}
+\code{\link[GWmodel]{gw.dist}},
+\code{\link[SpatialFeatureExperiment]{spatialCoords}},
+\code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

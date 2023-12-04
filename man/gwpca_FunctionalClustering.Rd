@@ -75,7 +75,7 @@ algorithm used, data processing steps, and result interpretation.
 
 }
 \seealso{
-\code{\link{gwpcaSTE}}, \code{\link{clusterProfiler::GSEA}}
+\code{\link{gwpcaSTE}}, \code{\link[clusterProfiler]{GSEA}}
 
 Other Spatial Transcriptomics Analysis: 
 \code{\link{.int_runGSEA}()},

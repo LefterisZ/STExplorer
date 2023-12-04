@@ -129,7 +129,7 @@ plotQC_spots <- function(sfe,
 #'
 #' @seealso
 #' Explore the related internal functions: \code{\link{.int_getSmplIDs}},
-#' \code{\link{.int_dataToPlotAnnot}}, and \code{\link{.int_getColours}}.
+#' \code{\link{.int_dataToPlotAnnot}}, and \code{\link{getColours}}.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -787,7 +787,7 @@ plotQC_sizeFactors <- function(sfe,
     data <- data[data$in_tissue, ]
     fill <- "Sample ID"
     geomSF_args <- list(aes(geometry = geometry, fill = sample_id))
-    if (is.null(colours)){
+    if (is.null(colours)) {
       colours <- getColours(n_samples)
     } else {
       colours <- colours
@@ -796,7 +796,7 @@ plotQC_sizeFactors <- function(sfe,
   } else {
     fill <- "In tissue"
     geomSF_args <- list(aes(geometry = geometry, fill = in_tissue))
-    if (is.null(colours)){
+    if (is.null(colours)) {
       colours <- c("#1F78C8", "#FF0000")
     } else {
       colours <- colours

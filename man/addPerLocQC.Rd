@@ -4,14 +4,7 @@
 \alias{addPerLocQC}
 \title{Add location-related QC metrics}
 \usage{
-addPerLocQC(
-  sfe,
-  gTruth = NULL,
-  assay = "counts",
-  in_tissue = TRUE,
-  MARGIN,
-  ...
-)
+addPerLocQC(sfe, gTruth = NULL, assay = "counts", MARGIN, ...)
 }
 \arguments{
 \item{sfe}{The SpatialFeatureExperiment object.}

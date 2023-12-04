@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCthresh_NAs}
 \alias{setQCthresh_NAs}
-\alias{setQCthresh}
 \title{Set QC Threshold for Missing Annotations}
 \usage{
 setQCthresh_NAs(sfe, sample_id = TRUE)
@@ -40,7 +39,7 @@ sfe <- setQCthresh_NAs(sfe, sample_id = TRUE)
 
 }
 \seealso{
-\code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+\code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

@@ -38,10 +38,10 @@ Welcome to the vignette of STExplorer. STExplorer is a package the performs geog
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-BiocManager::install("STExplorerDev")
+BiocManager::install("STExplorer")
 
 ## To load the package use:
-library(STExplorerDev)
+library(STExplorer)
 ```
 
 ```{r load_pkgs, echo=FALSE, eval=FALSE, message=FALSE}
@@ -159,7 +159,6 @@ The following seven simple feature types are the most common:
 | `MULTILINESTRING`    | set of linestrings                                                                                                                                                                                                        |
 | `MULTIPOLYGON`       | set of polygons                                                                                                                                                                                                           |
 | `GEOMETRYCOLLECTION` | set of geometries of any type except GEOMETRYCOLLECTION                                                                                                                                                                   |
-
 : (#tab:table) Most common simple feature types.
 
 Each of the geometry types can also be a (typed) empty set, containing zero coordinates (for `POINT` the standard is not clear how to represent the empty geometry). Empty geometries can be thought of as being the analogue to missing (`NA`) attributes, NULL values or empty lists.

@@ -45,7 +45,6 @@
 addPerLocQC <- function(sfe,
                         gTruth = NULL,
                         assay = "counts",
-                        in_tissue = TRUE,
                         MARGIN,
                         ...) {
 

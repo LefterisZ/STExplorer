@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCthresh_GenesExpr}
 \alias{setQCthresh_GenesExpr}
-\alias{setQCthresh}
 \title{Set QC Threshold for Genes Expressed in each location}
 \usage{
 setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t, max_t)
@@ -44,7 +43,7 @@ sfe <- setQCthresh_GenesExpr(sfe, sample_id = "JBO019", min_t = 100)
 
 }
 \seealso{
-\code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+\code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

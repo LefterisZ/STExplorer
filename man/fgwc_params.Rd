@@ -37,9 +37,9 @@ the centroid approach.}
 
 \item{order}{Minkowski order (default is 1).}
 
-\item{alpha}{The old membership effect with \link{0,1}. If \code{alpha} equals 1,
-it will be the same as Fuzzy C-Means. If 0, it equals the
-neighborhood effect.}
+\item{alpha}{The old membership effect with \verb{[0,1]}. If \code{alpha} equals
+1, it will be the same as Fuzzy C-Means. If 0, it equals the neighborhood
+effect.}
 
 \item{a}{Spatial magnitude of distance (default is 1).}
 
@@ -72,9 +72,10 @@ params <- fgwc_params(algorithm = "classic", ncluster = 3, kind = "u", m = 2)
 
 }
 \seealso{
-\code{\link{fgwcuv}}, \code{\link{abcfgwc}}, \code{\link{fpafgwc}},
-\code{\link{gsafgwc}}, \code{\link{hhofgwc}}, \code{\link{ifafgwc}},
-\code{\link{psofgwc}}, \code{\link{tlbofgwc}}
+\code{\link[naspaclust]{fgwcuv}}, \code{\link[naspaclust]{abcfgwc}},
+\code{\link[naspaclust]{fpafgwc}}, \code{\link[naspaclust]{gsafgwc}},
+\code{\link[naspaclust]{hhofgwc}}, \code{\link[naspaclust]{ifafgwc}},
+\code{\link[naspaclust]{psofgwc}}, \code{\link[naspaclust]{tlbofgwc}}
 
 Other clustering functions: 
 \code{\link{fgwc_nmf}()}

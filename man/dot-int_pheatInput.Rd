@@ -33,8 +33,8 @@ genes, and drops any introduced NAs, resulting in a data frame ready for
 plotting a heatmap with cell type.
 }
 \seealso{
-\code{\link{scale}}, \code{\link{dplyr::filter}},
-\code{\link{dplyr::select}}, \code{\link{tidyr::drop_na}}
+\code{\link{scale}}, \code{\link[dplyr]{filter}},
+\code{\link[dplyr]{select}}, \code{\link[tidyr]{drop_na}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

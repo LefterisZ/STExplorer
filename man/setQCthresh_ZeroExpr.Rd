@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCthresh_ZeroExpr}
 \alias{setQCthresh_ZeroExpr}
-\alias{setQCthresh,}
 \title{Set QC Thresholds for Zero Expression}
 \usage{
 setQCthresh_ZeroExpr(msfe, sample_id = TRUE)
@@ -36,7 +35,7 @@ msfe <- setQCthresh_ZeroExpr(msfe, sample_id = TRUE)
 }
 \seealso{
 \code{\link{.int_isZero}}, \code{\link{.int_logLowMean}},
-\code{\link[colData]{colData}}
+\code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

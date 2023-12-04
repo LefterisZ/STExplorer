@@ -35,6 +35,10 @@ will be used to identify the focus location's neighbors.}
 
 \item{sample_id}{Sample ID for which discrepancy data is retrieved.}
 
+\item{diam}{Numeric. The diameter to set up a bandwidth to select the
+nearest neighbours. the selection happens using the below line of code:
+\code{which(distances < diam + diam / 2)}}
+
 \item{mean.diff}{Threshold for selecting genes based on the difference from
 the mean discrepancy score. Default is 1.}
 
@@ -45,8 +49,6 @@ are "top" (genes with higher discrepancies) or "all" (all genes).}
 frame of the gene data that were used in the discrepancy heatmap for the
 specific discrepancy location. The data contain a column named 'gene_name'
 which includes the gene IDs of the genes. ENSGene IDs are used as row names.}
-
-\item{bw}{Bandwidth parameter for selecting neighbors for the heatmap.}
 }
 \value{
 If exportExpression is FALSE, the function returns a list containing the

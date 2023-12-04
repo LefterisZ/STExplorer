@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCthresh_CellCount}
 \alias{setQCthresh_CellCount}
-\alias{setQCthresh}
 \title{Set QC Threshold for Cell Counts}
 \usage{
 setQCthresh_CellCount(sfe, sample_id = TRUE, min_t, max_t)
@@ -38,11 +37,11 @@ thresholds are flagged, and a summary table of filtered locations is printed.
 # 'sfe' is a SpatialFeatureExoeriment object
 
 # Set QC thresholds with sample IDs for cell counts above 15
-se <- setQCthresh_CellCount(sfe, sample_id = TRUE max_t = 15)
+sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, max_t = 15)
 
 }
 \seealso{
-\code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+\code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

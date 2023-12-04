@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCtoDiscard_feat}
 \alias{setQCtoDiscard_feat}
-\alias{setQCtoDiscard}
 \title{Set QC Thresholds for Discarding Features}
 \usage{
 setQCtoDiscard_feat(msfe, filters = TRUE)
@@ -41,7 +40,7 @@ msfe <- setQCtoDiscard_feat(msfe, filters = TRUE)
 }
 \seealso{
 \code{\link{.int_featToDiscard}}, \code{\link{.int_summaryTable}},
-\code{\link[colData]{colData}}
+\code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

@@ -37,11 +37,11 @@
 #' }
 #'
 #' @seealso
-#' \code{\link{scran::modelGeneVar}},
-#' \code{\link{scran::modelGeneVarByPoisson}},
-#' \code{\link{scran::modelGeneVarWithSpikes}},
-#' \code{\link{scran::modelGeneCV2}},
-#' \code{\link{scran::modelGeneCV2WithSpikes}}
+#' \code{\link[scran]{modelGeneVar}},
+#' \code{\link[scran]{modelGeneVarByPoisson}},
+#' \code{\link[scran]{modelGeneVarWithSpikes}},
+#' \code{\link[scran]{modelGeneCV2}},
+#' \code{\link[scran]{modelGeneCV2WithSpikes}}
 #'
 #' @references
 #' McCarthy DJ, Campbell KR, Lun ATL, Wills QF (2017).

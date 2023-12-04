@@ -91,7 +91,8 @@ plotNeighbourGraph <- function(msfe,
 #' is then transformed into a raster format for further processing.
 #'
 #' @seealso
-#' \code{\link{getImg}}, \code{\link{imgRaster}}
+#' \code{\link[SpatialFeatureExperiment]{getImg}},
+#' \code{\link[SpatialFeatureExperiment]{imgRaster}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -162,8 +163,8 @@ plotNeighbourGraph <- function(msfe,
 #' graph. The capture area limits are considered for proper spatial alignment.
 #'
 #' @seealso
-#' \code{\link{ggplot}}, \code{\link{tidyterra::geom_spatraster_rgb}},
-#' \code{\link{ggplot2::geom_sf}}
+#' \code{\link[ggplot2]{ggplot}}, \code{\link[tidyterra]{geom_spatraster_rgb}},
+#' \code{\link[ggplot2]{geom_sf}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

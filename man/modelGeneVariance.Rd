@@ -60,9 +60,9 @@ Scater: pre-processing, quality control, normalization and visualization of
 single-cell RNA-seq data in R. Bioinformatics, 33(8), 1179–1186.
 }
 \seealso{
-\code{\link{scran::modelGeneVar}},
-\code{\link{scran::modelGeneVarByPoisson}},
-\code{\link{scran::modelGeneVarWithSpikes}},
-\code{\link{scran::modelGeneCV2}},
-\code{\link{scran::modelGeneCV2WithSpikes}}
+\code{\link[scran]{modelGeneVar}},
+\code{\link[scran]{modelGeneVarByPoisson}},
+\code{\link[scran]{modelGeneVarWithSpikes}},
+\code{\link[scran]{modelGeneCV2}},
+\code{\link[scran]{modelGeneCV2WithSpikes}}
 }

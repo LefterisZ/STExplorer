@@ -32,7 +32,7 @@
 #' }
 #'
 #' @seealso
-#' \code{\link{scater::calculateNMF}} for additional details on NMF clustering.
+#' \code{\link[scater]{calculateNMF}} for additional details on NMF clustering.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #' @keywords clustering spatial-expression nmf
@@ -87,9 +87,9 @@ fgwc_nmf <- function(m_sfe,
 #' @param distance The distance metric between data and centroid (default is
 #' "euclidean").
 #' @param order Minkowski order (default is 1).
-#' @param alpha The old membership effect with [0,1]. If \code{alpha} equals 1,
-#' it will be the same as Fuzzy C-Means. If 0, it equals the
-#' neighborhood effect.
+#' @param alpha The old membership effect with `[0,1]`. If \code{alpha} equals
+#' 1, it will be the same as Fuzzy C-Means. If 0, it equals the neighborhood
+#' effect.
 #' @param a Spatial magnitude of distance (default is 1).
 #' @param b Spatial magnitude of population (default is 1).
 #' @param max.iter Maximum iteration (default is 500).
@@ -108,10 +108,10 @@ fgwc_nmf <- function(m_sfe,
 #' params <- fgwc_params(algorithm = "classic", ncluster = 3, kind = "u", m = 2)
 #' }
 #'
-#' @seealso
-#' \code{\link{fgwcuv}}, \code{\link{abcfgwc}}, \code{\link{fpafgwc}},
-#' \code{\link{gsafgwc}}, \code{\link{hhofgwc}}, \code{\link{ifafgwc}},
-#' \code{\link{psofgwc}}, \code{\link{tlbofgwc}}
+#' @seealso \code{\link[naspaclust]{fgwcuv}}, \code{\link[naspaclust]{abcfgwc}},
+#' \code{\link[naspaclust]{fpafgwc}}, \code{\link[naspaclust]{gsafgwc}},
+#' \code{\link[naspaclust]{hhofgwc}}, \code{\link[naspaclust]{ifafgwc}},
+#' \code{\link[naspaclust]{psofgwc}}, \code{\link[naspaclust]{tlbofgwc}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #' @keywords clustering fuzzy-logic optimization fgwc
@@ -175,10 +175,13 @@ fgwc_params <- function(algorithm = c("classic", "abc", "fpa", "gsa",
 #' @param m_sfe The \code{SpatialFeatureExperiment} or
 #' \code{MetaSpatialFeatureExperiment} object containing spatial expression
 #' data.
+#' @param sample_id A character string indicating the name of the sample. It is
+#' required when the `m_sfe` argument is provided with a MetaSFE object.
 #' @param data an object of data with d>1. Can be \code{matrix} or
 #' \code{data.frame}. If your data is univariate, bind it with \code{1} to get
 #' a data frame with 2 columns.
 #' @param pop an n*1 vector contains population.
+#' @param dMetric Character string specifying the distance metric.
 #' @param distMat an n*n distance matrix between regions.
 #' @param algorithm algorithm used for FGWC
 #' @param fgwc_param a vector that consists of FGWC parameter
@@ -243,9 +246,12 @@ fgwc_params <- function(algorithm = c("classic", "abc", "fpa", "gsa",
 #' Patel (2012).
 #' }
 #'
-#' @seealso \code{\link{fgwcuv}} \code{\link{abcfgwc}} \code{\link{fpafgwc}}
-#' \code{\link{gsafgwc}} \code{\link{hhofgwc}} \code{\link{ifafgwc}}
-#' \code{\link{psofgwc}} \code{\link{tlbofgwc}}
+#' @importFrom naspaclust fgwc
+#'
+#' @seealso \code{\link[naspaclust]{fgwcuv}}, \code{\link[naspaclust]{abcfgwc}},
+#' \code{\link[naspaclust]{fpafgwc}}, \code{\link[naspaclust]{gsafgwc}},
+#' \code{\link[naspaclust]{hhofgwc}}, \code{\link[naspaclust]{ifafgwc}},
+#' \code{\link[naspaclust]{psofgwc}}, \code{\link[naspaclust]{tlbofgwc}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -332,6 +338,7 @@ fgwc_params <- function(algorithm = c("classic", "abc", "fpa", "gsa",
 #' Stochastic Algorithms: Foundations and Applications, 169--178. Springer
 #' Berlin Heidelberg. doi: 10.1007/978-3-642-04944-6_14,
 #' <https://doi.org/10.1007/978-3-642-04944-6_14>.
+#' }
 #'
 #' @export
 fgwcSTE <- function(m_sfe,
@@ -408,7 +415,7 @@ fgwcSTE <- function(m_sfe,
 #'
 #' @seealso
 #' \code{\link{fgwc_nmf}}, \code{\link{plotFGWC_multi}},
-#' \code{\link{plotFGWC_map}}
+#' \code{\link{plotFGWC_heatmap}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #' @keywords clustering fuzzy-logic spatial ggplot2 visualization fgwc
@@ -475,12 +482,14 @@ plotFGWC_single <- function(fgwc,
 #'
 #' @seealso
 #' \code{\link{fgwc_nmf}}, \code{\link{plotFGWC_single}},
-#' \code{\link{plotFGWC_map}}
+#' \code{\link{plotFGWC_heatmap}}
 #'
 #' @details
 #' The function produces a panel of maps. One map per cluster. The colours in
 #' all maps are scaled to be the same. Meaning that the colour for 50% in map 1
 #' is going to be the same with colour for 50% in map 3.
+#'
+#' @importFrom tidyr pivot_longer
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #' @keywords clustering fuzzy-logic spatial ggplot2 visualization fgwc
@@ -866,8 +875,8 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' spot. In multi-cluster mode, the entire data frame is returned. The mode is
 #' specified using the 'mode' argument.
 #'
-#' @seealso \code{\link{featureGroupingWC}},
-#' \code{\link[colGeometry]{colGeometry}}, \code{\link[colData]{colData}}
+#' @seealso \code{\link[SpatialFeatureExperiment]{colGeometry}},
+#' \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -911,7 +920,9 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' better readability, and provides a data frame with gene names as row names
 #' and observations as variables.
 #'
-#' @seealso \code{\link[colData]{colData}}, \code{\link{as.data.frame}}, \code{\link{dplyr::filter}}, \code{\link{dplyr::left_join}}
+#' @seealso \code{\link[SpatialFeatureExperiment]{colData}},
+#' \code{\link{as.data.frame}}, \code{\link[dplyr]{filter}},
+#' \code{\link[dplyr]{left_join}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -968,8 +979,10 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' genes, and drops any introduced NAs, resulting in a data frame ready for
 #' plotting a heatmap with cell type.
 #'
-#' @seealso \code{\link{scale}}, \code{\link{dplyr::filter}},
-#' \code{\link{dplyr::select}}, \code{\link{tidyr::drop_na}}
+#' @seealso \code{\link{scale}}, \code{\link[dplyr]{filter}},
+#' \code{\link[dplyr]{select}}, \code{\link[tidyr]{drop_na}}
+#'
+#' @importFrom tidyr drop_na
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -1099,7 +1112,7 @@ plotFGWC_subHeatmap <- function(heatmap,
 #'
 .int_arrangeByType <- function(markers) {
   markers <- markers %>%
-    dplyr::arrange(Type)
+    dplyr::arrange(.data$Type)
 
   return(markers)
 }
@@ -1126,6 +1139,8 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @keywords cell type, markers, duplicates, removal
+#'
+#' @importFrom BiocGenerics duplicated
 #'
 #' @rdname dot-int_removeDuplicates
 #'

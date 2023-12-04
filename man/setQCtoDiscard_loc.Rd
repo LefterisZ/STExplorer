@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCtoDiscard_loc}
 \alias{setQCtoDiscard_loc}
-\alias{setQCtoDiscard}
 \title{Select Locations to Discard}
 \usage{
 setQCtoDiscard_loc(sfe, sample_id = TRUE, filters = TRUE)
@@ -33,7 +32,7 @@ se <- setQCtoDiscard_loc(sfe, sample_id = TRUE, filters = TRUE)
 
 }
 \seealso{
-\code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+\code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

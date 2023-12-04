@@ -49,7 +49,8 @@ viewCollections <- function(){
 #' choices.
 #'
 #' @param user_data A user-supplied term-to-gene data frame (optional).
-#' @param species The target species for MSigDB data retrieval.
+#' @param msig_data A term-to-gene data frame as generated using the
+#' `getMSigDBData` function.
 #' @param cat Filter for "gs_cat" (e.g., "C2", "C3").
 #' @param subcat Filter for "gs_subcat" (e.g., "GO:BP", "CGP").
 #'
@@ -71,7 +72,7 @@ viewCollections <- function(){
 #' # the 'subcat' argument.
 #'
 #' #' @seealso
-#' \code{\link{clusterProfiler::GSEA}}
+#' \code{\link[clusterProfiler]{GSEA}}
 #'
 #' @export
 getTerm2Gene <- function(user_data = NULL,
@@ -162,7 +163,7 @@ getTerm2Gene <- function(user_data = NULL,
 #' # gsea_result <- gwpca_FunctionalClustering(gwpca_result, pc = 1)
 #'
 #' @seealso
-#' \code{\link{gwpcaSTE}}, \code{\link{clusterProfiler::GSEA}}
+#' \code{\link{gwpcaSTE}}, \code{\link[clusterProfiler]{GSEA}}
 #'
 #' @export
 gwpca_FunctionalClustering <- function(gwpca,
@@ -264,7 +265,7 @@ gwpca_FunctionalClustering <- function(gwpca,
 #' data and parameters. The results are returned as a dataframe.
 #'
 #' @seealso
-#' \code{\link{gwpca_FunctionalClustering}}, \code{\link{clusterProfiler::GSEA}}
+#' \code{\link{gwpca_FunctionalClustering}}, \code{\link[clusterProfiler]{GSEA}}
 #'
 .int_runGSEA <- function(X,
                          inputGSEA,

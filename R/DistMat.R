@@ -64,7 +64,7 @@ addDistMat <- function(msfe, p, sample_id = TRUE, ...) {
 #' of a SpatialFeatureExperiment object.
 #'
 #' @param msfe \code{MetaSpatialFeatureExperiment} (Meta-SFE) object.
-#' @param dMetric Character string specifying the distance metric.#'
+#' @param dMetric Character string specifying the distance metric.
 #' @param sample_id character string, or TRUE specifying sample/image
 #' identifier(s); here, TRUE is equivalent to all samples/images.
 #'
@@ -124,8 +124,9 @@ getDistMat <- function(msfe, dMetric, sample_id = TRUE) {
 #' distance metric (Euclidean, Manhattan, or Minkowski). The resulting distance
 #' matrix is stored in the metadata of the SpatialFeatureExperiment object.
 #'
-#' @seealso \code{\link{gw.dist}}, \code{\link[spatialCoords]{spatialCoords}},
-#' \code{\link[colData]{colData}}
+#' @seealso \code{\link[GWmodel]{gw.dist}},
+#' \code{\link[SpatialFeatureExperiment]{spatialCoords}},
+#' \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -171,7 +172,7 @@ getDistMat <- function(msfe, dMetric, sample_id = TRUE) {
 #' of the SpatialFeatureExperiment object. Users need to specify the distance
 #' metric (Euclidean, Manhattan, or Minkowski) used for the stored matrix.
 #'
-#' @seealso \code{\link[colData]{colData}}
+#' @seealso \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

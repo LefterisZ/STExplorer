@@ -9,7 +9,7 @@ getDistMat(msfe, dMetric, sample_id = TRUE)
 \arguments{
 \item{msfe}{\code{MetaSpatialFeatureExperiment} (Meta-SFE) object.}
 
-\item{dMetric}{Character string specifying the distance metric.#'}
+\item{dMetric}{Character string specifying the distance metric.}
 
 \item{sample_id}{character string, or TRUE specifying sample/image
 identifier(s); here, TRUE is equivalent to all samples/images.}

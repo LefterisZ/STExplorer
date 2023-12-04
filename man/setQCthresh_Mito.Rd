@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCthresh_Mito}
 \alias{setQCthresh_Mito}
-\alias{setQCthresh}
 \title{Set QC Threshold for Mitochondrial Content}
 \usage{
 setQCthresh_Mito(sfe, sample_id = TRUE, min_t, max_t)
@@ -47,7 +46,7 @@ sfe <- setQCthresh_Mito(sfe, sample_id = TRUE, max_t = 30)
 
 }
 \seealso{
-\code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+\code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

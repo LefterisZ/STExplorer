@@ -12,8 +12,6 @@ transcriptomics experiment data.}
 
 \item{threshold}{The threshold value for determining low logarithmic mean
 expression.}
-
-\item{id}{Identifier for the sample.}
 }
 \value{
 An updated SpatialFeatureExperiment object with a new column

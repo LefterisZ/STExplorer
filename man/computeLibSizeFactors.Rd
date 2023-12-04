@@ -60,29 +60,29 @@ the \code{id} argument using the \code{\link[scater]{computeLibraryFactors}} fun
 
 This function provides a summary of library size factors for a
 specific sample identified by the \code{id} argument. It extracts the size
-factors using the \code{\link[scater]{sizeFactors}} function and summarizes
-them.
+factors using the \code{\link[scater]{librarySizeFactors}} function and
+summarises them.
 
-The function internally uses the \code{\link[scater]{sizeFactors}}
-function for calculating library size factors and the
-\code{\link{.int_summaryCalc}} function to generate summaries for each
-sample. The results are then combined into a data frame.
+The function internally uses the
+\code{\link[scater]{librarySizeFactors}} function for calculating library
+size factors and the \code{\link{.int_summaryCalc}} function to generate
+summaries for each sample. The results are then combined into a data frame.
 
 This function efficiently computes a summary of library size factors for
 multiple samples in a spatial transcriptomics experiment. It leverages the
-capabilities of the internal function .int_summaryCalc, ensuring a
+capabilities of the internal function \code{.int_summaryCalc}, ensuring a
 systematic and comprehensive overview of library size factors.
 
 The data is organized into a data frame with rows corresponding to sample
 identifiers and columns representing summary statistics for library size
 factors.
 
-The function uses the \code{\link[scater]{sizeFactors}} function for size
-factor calculations and the internal function \code{.int_summaryCalc} for
-generating individual sample summaries. This function is a crucial step in
-understanding the distribution and characteristics of library size factors
-in spatial transcriptomics data, providing valuable insights for downstream
-analyses.
+The function uses the \code{\link[scater]{librarySizeFactors}} function for
+size factor calculations and the internal function \code{.int_summaryCalc}
+for generating individual sample summaries. This function is a crucial step
+in understanding the distribution and characteristics of library size
+factors in spatial transcriptomics data, providing valuable insights for
+downstream analyses.
 }
 \examples{
 \dontrun{# Compute library size factors within each sample
@@ -100,9 +100,10 @@ sfe <- computeLibSizeFactors(sfe, type = "inter")
 
 \code{\link[scater]{computeLibraryFactors}}
 
-\code{\link[scater]{sizeFactors}}
+\code{\link[scater]{librarySizeFactors}}
 
-\code{\link[scater]{sizeFactors}}, \code{\link{.int_summaryCalc}}
+\code{\link[scater]{librarySizeFactors}},
+\code{\link{.int_summaryCalc}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

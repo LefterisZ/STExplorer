@@ -62,7 +62,7 @@ plotQC_spotsAnnotation(sfe, type = "spot", fill_args = list(),
 }
 \seealso{
 Explore the related internal functions: \code{\link{.int_getSmplIDs}},
-\code{\link{.int_dataToPlotAnnot}}, and \code{\link{.int_getColours}}.
+\code{\link{.int_dataToPlotAnnot}}, and \code{\link{getColours}}.
 }
 \author{
 Eleftherios (Lefteris) Zormpas

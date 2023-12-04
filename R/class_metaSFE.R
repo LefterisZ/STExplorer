@@ -122,8 +122,11 @@ getMultipleSFE <- function(x, sample_ids) {
 
 #' Method to retrieve sample IDs from MetaSpatialFeatureExperiment
 #'
-#' This method retrieves the sample IDs from a MetaSpatialFeatureExperiment object.
-#' The sample IDs are stored in the @sample_ids slot of the MetaSpatialFeatureExperiment.
+#' This method retrieves the sample IDs from a MetaSpatialFeatureExperiment
+#' object.
+#'
+#' The sample IDs are stored in the @sample_ids slot of the
+#' MetaSpatialFeatureExperiment.
 #'
 #' @param x An instance of the MetaSpatialFeatureExperiment class.
 #'
@@ -144,8 +147,9 @@ getMultipleSFE <- function(x, sample_ids) {
 #' # Retrieve sample IDs
 #' sample_ids <- getSampleIDs(msfe)
 #'
-#' @seealso \code{\link{MetaSpatialFeatureExperiment}}, \code{\link{addMultipleSFEs}}
-#' @keywords internal
+#' @seealso \code{\link{MetaSpatialFeatureExperiment}},
+#' \code{\link{addMultipleSFEs}}
+#'
 getSampleIDs <- function(x) {
   unlist(x@sample_ids)
 }

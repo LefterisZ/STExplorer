@@ -27,6 +27,14 @@ for k leading genes per location.}
 \item{arrange}{to indicate whether to arrange the plots in a panel or not.
 The default is set to FALSE.}
 
+\item{legend.position}{position of the plot legend. Default is right. Can
+accept "bottom", "top", "right", and "left".}
+
+\item{cutoff}{Numeric. The number of times a gene has to be the leading
+gene in a location to be shown in the plot.}
+
+\item{size}{Numeric. The legend text size.}
+
 \item{...}{arguments to be passed to both \code{geom_sf()} outside of the
 aesthetic.}
 }

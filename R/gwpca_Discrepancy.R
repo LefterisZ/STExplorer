@@ -24,7 +24,9 @@
 #'
 #' @param sample_id Sample ID for which discrepancy data is retrieved.
 #'
-#' @param bw Bandwidth parameter for selecting neighbors for the heatmap.
+#' @param diam Numeric. The diameter to set up a bandwidth to select the
+#' nearest neighbours. the selection happens using the below line of code:
+#'    `which(distances < diam + diam / 2)`
 #'
 #' @param mean.diff Threshold for selecting genes based on the difference from
 #' the mean discrepancy score. Default is 1.

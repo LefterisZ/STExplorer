@@ -37,6 +37,8 @@ will be used to identify the focus location's neighbours.}
 
 \item{sample_id}{Sample ID for which discrepancy data is retrieved.}
 
+\item{diam}{Bandwidth parameter for selecting neighbours for the heatmap.}
+
 \item{mean.diff}{Threshold for selecting genes based on the difference from
 the mean discrepancy score.}
 
@@ -50,8 +52,6 @@ or "none" (no scaling).}
 ENSGene IDs.}
 
 \item{...}{Additional arguments to be passed to the pheatmap function.}
-
-\item{bw}{Bandwidth parameter for selecting neighbours for the heatmap.}
 }
 \value{
 plots a heatmap.

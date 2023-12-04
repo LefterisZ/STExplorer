@@ -24,7 +24,8 @@ SpatialFeatureExperiment using the specified image ID. The retrieved image
 is then transformed into a raster format for further processing.
 }
 \seealso{
-\code{\link{getImg}}, \code{\link{imgRaster}}
+\code{\link[SpatialFeatureExperiment]{getImg}},
+\code{\link[SpatialFeatureExperiment]{imgRaster}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

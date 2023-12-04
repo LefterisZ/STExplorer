@@ -13,8 +13,12 @@ getSampleIDs(x)
 A character vector containing the sample IDs.
 }
 \description{
-This method retrieves the sample IDs from a MetaSpatialFeatureExperiment object.
-The sample IDs are stored in the @sample_ids slot of the MetaSpatialFeatureExperiment.
+This method retrieves the sample IDs from a MetaSpatialFeatureExperiment
+object.
+}
+\details{
+The sample IDs are stored in the @sample_ids slot of the
+MetaSpatialFeatureExperiment.
 }
 \examples{
 # Create a MetaSpatialFeatureExperiment object
@@ -32,6 +36,6 @@ sample_ids <- getSampleIDs(msfe)
 
 }
 \seealso{
-\code{\link{MetaSpatialFeatureExperiment}}, \code{\link{addMultipleSFEs}}
+\code{\link{MetaSpatialFeatureExperiment}},
+\code{\link{addMultipleSFEs}}
 }
-\keyword{internal}

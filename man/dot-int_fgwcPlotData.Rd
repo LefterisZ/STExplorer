@@ -32,8 +32,8 @@ spot. In multi-cluster mode, the entire data frame is returned. The mode is
 specified using the 'mode' argument.
 }
 \seealso{
-\code{\link{featureGroupingWC}},
-\code{\link[colGeometry]{colGeometry}}, \code{\link[colData]{colData}}
+\code{\link[SpatialFeatureExperiment]{colGeometry}},
+\code{\link[SpatialFeatureExperiment]{colData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

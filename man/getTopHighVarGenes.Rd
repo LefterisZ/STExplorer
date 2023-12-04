@@ -14,7 +14,7 @@ case it is supplied to modelGeneVar to generate the required DataFrame.}
 \item{sample_id}{TRUE selects all samples. Alternatively, provide a
 character vector with the sample IDs for filtering.}
 
-\item{...}{Additional arguments to be passed to \code{scran::getTopHVGs}.}
+\item{...}{Additional arguments to be passed to \code[scran]{getTopHVGs}.}
 }
 \value{
 A list of top high variance genes for each sample, as determined by

@@ -2,7 +2,6 @@
 % Please edit documentation in R/get_setQCthresh.R
 \name{setQCthresh_LowLogMean}
 \alias{setQCthresh_LowLogMean}
-\alias{setQCthresh}
 \title{Set QC Thresholds for Low Logarithmic Mean in Gene Expression}
 \usage{
 setQCthresh_LowLogMean(msfe, threshold = 1, sample_id = TRUE)
@@ -42,7 +41,7 @@ msfe <- setQCthresh_LowLogMean(msfe, threshold = 1, sample_id = TRUE)
 
 }
 \seealso{
-\code{\link{.int_logLowMean}}, \code{\link[colData]{crowData}}
+\code{\link{.int_logLowMean}}, \code{\link[SpatialFeatureExperiment]{crowData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

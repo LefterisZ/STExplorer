@@ -152,6 +152,11 @@ plotGWPCA_global <- function(gwpca,
 #' for k leading genes per location.
 #' @param arrange to indicate whether to arrange the plots in a panel or not.
 #' The default is set to FALSE.
+#' @param legend.position position of the plot legend. Default is right. Can
+#' accept "bottom", "top", "right", and "left".
+#' @param cutoff Numeric. The number of times a gene has to be the leading
+#' gene in a location to be shown in the plot.
+#' @param size Numeric. The legend text size.
 #' @param ... arguments to be passed to both \code{geom_sf()} outside of the
 #' aesthetic.
 #'
@@ -649,7 +654,7 @@ plotGWPCA_discr <- function(gwpca,
 #' @param dMetric Distance metric used for generating the distance matrix which
 #' will be used to identify the focus location's neighbours.
 #' @param sample_id Sample ID for which discrepancy data is retrieved.
-#' @param bw Bandwidth parameter for selecting neighbours for the heatmap.
+#' @param diam Bandwidth parameter for selecting neighbours for the heatmap.
 #' @param mean.diff Threshold for selecting genes based on the difference from
 #' the mean discrepancy score.
 #' @param show.vars Display option for variables (genes) in the heatmap. Options

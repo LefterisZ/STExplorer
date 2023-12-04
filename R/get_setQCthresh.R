@@ -92,7 +92,7 @@ setQCthresh_LibSize <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #'  Locations failing to meet the thresholds are flagged, and a summary table
 #'  of filtered locations is printed.
 #'
-#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -100,7 +100,7 @@ setQCthresh_LibSize <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #'
 #' @rdname setQCthresh_GenesExpr
 #'
-#' @aliases setQCthresh
+#' @aliases setQCthresh_GenesExpr
 #'
 #' @examples
 #' # 'sfe' is a SpatialFeatureExoeriment object
@@ -164,7 +164,7 @@ setQCthresh_GenesExpr <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #' meet the thresholds are flagged, and a summary table of filtered locations
 #' is printed.
 #'
-#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -172,7 +172,7 @@ setQCthresh_GenesExpr <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #'
 #' @rdname setQCthresh_Mito
 #'
-#' @aliases setQCthresh
+#' @aliases setQCthresh_Mito
 #'
 #' @examples
 #' # 'sfe' is a SpatialFeatureExoeriment object
@@ -231,7 +231,7 @@ setQCthresh_Mito <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #' specified minimum and maximum values. Locations failing to meet the
 #' thresholds are flagged, and a summary table of filtered locations is printed.
 #'
-#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -239,13 +239,13 @@ setQCthresh_Mito <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #'
 #' @rdname setQCthresh_CellCount
 #'
-#' @aliases setQCthresh
+#' @aliases setQCthresh_CellCount
 #'
 #' @examples
 #' # 'sfe' is a SpatialFeatureExoeriment object
 #'
 #' # Set QC thresholds with sample IDs for cell counts above 15
-#' se <- setQCthresh_CellCount(sfe, sample_id = TRUE max_t = 15)
+#' sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, max_t = 15)
 #'
 #' @export
 setQCthresh_CellCount <- function(sfe, sample_id = TRUE, min_t, max_t) {
@@ -298,7 +298,7 @@ setQCthresh_CellCount <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #' mostly useful when there are relatively few parts of the tissue sample that
 #' couldn't be annotated by an expert or another approach.
 #'
-#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -306,7 +306,7 @@ setQCthresh_CellCount <- function(sfe, sample_id = TRUE, min_t, max_t) {
 #'
 #' @rdname setQCthresh_NAs
 #'
-#' @aliases setQCthresh
+#' @aliases setQCthresh_NAs
 #'
 #' @examples
 #' # 'sfe' is a SpatialFeatureExoeriment object
@@ -349,7 +349,7 @@ setQCthresh_NAs <- function(sfe, sample_id = TRUE) {
 #'
 #' @details The function sets QC thresholds for discarding locations based on the specified QC metrics. Locations failing to meet the thresholds are flagged, and a summary table of filtered locations is printed. Users can choose to filter based on all available QC metrics or specify a subset using the `filters` argument.
 #'
-#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[colData]{colData}}
+#' @seealso \code{\link{.int_getSmplIDs}}, \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -357,7 +357,7 @@ setQCthresh_NAs <- function(sfe, sample_id = TRUE) {
 #'
 #' @rdname setQCtoDiscard_loc
 #'
-#' @aliases setQCtoDiscard
+#' @aliases setQCtoDiscard_loc
 #'
 #' @examples
 #' # Set QC thresholds with sample IDs for discarding locations based on all available QC metrics
@@ -439,7 +439,7 @@ setQCtoDiscard_loc <- function(sfe, sample_id = TRUE, filters = TRUE) {
 #' @details This function, identifies genes without expression in each sample.
 #'
 #' @seealso \code{\link{.int_isZero}}, \code{\link{.int_logLowMean}},
-#' \code{\link[colData]{colData}}
+#' \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -447,7 +447,7 @@ setQCtoDiscard_loc <- function(sfe, sample_id = TRUE, filters = TRUE) {
 #'
 #' @rdname setQCthresh_ZeroExpr
 #'
-#' @aliases setQCthresh, setQCthresh_ZeroExpr
+#' @aliases setQCthresh_ZeroExpr
 #'
 #' @examples
 #' # 'sfe' is a SpatialFeatureExoeriment object
@@ -486,7 +486,7 @@ setQCthresh_ZeroExpr <- function(msfe, sample_id = TRUE) {
 #' gene expression data for each sample in the provided object. Genes failing
 #' to meet the thresholds are flagged.
 #'
-#' @seealso \code{\link{.int_logLowMean}}, \code{\link[colData]{crowData}}
+#' @seealso \code{\link{.int_logLowMean}}, \code{\link[SpatialFeatureExperiment]{crowData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -494,7 +494,7 @@ setQCthresh_ZeroExpr <- function(msfe, sample_id = TRUE) {
 #'
 #' @rdname setQCthresh_LowLogMean
 #'
-#' @aliases setQCthresh
+#' @aliases setQCthresh_LowLogMean
 #'
 #' @examples
 #' # 'msfe' is a SpatialFeatureExoeriment or a MetaSpatialFeatureExoeriment,
@@ -554,7 +554,7 @@ setQCthresh_LowLogMean <- function(msfe,
 #' thresholds are flagged.
 #'
 #' @seealso \code{\link{.int_custom_1}}, \code{\link{.int_custom_2}},
-#' \code{\link[colData]{colData}}
+#' \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -562,7 +562,7 @@ setQCthresh_LowLogMean <- function(msfe,
 #'
 #' @rdname setQCthresh_custom
 #'
-#' @aliases setQCthresh
+#' @aliases setQCthresh_custom
 #'
 #' @examples
 #' # 'msfe' is a SpatialFeatureExoeriment or a MetaSpatialFeatureExoeriment,
@@ -627,7 +627,7 @@ setQCthresh_custom <- function(msfe, sample_id = TRUE, MARGIN, qcMetric) {
 #' argument.
 #'
 #' @seealso \code{\link{.int_featToDiscard}}, \code{\link{.int_summaryTable}},
-#' \code{\link[colData]{colData}}
+#' \code{\link[SpatialFeatureExperiment]{colData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -635,7 +635,7 @@ setQCthresh_custom <- function(msfe, sample_id = TRUE, MARGIN, qcMetric) {
 #'
 #' @rdname setQCtoDiscard_feat
 #'
-#' @aliases setQCtoDiscard
+#' @aliases setQCtoDiscard_feat
 #'
 #' @examples
 #' # 'msfe' is a SpatialFeatureExoeriment or a MetaSpatialFeatureExoeriment,
@@ -839,7 +839,6 @@ setQCtoDiscard_feat <- function(msfe, filters = TRUE) {
 #' This function identifies genes with low logarithmic mean expression in a
 #' spatial transcriptomics experiment
 #'
-#' @param id Identifier for the sample.
 #' @param sfe A SpatialFeatureExperiment containing spatial
 #' transcriptomics experiment data.
 #' @param threshold The threshold value for determining low logarithmic mean

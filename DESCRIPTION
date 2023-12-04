@@ -1,4 +1,4 @@
-Package: STExplorerDev
+Package: STExplorer
 Type: Package
 Title: A package to explore Spatial Transcriptomics data using geographical methods
 Version: 0.1.0
@@ -7,9 +7,7 @@ Authors@R: person(given = "Eleftherios",
            email = "zormpaslef@outlook.com", 
            role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-6573-8960"))
-Description: This is the public development branch of STExplorer. 
-    Currently it only includes methods for Geographically Weighted Principal 
-    Components Analysis (GWPCA).
+Description: This is the public repository of STExplorer.
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
@@ -50,7 +48,13 @@ Imports:
     methods,
     utils,
     SummarizedExperiment,
-    DelayedArray
+    DelayedArray,
+    clusterProfiler,
+    data.table,
+    msigdbr,
+    scran,
+    stringr,
+    tidyterra
 License: GPL (>= 3)
 Suggests: 
     BiocStyle,

@@ -27,7 +27,9 @@ better readability, and provides a data frame with gene names as row names
 and observations as variables.
 }
 \seealso{
-\code{\link[colData]{colData}}, \code{\link{as.data.frame}}, \code{\link{dplyr::filter}}, \code{\link{dplyr::left_join}}
+\code{\link[SpatialFeatureExperiment]{colData}},
+\code{\link{as.data.frame}}, \code{\link[dplyr]{filter}},
+\code{\link[dplyr]{left_join}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas
