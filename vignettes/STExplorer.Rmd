@@ -1,0 +1,1557 @@
+---
+title: "Geographically-inspired Spatial Transcriptomics data analysis using STExplorer"
+author: 
+  - name: "Eleftherios Zormpas"
+    affiliation:
+    - "Biosciences Institute, Faculty of Medical Sciences, Newcastle University, UK"
+    email: e.zormpas2@ncl.ac.uk, zormpaslef@outlook.com
+  - name: "Simon J Cockell"
+    affiliation:
+      - "School of Biomedical, Nutritional and Sport Sciences, Newcastle University, UK"
+    email: simon.cockell@newcastle.ac.uk
+# package: STExplorerDev
+output: 
+  BiocStyle::html_document:
+    toc_float: true
+bibliography: [references.bib]
+vignette: >
+  %\VignetteIndexEntry{STExplorer}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>", eval = FALSE
+)
+```
+
+# Introduction
+
+Welcome to the vignette of STExplorer. STExplorer is a package the performs geographically inspired analysis of spatial transcriptomics data.
+
+## Install package
+
+```{r setup}
+## To install the package run the below:
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("STExplorerDev")
+
+## To load the package use:
+library(STExplorerDev)
+```
+
+```{r load_pkgs, echo=FALSE, eval=FALSE, message=FALSE}
+# library(SpatialFeatureExperiment)
+# library(tidyverse)
+# library(scran)
+# library(scater)
+# library(ggspavis)
+# library(sf)
+# library(spdep)
+# library(GWmodel)
+# library(tidyterra)
+# library(ggplot2)
+# library(igraph)
+# library(pheatmap)
+# library(ggExtra)
+# library(future)
+# library(doFuture)
+# library(foreach)
+# library(progressr)
+# library(parallel)
+# library(cols4all)
+# library(pheatmap)
+# library(RColorBrewer)
+```
+
+The STExplorer package utilises methods from Geography's spatial data analysis techniques and packages to perform a spatially-aware and spatially-weighted analysis of spatial transcriptomics data. Below is a series of packages from the field of Geography that STExplorer depends on in one way or another.
+
+-   [`spdep`](https://cran.r-project.org/web/packages/spdep/index.html) is a collection of functions to create spatial weights matrix objects from polygon *contiguities*, from point patterns by distance and tessellations. It is used for summarizing these objects, and for permitting their use in spatial data analysis like regional aggregation and tests for spatial *autocorrelation*.
+
+-   [`sf`](https://cran.r-project.org/web/packages/sf/index.html) (*Simple Features for R*) is a package that offers support for simple features, a standardized way to encode spatial vector data.
+
+-   [`GWmodel`](https://cran.r-project.org/web/packages/GWmodel/index.html) is a suite of models that fit situations when data are not described well by some global model, but where there are spatial regions where a suitably localised calibration provides a better description.
+
+As with every other data analysis approach, data filtering and normalisation is a key step. For this reason STExplorer depends also in packages like [`scater`](https://bioconductor.org/packages/release/bioc/html/scater.html) and [`scran`](Spot-level%20quality%20control%20(sQC)%20procedures%20are%20employed%20to%20eliminate%20low-quality%20spots%20before%20conducting%20further%20analyses) to perform these steps. The choice of the packages was not random. The main reasoning is that we want STExplorer to operate within the Bioconductor environment. The `scater` and `scran` packages are within the Bioconductor environment and are two of the commonly used packages for spatial transcriptomics analysis which include a variety of options to normalise and pre-process data.
+
+-   [`scater`](https://bioconductor.org/packages/release/bioc/html/scater.html) is also a Bioconductor package that is a selection of tools for doing various analyses of scRNA-seq gene expression data, with a focus on quality control and visualization which has extended applications to STx data too. It is based on the `SingleCellExperiment` and `SpatialExperiment` classes and thus is interoperable with many other Bioconductor packages such as [`scran`](Spot-level%20quality%20control%20(sQC)%20procedures%20are%20employed%20to%20eliminate%20low-quality%20spots%20before%20conducting%20further%20analyses), [`scuttle`](https://bioconductor.org/packages/release/scuttle) and [`iSEE`](https://bioconductor.org/packages/release/iSEE).
+
+# Data structures
+
+There is a long history of encapsulating expression data in S3 and S4 objects in R, going back to the `ExpressionSet` class in Biobase which was designed to store a matrix of microarray data alongside associated experimental metadata. This concept of storing all the relevant data and metadata in a single object has persisted through the development of RNA-Seq analysis (e.g. `SummarizedExperiment`) and into the age of single-cell transcriptomics (e.g. `SingleCellExperiment` - see below).
+
+## SpatialFeatureExperiment class
+
+For the first part of this tutorial we will be introducing the [SpatialFeatureExperiment](https://bioconductor.org/packages/SpatialFeatureExperiment) a new S4 class built on top of the [SpatialExperiment](https://bioconductor.org/packages/SpatialExperiment) S4 class from Bioconductor as the main data structure for storing and manipulating datasets. The choice to use the `SpatialFeatureExperiment` instead of the `SpatialExperiment` was not random. The `SpatialFeatureExperiment` object class incorporates important features that allow biological spatial data (*bio-spatial data*) to be analysed and explored using geographical spatial data (*geo-spatial data*) analysis methods. To do this, the `SpatialFeatureExperiment` object incorporates geometries and geometry operations with the `sf` package (*more about the `sf` package in the next chapter*).
+
+Let's have a quick look first at the internals of the `SpatialExperiment` object class. The `SpatialExperiment` is a specialized object class that supports the storing of spatially-resolved transcriptomics datasets within the Bioconductor framework. It builds on the [SingleCellExperiment](https://bioconductor.org/packages/SingleCellExperiment) class [@Amezquita2020Feb] for single-cell RNA sequencing data, which itself extends the `RangedSummarizedExperiment` class. More specifically, `SpatialExperiment` has extra customisations to store spatial information (i.e., spatial coordinates and images).
+
+An overview of the `SpatialExperiment` object structure is is presented in \@ref(fig:SpExp-overview). In brief, the `SpatialExperiment` object consists of the below five parts:
+
+1.  `assays`: gene expression counts\
+2.  `rowData`: information about features, usually genes\
+3.  `colData`: information on spots (non-spatial and spatial metadata)\
+4.  `spatialCoords`: spatial coordinates\
+5.  `imgData`: image data
+
+**NOTE:** For spot-based STx data (i.e., 10x Genomics Visium), a single `assay` named `counts` is used.
+
+```{r SpExp-overview, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="Overview of the `SpatialExperiment` object class structure."}
+knitr::include_graphics("images/SpatialExperiment.png")
+```
+
+For more details, see the related publication from Righelli et al., 2021 describing the `SpatialExperiment` [@Righelli2022Jun].
+
+Now let's have a quick look at the extra features added to the `SpatialExperiment` to create the `SpatialFeatureExperiment`. An overview of the `SpatialFeatureExperiment` object structure is is presented in \@ref(fig:SpFeExp-overview). In brief, the `SpatialFeatureExperiment` object consists of the five `SpatialExperiment` parts plus the below extra ones:
+
+1.  `colGraphs`: spatial neighbourhood graphs of cells or spots\
+2.  `rowGraphs`: similar to `colGraphs` but for genes/features\
+3.  `colGeometries`: `sf` data frames of entities corresponding to columns of the gene count matrix, such as Visium spots or cells\
+4.  `rowGeometries`: similar to `colGeometries`, supporting entities corresponding to rows of the gene count matrix, such as genes\
+5.  `annotGeometries`: `sf` data frames associated with the dataset but not directly with the gene count matrix, such as tissue boundaries\
+6.  `annotGraphs`: similar to `colGraphs` and `rowGraphs`, but are for entities not directly associated with the gene count matrix, such as spatial neighbourhood graphs for nuclei\
+7.  `localResults`: stores results from univariate and bivariate local spatial analysis results, such as from Moran's *I* spatial autocorrelation statistical test.
+
+```{r SpFeExp-overview, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="Overview of the `SpatialFeatureExperiment` (SFE) object class structure."}
+knitr::include_graphics("images/SpatialFeatureExperiment.png")
+```
+
+For more details, see the related [vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SpatialFeatureExperiment/inst/doc/SFE.html) from Moses and Pachter, 2023 describing the `SpatialFeatureExperiment` [@Moses2023SFE]. They have done an excellent job in both developing this package as well as documenting it.
+
+## Geocomputational data structures
+
+We have mentioned earlier that the `SpatialFeatureExperiment` class expands the `SpatialExperiment` class by adding geographical features mainly utilising a data structure commonly used in the geographical spatial data analysis named *Simple Features for R* or [sf](https://cran.r-project.org/web/packages/sf/index.html). For this reason we feel that it is good for us to quickly introduce to you the simple features data structure used in the the field of geography.
+
+### Main geocomputational data structures
+
+There are three main data structures that we need to have ready before we undertake a geocomputational approach to STx data analysis. Namely these are; (1) geometries (point and polygon), (2) neighbours lists and (3) distance matrices.
+
+1.  Spatial geometries can be points, lines, polygons and pixels. Polygons consist of a multitude of points connected by lines and can have many forms like circle, hexagon, non-canonical polygon etc.
+
+2.  Neighbour lists are special types of lists that contain information about the neighbours of each polygon. The neighbours can be defined either by adjacency or by distance.
+
+3.  Distance matrices contain the distances between different points and can be either weighted or un-weighted. The weighted distances are usually objective to each point and its neighbours. Meaning that the closer or farther a neighbour is from the point of focus, the weight of their distance changes according to an applied kernel. Usually in the case of STx data, like the ones generated by the 10X Visium platform, the un-weighted distance between two points is expressed in pixels and we acquire it from the `spaceranger` output.
+
+### The `sf` objects
+
+Package `sf` represents simple features as native R objects. All functions and methods in `sf` that operate on spatial data are prefixed by *st\_*, which refers to *spatial type*. Simple features are implemented as R native data, using simple data structures (S3 classes, lists, matrix, vector). The typical use of `sf` involves reading, manipulating and writing of sets of features, with attributes and geometries.
+
+As attributes are typically stored in `data.frame` objects (or the very similar `tbl_df`), we will also store feature geometries in a `data.frame` column. Since geometries are not single-valued, they are put in a list-column, a list of length equal to the number of records in the `data.frame`, with each list element holding the simple feature geometry of that feature. The three classes used to represent simple features are:
+
+-   `sf`, the table (`data.frame`) with feature attributes and feature geometries, which contains
+-   `sfc`, the list-column with the geometries for each feature (record), which is composed of
+-   `sfg`, the feature geometry of an individual simple feature.
+
+#### Simple feature geometry types
+
+The following seven simple feature types are the most common:
+
+| type                 | description                                                                                                                                                                                                               |
+|----------------|--------------------------------------------------------|
+| `POINT`              | zero-dimensional geometry containing a single point                                                                                                                                                                       |
+| `LINESTRING`         | sequence of points connected by straight, non-self intersecting line pieces; one-dimensional geometry                                                                                                                     |
+| `POLYGON`            | geometry with a positive area (two-dimensional); sequence of points form a closed, non-self intersecting ring; the first ring denotes the exterior ring, zero or more subsequent rings denote holes in this exterior ring |
+| `MULTIPOINT`         | set of points; a MULTIPOINT is simple if no two Points in the MULTIPOINT are equal                                                                                                                                        |
+| `MULTILINESTRING`    | set of linestrings                                                                                                                                                                                                        |
+| `MULTIPOLYGON`       | set of polygons                                                                                                                                                                                                           |
+| `GEOMETRYCOLLECTION` | set of geometries of any type except GEOMETRYCOLLECTION                                                                                                                                                                   |
+
+: (#tab:table) Most common simple feature types.
+
+Each of the geometry types can also be a (typed) empty set, containing zero coordinates (for `POINT` the standard is not clear how to represent the empty geometry). Empty geometries can be thought of as being the analogue to missing (`NA`) attributes, NULL values or empty lists.
+
+#### sf: objects with simple features
+
+As we usually do not work with geometries of single `simple features`, but with datasets consisting of sets of features with attributes, the two are put together in `sf` (simple feature) objects. The following command reads a test dataset called `nc` from a file that is contained in the `sf` package:
+
+```{r 03_sf_LoadTest}
+nc <- st_read(system.file("shape/nc.shp", package = "sf"))
+```
+
+The short report printed gives the file name, the driver (ESRI Shapefile), mentions that there are 100 features (records, represented as rows) and 14 fields (attributes, represented as columns).
+
+This object is of class:
+
+```{r 03_sf_TestClass}
+class(nc)
+```
+
+meaning it extends (and "is" a) `data.frame`, but with a single list-column with geometries, which is held in the column with name:
+
+```{r 03_sf_Test_sf_column}
+attr(nc, "sf_column")
+```
+
+If we print the first three features, we see their attribute values and an abridged version of the geometry
+
+```{r 03_sf_Test_print, echo=TRUE, eval=FALSE}
+print(nc[9:15], n = 3)
+```
+
+which would give the following output:
+
+```{r Sf-overview, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="Overview of the `sf` object."}
+knitr::include_graphics("images/sf_xfig.png")
+```
+
+In the output we see:
+
+-   in green a simple feature: a single record, or `data.frame` row, consisting of attributes and geometry
+-   in blue a single simple feature geometry (an object of class `sfg`)
+-   in red a simple feature list-column (an object of class `sfc`, which is a column in the `data.frame`)
+-   that although geometries are native R objects, they are printed as [well-known text](#wkb)
+
+It is also possible to create `data.frame` objects with geometry list-columns that are not of class `sf`, e.g. by:
+
+```{r 03_sf_no.sf}
+nc.no_sf <- as.data.frame(nc)
+class(nc.no_sf)
+```
+
+However, such objects:
+
+-   no longer register which column is the geometry list-column
+-   no longer have a plot method, and
+-   lack all of the other dedicated methods for class `sf`
+
+**NOTE:** For the interested reader, a thorough explanation of the geographical features and the mechanics of the `sf` package can be found in the the very well written, well-descriptive and thorough `sf` package [vignette](https://cran.r-project.org/web/packages/sf/vignettes/sf1.html).
+
+*The above section referring to the `sf` package was mainly are taken from there*
+
+## MetaSpatialFeatureExperiment class
+
+For the purpose of the analyses performed by STExplorer we decided to "expand" the SFE object but allow it to operate within the Bioconductor environment. The `MetaSpatialFeatureExperiment` object class or `MSFE`, is nothing more than a list of `SFE` objects. Despite the fact that an `SFE` object can encompass multiple samples (tissue slices), in an `MSFE` object, each `SFE` object contains only one sample. There are some opinionated reasons why we did this which we will explain later.
+
+An overview of the `SpatialFeatureExperiment` object structure is is presented in \@ref(fig:MSpFeExp-overview) below.
+
+```{r MSpFeExp-overview, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="Overview of the `MetaSpatialFeatureExperiment` (MSFE) object class structure."}
+knitr::include_raphics("images/MetaSpatialFeatureExperiment.png")
+```
+
+The `MSFE` class has getter (`getSFE`) and setter (`addSFE`) functions to extract and add `SFE` objects which include only one sample inside in case the user wants to work on an individual sample with another package.
+
+```{r msfe_getSet}
+## Load MSFE test data
+
+## Get a single sample as an SFE object
+
+## Add a single SFE object into the MSFE object
+
+```
+
+The `MSFE` class is also equipped with getter (`getMultipleSFE`) and setter (`addMultipleSFE`) functions to retrieve and add `SFE` objects that contain multiple samples inside in case the user wants to work on an individual `SFE` object containing multiple samples or wants to import such an object into the `MSFE` object.
+
+```{r msfe_getSet-multi}
+## Load SFE test data with multiple samples
+
+## Get a single SFE object containing multiple samples from within the MSFE object 
+
+## Add an SFE object with multiple samples into the MSFE object as SFE objects with a single sample inside
+
+```
+
+## Inspect the MSFE and SFE objects
+
+Below we will have a quick look at the internal structure of the MSFE and SFE objects.
+
+### MSFE
+
+As described in the previous chapter, the MSFE object is essentially a list of SFE objects that must contain only **ONE** sample.
+
+```{r 01_data-inpect-msfe, message=FALSE}
+## Load the MSFE dataset if you haven't done it earlier
+# data(msfe)
+
+## Have a look
+str(msfe)
+```
+
+There is a number of reasons why we made that choice. As we mentioned earlier, this is an opinionated part of our approach to spatial transcriptomics data analysis. It is based primarily on the pre-processing steps of a spatial transcriptomics data analysis pipeline which we deem important for any subsequent analysis steps.
+
+### SFE
+
+Let's have a look at the structure of an `SFE` object from within the `MSFE` object.
+
+```{r 01_data-inspect, message=FALSE}
+## Retrieve an SFE object from within the MSFE
+sfe <- getSFE(msfe, "JBO019")
+
+## Check the object's structure
+sfe
+
+## Check number of features/genes (rows) and spots (columns)
+dim(sfe)
+
+## Check names of 'assay' tables  c
+assayNames(sfe)
+```
+
+#### Counts table and gene metadata
+
+```{r 01_counts-inspect, message=FALSE}
+## Have a look at the counts table
+assay(sfe)[1:6,1:4]
+```
+
+As we can see here the counts table is an object of class `dgTMatrix` which is a sparse matrix. This is because much like scRNA-seq data, STx data include many zeros. As a result, to make the counts table as light as possible we resort to using sparse matrices. This next code chunk examines a part of the matrix that includes genes with some level of expression:
+
+```{r 01_counts-chunks, message=FALSE}
+assay(sfe)[20:40, 2000:2010]
+
+assay(sfe)[33488:33508, 2000:2010]
+```
+
+The levels of expression of different genes in the same spots differ significantly with many low values being present. We have to remember here that this data is not as yet normalised, and is therefore affected by systematic factors such as library size. Nonetheless, what is demonstrated here is typical for STx data (as it is for scRNA-seq data) - many genes will show low expression in individual spots.
+
+To continue our exploration of the information stored in the `SpatialFeatureExperiment` object:
+
+```{r 01_gene-metaData, message=FALSE}
+## Have a look at the genes metadata
+head(rowData(sfe))
+```
+
+#### Coordinates table and spot metadata
+
+The data that distinguished a `SpatialExperiment` (and in extension a `SpatialFeatureExperiment`) object from the scRNA-seq equivalent is the coordinate data which describes the spatial location of each spot.
+
+```{r 01_coordinates-inspect, message=FALSE}
+## Check the spatial coordinates
+head(spatialCoords(sfe))
+
+## spot-level metadata
+head(colData(sfe))
+
+```
+
+#### Image metadata
+
+Finally, the `SpatialFeatureExperiment` object also contains the image data from the STx experiment, giving the coordinates we looked at in the previous section some context in terms of the tissue of origin.
+
+```{r 01_image-inspect, message=FALSE}
+## Have a look at the image metadata
+imgData(sfe)
+```
+
+As well as this (fairly basic) metadata, the `sfe` object also contains the image itself, which the `SpatialFeatureExperiment` class allows us to access, like so:
+
+```{r 01_plot-image, message=FALSE, fig.height=8, fig.width=8}
+## retrieve the image
+sfei <- getImg(sfe)
+## "plot" the image
+plot(imgRaster(sfei))
+```
+
+We can also use the scaling factors in the `imgData` to plot the locations of the Visium spots over the image. The position of a point in an image does not map directly to the spot location in Cartesian coordinates, as it is the top-left of an image that is (0,0), not the bottom-left. In order to manage this, we need to transform the y-axis coordinates.
+
+```{r 01_plot-spots, message=FALSE, fig.height=8, fig.width=8}
+## "Plot" the image
+plot(imgRaster(sfei))
+## Extract the spot locations
+spot_coords <- spatialCoords(sfe) %>% as.data.frame
+## Scale by low-res factor
+lowres_scale <- imgData(sfe)[imgData(sfe)$image_id == 'lowres', 'scaleFactor']
+spot_coords$x_axis <- spot_coords$pxl_col_in_fullres * lowres_scale
+spot_coords$y_axis <- spot_coords$pxl_row_in_fullres * lowres_scale
+## lowres image is 600x600 pixels
+dim(imgRaster(sfei))
+## flip the Y axis
+spot_coords$y_axis <- abs(spot_coords$y_axis - (ncol(imgRaster(sfei)) + 1))
+points(x = spot_coords$x_axis, y = spot_coords$y_axis)
+```
+
+An equivalent plot, using `ggplot2` as the plotting library is implemented in the `STExplorer` package:
+
+```{r 01_ggplot-spots, message=FALSE, fig.height=8, fig.width=8}
+
+```
+
+Having to manually extract the relevant information from the `SpatialFeatureExperiment` object to generate plots does not generally make sense, and defies the point of using a data class that can encapsulate this information. We can instead use the in-built functions from `STExplorer` package which are explicitly built for generating visualisations of STx data directly from the `SpatialFeatureExperiment` object. We will make extensive use of these functions during the next chapter as we work through quality control processes for STx data. The pre-built nature of these plots is convenient and allows users to achieving tasks like adding the tissue image to the plot as well as modify the plot layout (since the functions return `ggplot` objects).
+
+#### Column geometries
+
+```{r}
+
+```
+
+#### Column graphs
+
+```{r}
+
+```
+
+# STExplorer Analysis pipeline
+
+So far we had an introduction to the data structures used in the `STExplorer` analysis pipeline. In the next chapters we will guide you step by step through the analysis of spatial transcriptomics data using the `STExplorer` package.
+
+## Loading a dataset
+
+For this vignette we will be using the human steatotic liver dataset from the [Liver Atlas](https://livercellatlas.org/index.php) [@GUILLIAMS2022379]. Specifically we use the JBO019 and JBO018 samples (parts of these samples) to showcase the STExplorer use. The JBO019 sample is steatotic (diseased) while the JBO018 is healthy.
+
+First we generate the `MetaSpatialFeaturesExperiment` object which includes two `SpatialFeaturesExperiment` (sfe) objects that include 1 sample each.
+
+```{r 03_load_sfe, warning=FALSE, message=FALSE}
+sampleDir <- "./data/spaceranger_outs/Human_Liver_Steatotic/JBO019_Results"
+sampleNames <- "JBO019"
+sfe <- read10xVisiumSFE(samples = sampleDir, 
+                        sample_id = sampleNames, 
+                        type = "sparse", 
+                        data = "filtered", 
+                        images = "lowres", 
+                        style = "W", 
+                        zero.policy = TRUE)
+
+ground_truth <- read_table("./data/to_load/spotzonationGroup.txt")
+
+```
+
+## Spot-level Quality Control
+
+Considered quality control (QC) procedures are essential for analysing any high-throughput data in molecular biology. The removal of noise and low quality data from complex datasets can improve the reliability of downsrtream analyses. STx is no different in this regard, and QC can be undertaken in 2 main places - spot-level and gene-level. Here, we focus on spot-level QC.
+
+Spot-level quality control (sQC) procedures are employed to eliminate low-quality spots before conducting further analyses. Low-quality spots may result from issues during library preparation or other experimental procedures, such as a high percentage of dead cells due to cell damage during library preparation, or low mRNA capture efficiency caused by ineffective reverse transcription or PCR amplification. Keeping these spots usually leads to creating problems during downstream analyses.
+
+We can identify low-quality spots using several characteristics that are also used in cell-level QC for scRNA-sq data, including:
+
+1.  **library size** (total of UMI counts per spot will vary due to sequencing *-like different samples in a bulk RNA-seq-*, or due to number of cells in the spot)
+2.  **number of expressed genes** (i.e. number of genes with non-zero UMI counts per spot)
+3.  **proportion of reads mapping to mitochondrial genes** (a high proportion indicates putative cell damage)
+
+Low library size or low number of expressed features can indicate poor mRNA capture rates, e.g. due to cell damage and missing mRNAs, or low reaction efficiency. A high proportion of mitochondrial reads indicates cell damage, e.g. partial cell lysis leading to leakage and missing cytoplasmic mRNAs, with the resulting reads therefore concentrated on the remaining mitochondrial mRNAs that are relatively protected inside the mitochondrial membrane. Unusually high numbers of cells per spot can indicate problems during cell segmentation.
+
+The idea of using scRNA-seq QC metrics in STx data comes from the fact that if we remove space and effectively treat each spot as a single cell, the two datasets share common features. We need to bear in mind, however, that the expected distributions for high-quality *spots* are different (compared to high-quality *cells* in scRNA-seq), since spots may contain zero, one, or multiple cells.
+
+A few publications for further reading that can help you understand the quality controls: @McCarthy2017Apr and @Amezquita2020Feb.
+
+### Plot tissue map {#plot-tissue-map}
+
+The dorso-lateral prefrontal cortex (DLPFC) is a functional brain region in primates involved in executive function. It consists of six layers of neurons that differ in their cell types, density and connections. The DLPFC dataset we looked at in session one, and will be here using comes with manual annotation of these layers (and the adjacent white matter - WM) by the authors @Maynard2021Mar. We can plot the tissue map with and without the annotations to get a complete view.
+
+```{r 02_plot-maps-gTruth, fig.show = 'hold', out.width="50%", fig.height=5, fig.width=4}
+## Plot spatial coordinates without annotations
+plotQC_spots(sfe, type = "spot", sample_id = TRUE, in_tissue = FALSE, colours = NULL)
+plotQC_spots(sfe, type = "spot", sample_id = NULL, in_tissue = TRUE)
+plotQC_spots(sfe, type = "hex", sample_id = TRUE, in_tissue = FALSE, colours = c("#3C5338", "#FF9999"))
+plotQC_spots(sfe, type = "hex", sample_id = "PrsCncA1", in_tissue = TRUE)
+
+## Plot spatial coordinates with annotations
+plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = TRUE)
+plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = NULL)
+plotQC_spotsAnnotation(sfe = sfe, type = "hex", sample_id = "PrsCncA1")
+```
+
+### Plot manual annotation with tissue image
+
+```{r 03_QC_sfe2, message=FALSE, warning=FALSE}
+plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = TRUE, annotate = TRUE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = TRUE, annotate = FALSE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = NULL, annotate = TRUE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = NULL, annotate = FALSE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "none", sample_id = "PrsCncA1", annotate = FALSE)
+
+```
+
+### Calculating QC metrics
+
+We will calculate the three main QC metrics described above using methods from the `scater` [@McCarthy2017Apr] package, and investigate their influence on the DLPFC dataset with some plots from `ggspavis`, along with some additional plots of our own.
+
+At present, the dataset contains both on- and off-tissue spots - we plotted these in the previous practical. For any future analysis though we are only interested in the on-tissue spots. Therefore, before we run any calculations we want to remove the off-tissue spots.
+
+***NOTE***: the on- or off-tissue information for each spot can be found in the `colData` of the `sfe` object and in the `in_tissue` column where *0 = off-tissue* and *1 = on-tissue*.
+
+```{r 02_keep_on-tissue}
+## Dataset dimensions before the filtering
+dim(sfe)
+
+## Subset to keep only on-tissue spots
+sfe <- sfe[, colData(sfe)$in_tissue == 1]
+dim(sfe)
+```
+
+The next thing we need to do before we make decisions on how to quality *"trim"* the dataset is to calculate the percentage per spot of mitochodrial gene expression and store this information inside the `colData`. First of all, find the mitochrondrial genes - their gene names start with "MT-" or "mt-".
+
+Then find what proportion of reads in a spot's library are attributable to the expression of these genes. This uses a function, `addPerCellQC()` from `scater` (which in this instance is actually a wrapper around `scuttle`).
+
+```{r 03_QC_sfe1, message=FALSE, warning=FALSE}
+is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$gene_name)
+sfe <- addPerLocQC(sfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
+sfe <- addGeometries(sfe, samples = sampleDir, sample_id = sampleNames, res = "fullres")
+sfe <- addPerGeneQC(sfe, assay = "counts", version = NULL, mirror = NULL)
+
+## Keep in-tissue locations
+sfe <- filterInTissue(sfe, sample_id = TRUE)
+
+colData(sfe)
+rowData(sfe)
+colGeometries(sfe)
+```
+
+After calculating a required metric, we need to apply a cut-off threshold for the metric to decide whether or not to keep each spot. It is important to consider an individual dataset on its own merits, as it might need slightly different cut-off values to be applied. As a result we cannot rely on identifying a single value to use every time and we need to rely on plotting these metrics and making a decision on a dataset-by-dataset basis.
+
+### Library size threshold
+
+We can plot a histogram of the library sizes across spots. The library size is the number of UMI counts in each spot. We can find this information in the `sum` column in the `colData`.
+
+As we can see there are no obvious issues with the library sizes. An example of an issue could be a high frequency of small libraries which would indicate poor experimental output. Generally we do not want to keep spots with too small libraries.
+
+If the dataset we are analysing contains the number of cells that are present in each spot (this one does), then it makes sense to also plot the library sizes against the number of cells per spot. In that way we are making sure that we don't remove any spots that may have biological meaning. In many cases though the datasets do not have such information unless we can generate it using a nuclei segmentation tool to extract this information from the H&E images.
+
+The horizontal red line (argument `threshold` in the `plotQC` function) shows a first guess at a possible filtering threshold for library size based on the above histogram.
+
+```{r 03_QC_sfe3}
+# ----------------------------------------------- #
+## Density and histogram of library sizes
+plotQC_hist(sfe, metric = "libsize")
+plotQC_hist(sfe, metric = "libsize", limits = c(3000, 36500))
+plotQC_hist(sfe, metric = "libsize", limits = c(3000, 36500),
+            hist_args = list(bins = 100),
+            dens_args = list(alpha = 0.5,
+                             adjust = 0.5,
+                             fill = "#F0AAA8"),
+            vline_args = list(colour = "blue",
+                             linetype = "dashed"))
+
+## Scatter plot library sizes vs number of cells
+plotQC_scat(sfe, metric = "libsize")
+
+## Select threshold
+sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 2000, max_t = 35000)
+
+## Check putative spatial patterns of removed spots
+plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
+```
+
+**NOTE**: using `ggExtra` we provide the marginal histograms here.
+
+We need to keep in mind here that the threshold is, to an extent, arbitrary. It is therefore important to look at the number of spots that are left out of the dataset by this choice of cut-off value, and also have a look at their putative spatial patterns. If we filtered out spots with biological relevance, then we should observe some patterns on the tissue map that correlate with some of the known biological structures of the tissue. If we do observe such a phenomenon, we have probably set our threshold too high (i.e. not permissive enough).
+
+### Number of expressed genes
+
+As we did with the library sizes, we can plot a histogram of the number of expressed genes across spots. A gene is "expressed" in a spot if it has at least one count in it. We can find this information in the `detected` column in the `colData`.
+
+We will follow the same logic for the plots as we did for the library size earlier.
+
+Finally, again as before, we apply the chosen threshold to flag spots with (in this case) fewer than 500 expressed genes.
+
+```{r 03_QC_sfe4}
+# ----------------------------------------------- #
+## Density and histogram of expressed genes
+plotQC_hist(sfe, metric = "detected")
+plotQC_hist(sfe, metric = "detected", limits = c(1000, NA))
+
+## Scatter plot expressed genes vs number of cells
+plotQC_scat(sfe, metric = "detected")
+
+## Select threshold
+sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 700, max_t = NA)
+
+## Check putative spatial patterns of removed spots
+plotQC_filtered(sfe, metric = "detected", sample_id = TRUE)
+```
+
+**NOTE:** For reference, remember the ground truth layers in this dataset [that we plotted](#plot-tissue-map) at the beginning of this session.
+
+### Percentage of mitochondrial expression
+
+As we briefly touched on at the beginning, a high proportion of mitochondrial reads indicates low cell quality, probably due to cell damage.
+
+We calculated this data earlier on in this session, and can now investigate the percentage of mitochondrial expression across spots by looking at the column `subsets_mito_percent` in the `colData`.
+
+In this instance, a higher percentage of mitochondrial expression is the thing to avoid, so the threshold is an upper bound, rather than the lower bounds we have observed so far. Our suggestion this time is to cut-off at 28%.
+
+```{r 03_QC_sfe5}
+# ----------------------------------------------- #
+## Density and histogram of percentage of mitochondrial expression
+plotQC_hist(sfe, metric = "mito")
+plotQC_hist(sfe, metric = "mito", limits = c(NA, 20))
+
+## Scatter plot % mito expression vs number of cells
+plotQC_scat(sfe, metric = "mito")
+
+## Select threshold
+sfe <- setQCthresh_Mito(sfe, sample_id = TRUE, min_t = NA, max_t = 21)
+
+## Check putative spatial patterns of removed spots
+plotQC_filtered(sfe, metric = "mito", sample_id = TRUE)
+```
+
+### Number of cells per spot
+
+As previously mentioned, number of cells per spot is an attribute that not all datasets include. Nonetheless, it can be useful to further control the quality of the dataset prior to any downstream analysis. Of course, the number of cells per spot depends on the tissue type and organism and according to [10X Genomics](https://kb.10xgenomics.com/hc/en-us/articles/360035487952-How-many-cells-are-captured-in-a-single-spot-), each spot typically contains between 0 and 10 cells.
+
+The DPFLC dataset does contain information on the number of cells per spot (acquired by processing and cell segmentation of high-resolution histology images obtained prior on-slide cDNA synthesis, see @Maynard2021Mar for details). To investigate the number of cells in each spot looking for any outlier values that could indicate problems we need to take a look in the column `cell_count` in `colData`.
+
+```{r 02_plot-cellsPerSpot-histo, fig.height=4, warning=FALSE, message=FALSE}
+## Density and histogram of the number of cells in each spot
+plotQC_hist(sfe, metric = "cellCount")
+
+```
+
+```{r 02_cellsPerSpot-scatter, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
+## plot number of expressed genes vs. number of cells per spot
+plotQC_scat(sfe, metric = "detected")
+```
+
+As we can see from both the histogram and the scatter plot there is a tail of very high values, which could indicate problems for these spots. More specifically, we can see from the scatter plot that most of the spots with very high cell counts also tend to have lower numbers of expressed genes. This indicates problems with the experiment on these spots, and they should be removed.
+
+```{r 02_cellsPerSpot-thresh, fig.height=4}
+## Select threshold
+sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, min_t = NA, max_t = 25)
+## Check putative spatial patterns of removed spots
+plotQC_filtered(sfe, metric = "cellCount", sample_id = TRUE)
+
+```
+
+While there is a spatial pattern to the discarded spots, it does not appear to be correlated with the known biological features (cortical layers). The discarded spots are typically at the edges of the tissue. It seems plausible that something has gone wrong with the cell segmentation on the edges of the images, so it makes sense to remove these spots.
+
+### Remove low-quality spots
+
+All the steps so far have flagged spots with potential issues - before proceeding with analysis, we want to remove these spots from our SpatialExperiment object. Since we have calculated different spot-level QC metrics and selected thresholds for each one, we can combine them to identify a set of low-quality spots, and remove them from our `sfe` object in a single step.
+
+If the dataset has also manual annotation ([remember](#plot-tissue-map))) we see that there are locations that are not annotated (marked with `NA`). We could further remove those locations to reduce potential noise and further increase the quality of the dataset.
+
+```{r 02_notAnnotSpots, fig.height=4}
+## Select locations without annotation
+sfe <- setQCthresh_NAs(sfe, sample_id = TRUE)
+## Check putative spatial patterns of removed spots
+plotQC_filtered(sfe, metric = "NAs", sample_id = TRUE)
+```
+
+We can also check once more that the combined set of discarded spots does not correspond to any obvious biologically relevant group of spots.
+
+```{r 03_QC_sfe6}
+# ----------------------------------------------- #
+## Set the combined filtering threshold using the QC metrics
+sfe <- setQCtoDiscard_loc(sfe, sample_id = TRUE, filters = TRUE)
+
+## Check putative spatial patterns of removed spots
+plotQC_filtered(sfe, metric = "discard", sample_id = TRUE)
+
+# ----------------------------------------------- #
+## Remove combined set of low-quality spots
+sfe <- applyQCthresh_loc(sfe, sample_id = TRUE)
+```
+
+## Normalisation of counts
+
+### Background
+
+Normalisation is applied in STx data for the same reason as any other RNA-Seq technique - the differences observed in the count data can arise from a range of systematic factors, not just a physiologically-relevant change in expression. The primary systematic effect is that of library size (or in the case of STx, counts/UMIs per spot). `scater` corrects for library size by scaling the sizes across all spots such that the mean library size is 1. Normalized counts are then calculated as a ratio of observed count to library size factor.
+
+Secondly, a log-transformation is applied to the scaled counts - this transformation is commonly applied as it stabilises the variance across the range of transcriptomics data (otherwise the variance is dominated by highly expressed genes) and it facilitates comparisons of expression by rendering positive and negative changes symmetrical and found by subtraction rather than division. Since $log2(0)$ is undefined, a *pseudocount* is added to each observed count to avoid this error - a pseudocount of 1 is typically applied, as $log2(0+1) = 0$.
+
+Here we will be using methods from the `scater` [@McCarthy2017Apr] and `scran` [@Lun2016Oct] packages that calculate logcounts using library size factors. The library size factors approach is arguably the simplest approach for STx data. Other approaches used in scRNA-seq are more difficult to justify their use in STx because of two main reasons:
+
+1.  Spots can contain multiple cells of different cell-types.
+2.  Datasets can include multiple tissue samples which will lead to different clusterings.
+
+### Log-tranformation of counts
+
+```{r 03_LogNorm_sfe}
+## Calculate library size factors
+sfe <- computeLibSizeFactors(sfe, type = "intra")
+```
+
+As described above, the mean size factor is 1.0.
+
+```{r 03_LogNorm_sfe2}
+## Density and histogram of library sizes
+plotQC_sizeFactors(sfe)
+```
+
+The log-transformation that takes place is a log2-transformation and in order to avoid *- Infinity* values we add a pseudo value of 1. Both the log2- transformation and the pseudocount of 1 are defaults in this method.
+
+```{r 03_LogNorm_sfe3}
+# Generate a metaSFE object 
+meta_sfe <- asMetaSFE(sfe)
+
+## Calculate logcounts using library size factors
+meta_sfe <- normaliseCounts(msfe = meta_sfe)
+
+## Check that a new assay has been added
+assayNames(meta_sfe[[1]])
+```
+
+## Gene-level Quality Control
+
+### Calculating extra QC metrics
+
+```{r 03_GeneQC_sfe1}
+## Calculate the mean of log counts over the number of locations a gene is present
+meta_sfe <- perGeneLogMean(meta_sfe)
+```
+
+### Set and apply filters
+
+**NOTE** - Feature selection is a complicated process with significant impacts on the chosen downstream analysis.
+
+```{r 03_GeneQC_sfe2}
+## Zero expression genes
+meta_sfe <- setQCthresh_ZeroExpr(meta_sfe)
+
+## Lowly expressed (noise?!) genes
+meta_sfe <- setQCthresh_LowLogMean(meta_sfe)
+
+## Remove mitochondrial and other genes
+meta_sfe <- setQCthresh_custom(meta_sfe, sample_id = TRUE, 1, qcMetric = is_mito)
+
+## QC discard Features
+## Set the combined filtering threshold using the QC metrics
+meta_sfe <- setQCtoDiscard_feat(meta_sfe, filters = TRUE)
+
+## FEATURE SELECTION
+## Apply gene-level QC threshold
+meta_sfe <- applyQCthresh_feat(meta_sfe)
+```
+
+In this dataset, the mitochondrial genes are too highly expressed and are not of major biological interest. As a result, if we are to identify true HVGs, we first need to remove the mitochondrial genes.
+
+## Selecting genes
+
+### Background
+
+Gene selection - or alternatively "feature selection" - is applied to identify genes that are likely to be informative for downstream analyses. The most common feature selection method is the definition of highly variable genes (HVGs). The assumption is that since we quality-controlled and normalised our dataset, the genes with high variability are the ones that contain high levels of biological variability too. Since here we have a spatial dataset we can also try to identify spatially variable genes too (SVGs).
+
+It is important to note that HVGs are identified solely from the gene expression data. Spatial information does not play a role in finding HVGs. STx data pose a dilemma; does the meaningful spatial information reflect only spatial distribution of major cell types or does it reflect additional important spatial features? If we believe the former, relying on HVGs can be enough. If the second also holds true though, it is important to identify SVGs as well.
+
+### Highly Variable Genes (HVGs)
+
+Here we will be using methods from the `scran` package [@Lun2016Oct] to identify a set of HVGs. Again, here we need to remember that `scran` methods were developed for scRNA-seq and we are performing the analysis under the assumption that the spots of an STx experiment can be treated as single cells.
+
+Then, we apply methods from `scran` that give a list of HVGs, which can be used for further downstream analyses.
+
+First we model the variance of the log-expression profiles for each gene, decomposing it into technical and biological components based on a fitted mean-variance trend.
+
+```{r 03_HVGs_sfe}
+## Fit mean-variance relationship
+dec <- modelGeneVariance(meta_sfe, method = "Var")
+
+## Select top HVGs
+top_hvgs <- getTopHighVarGenes(dec,
+                               var.field = "bio",
+                               prop = 0.5,
+                               var.threshold = 0,
+                               fdr.threshold = 0.1)
+
+## Visualize mean-variance relationship
+plotGeneVariance(dec = dec, hvgs = top_hvgs)
+
+```
+
+The `trend` function that we used above is returned from the `modelGeneVar` function and returns the fitted value of the trend at any value of the mean. The "biological" variance of a gene is what remains when the fitted variance for a gene of that expression value is subtracted from the total variance (so genes above the blue trend line have a positive biological variance).
+
+We select the top 10% of genes based on their biological variability The parameter `prop` defines how many HVGs we want. For example `prop = 0.1` returns the top 10% of genes. `prop = 1.0` would return all genes with a positive biological variability.
+
+### Spatially variable genes (SVGs)
+
+SVGs are genes with a highly spatially correlated pattern of expression, which varies along with the spatial distribution of a tissue structure of interest. This phenomenon is also called *spatial autocorrelation* and underlies all types of spatial data, as we will discuss later.
+
+The field of geography has developed some statistical measures to calculate spatial autocorrelation. Examples of these are Moran's *I* [@Moran1950Jun] and Geary's *C* [@Geary1954Nov] that can be used to rank genes by the observed spatial autocorrelation to identify SVGs.
+
+Several sophisticated new statistical methods to identify SVGs in STx data have also recently been developed. These include [SpatialDE](https://github.com/Teichlab/SpatialDE) [@Svensson2018May], [SPARK](https://xzhoulab.github.io/SPARK/) [@Sun2020Feb], and [SPARK-X](https://xzhoulab.github.io/SPARK/) [@Zhu2021Dec].
+
+### Integration of HVGs and SVGs
+
+A recent benchmark paper [@Li2022Jan] showed that integrating HVGs and SVGs to generate a combined set of features can improve downstream clustering performance in STx data. This confirms that SVGs contain additional biologically relevant information that is not captured by HVGs in these datasets. For example, a simple way to combine these features is to concatenate columns of principal components (PCs) calculated on the set of HVGs and the set of SVGs (excluding overlapping HVGs), and then using the combined set of features for further downstream analyses [@Li2022Jan].
+
+## Neighbour graph and distance matrix
+
+### Adding spatial weights
+
+The neighbour lists can be supplemented with spatial weights using the `nb2listw` and `nb2listwdist` function from `spdep` package for the chosen type and coding scheme style. There are 6 different coding scheme styles that can be used to weigh neighbour relationships:
+
+1.  **B**: is the basic binary coding (1 for neighbour, 0 for no neighbour).
+2.  **W**: is row standardised (sums over all links to n).
+3.  **C**: is globally standardised (sums over all links to n).
+4.  **U**: is equal to C divided by the number of neighbours (sums over all links to unity).
+5.  **S**: is the variance-stabilizing coding scheme (sums over all links to n).
+6.  **minmax**: divides the weights by the minimum of the maximum row sums and maximum column sums of the input weights; It is similar to the C and U styles.
+
+The coding scheme style is practically the value each neighbour will get. For example, in a binary coding scheme style (**B**) if a spot is a neighbour of the spot in focus then gets the value of **1**, else gets **0**. Another example, in a row standardised coding scheme style (**W**) if the spot in focus has a total of 10 neighbours and each neighbour has a weight of 1, then the sum of all neighbour weights is 10, and each neighbour will get a normalised weight of 1/10 = 0.1. As a result, in the row standardised coding scheme, spots with many neighbours will have neighbours with lower weights and thus will not be over-emphasised.
+
+Starting from a binary neighbours list, in which regions are either listed as neighbours or are absent (thus not in the set of neighbours for some definition), we can add a distance-based weights list. The `nb2listwdist` function supplements a neighbours list with spatial weights for the chosen types of distance modelling and coding scheme. While the offered coding schemes parallel those of the `nb2listw` function above, three distance-based types of weights are available: inverse distance weighting (IDW), double-power distance weights (DPD), and exponential distance decay (EXP). The three types of distance weight calculations are based on pairwise distances 𝑑𝑖𝑗, all of which are controlled by parameter *"alpha"* (𝛼 below):
+
+1.  **idw**: 𝑤𝑖𝑗=𝑑−𝛼𝑖𝑗,
+2.  **exp**: 𝑤𝑖𝑗=exp(−𝛼⋅𝑑𝑖𝑗),
+3.  **dpd**: 𝑤𝑖𝑗=[1−(𝑑𝑖𝑗/𝑑max)𝛼]𝛼,
+
+the latter of which leads to 𝑤𝑖𝑗=0 for all 𝑑𝑖𝑗\>𝑑max. Note that *IDW* weights show extreme behaviour close to 0 and can take on the value infinity. In such cases, the infinite values are replaced by the largest finite weight present in the weights list.
+
+25### Generate distance matrices
+
+A distance matrix is a mirrored matrix that contains the distance between a spot and every other spot. This distance can be a simple Euclidean distance based on the coordinates of the spots or a weighted distance according to a bandwidth around each spot using a kernel that gives higher scores to distances between spots that are closer together compared to the ones that are farther away. These weighted distance matrices are later used to run geographically weighted (GW) models.
+
+There are 6 different kernels that can be used to weight the distances between spots. The next two figures are from the `GWmodel` publication [@Gollini2015Feb] and illustrate the mathematical application of these kernals, and show graphically how they weight by distance.
+
+```{r GWmodelFig1, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="The math equations that define the kernels."}
+knitr::include_graphics("images/gwmodel_kernel_math.png")
+```
+
+```{r GWmodelFig2, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="Examples from using each kernel."}
+knitr::include_graphics("images/gwmodel_kernel_graphs.png")
+```
+
+In the below we choose one of the many possible ways of building a neighbour graph for the steatotic liver data set. In this example we are using a k-nearest neighbours approach with row-standardised distance-based weights.
+
+```{r 03_spatial_weights_to_sfe}
+## Add a neighbour graph using a weighted distance matrix
+meta_sfe <- addSpatialNeighGraphs(meta_sfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
+
+colGraphs(meta_sfe[[1]])
+
+## Calculate a simple distance matrix
+meta_sfe <- addDistMat(meta_sfe, p = 2)
+
+```
+
+We can use a `geom` from the `tidyterra` package (commonly used for map visualisations) to plot the neighbour graph we generated in the previous step.
+
+```{r 03_visualise_neighbours}
+## Plot the neighbours graph
+plotNeighbourGraph(meta_sfe, sample_id = TRUE,
+                   res = "lowres", plotImage = TRUE)
+plotNeighbourGraph(meta_sfe, sample_id = "JBO019",
+                   res = "lowres", plotImage = TRUE)
+plotNeighbourGraph(meta_sfe, sample_id = "JBO019",
+                   res = "lowres", plotImage = FALSE)
+```
+
+Now that we have a fully QC-ed dataset with spatial weights and a neighbour graph applied, we have prepared our data fully for the application of geospatial methods - specifically in practical 4, geogrpahically weighted principal components analysis (GWPCA).
+
+## Geographically Weighted Principal Components Analysis (GWPCA)
+
+A standard PCA can pick out the key multivariate modes of variability in the data. Looking at outlying values of the principal components of these data gives us an idea of unusual sites (in terms of combinations of gene expression profiles - and to a certain extent of combinations of cell types in each spot). Next, geographically weighted PCA can be used to find spatial multivariate outliers. Sounds complicated, but really all this means is it identifies sites that have an unusual multi-way combination of gene expression in relation to their immediate geographical neighbours. It might be that the values observed at these sites as a combination is not uncommon in the tissue as a whole - but is very unusual in its locality.
+
+To find such outliers the procedure is relatively simple - instead of doing a PCA on the tissue as a whole, for each sample we do a PCA on data falling into a window centred on the location of that spot. In that way we can check whether the spot is like its neighbours or not, from a multivariate viewpoint.
+
+The procedure we will follow in this practical carries out a geographically weighted PCA. In short, it runs a 'windowed' PCA around each of the spots.
+
+### Parameter prearation for GWPCA
+
+The `gwpca` method uses `princomp` internally to run the PCAs - this function does not allow the number of variables (genes) to be greater than the number of samples (spots). This imposes a hard requirement on the data pre-processing. We have, however, already identified the highly variable genes in our sample, and for this case, there are fewer genes than spots.
+
+Some other parameterisation is neccessary and these required parameters (as we have used for this dataset) are illustrated here:
+
+```{r 04_set_parameters, eval=FALSE}
+## Select the sample you would like to perform a GWPCA analysis
+sfe <- getSFE(meta_sfe, "JBO019")
+## Get the gene names that are going to be evaluated
+vars = top_hvgs
+## Set a fixed bandwidth
+bw = 6*sfe@metadata[["spotDiameter"]][["JBO019"]][["spot_diameter_fullres"]]
+## Set the number of components to be retained
+k = 20
+## Set the kernel to be used
+kernel = "gaussian"
+## Set the Minkowski distance power: p = 2 --> Euclidean
+p = 2
+## Is the bandwidth adaptive?: No because spots are fixed
+adaptive = FALSE
+## Cross-Validate GWPCA?
+cv = TRUE
+## Calculate PCA scores?
+scores = FALSE
+## Run a robust GWPCA?
+robust = FALSE
+## Make a cluster for parallel computing (otherwise GWPCA is slow!)
+my.cl <- makeClusterGWPCA(type = "FORK")
+```
+
+The bandwidth defines a radius around each spot - every spot that falls inside this radius is considered a neighbour. We can set bandwidth as a fixed value (as here) or we can select the bandwidth automatically. Without going into detail here, this is achieved by a form of cross validation, where each observation is omitted, and it is attempted to reconstruct the values on the basis of principal components, derived from the other observations. The bandwidth achieving the optimal results is the one selected. For a complete explanation, see @Harris2011Oct. The function `bw.gwpca` from `GWmodel` can be used to computes this.
+
+-   **NOTE**: Larger bandwidths imply bigger moving spatial windows, which in turn imply smoother spatially varying outputs.
+
+### Run GWPCA
+
+Here we present the invocation to run GWPCA, however because this process is computationally intensive and time-consuming, we do not suggest running it on posit.cloud. We have pre-computed the result and provide it for you to load.
+
+```{r 04_run_gwpca1, eval=FALSE}
+# Run GWPCA
+pcagw <- gwpcaSTE(sfe = sfe, 
+                  assay = "logcounts",
+                  vars = vars, 
+                  p = p, 
+                  k = k, 
+                  bw = bw, 
+                  kernel = kernel,
+                  adaptive = adaptive, 
+                  scores = scores, 
+                  robust = robust,
+                  cv = cv,
+                  future = FALSE,
+                  strategy = "cluster",
+                  workers = my.cl,
+                  verbose = FALSE)
+
+```
+
+### Plot global PCA results
+
+In the next steps we will take a look inside the output from the `gwpca` function and we are going to extract some basic information. Since GWPCA consists of multiple local PCAs, it is good to know how many PCs makes sense to look at. We can do so by running a global PCA and plotting a scree plot:
+
+```{r 04_scree_plot, fig.height=3, fig.width=8}
+plotGWPCA_global(gwpca = pcagw,
+                 comps = 1:10,
+                 type = "scree",
+                 point_args = list(size = 3, colour = "red"),
+                 line_args = list(linewidth = 1, colour = "dodgerblue"))
+```
+
+In a Principal Component Analysis (PCA), the first three principal components may explain less than 15% of the variance in the data if the data is highly dispersed or if there is a large amount of noise in the data. This means that the first three principal components are not capturing a significant portion of the variability in the data. This could be due to a lack of clear structure in the data or a lack of meaningful patterns that can be captured by the PCA. Alternatively, it could be due to the presence of many irrelevant features or variables in the data that are not contributing to the overall variance. This is one more of the reasons why GWPCA is more appropriate for STx data. Because, it may be true that the global PCs are not strong but locally this can change.
+
+### Identify the leading genes in each location
+
+The genes with the highest loading scores (where loading score = correlation between variable and component) at each location can be thought of as the "leading genes" - i.e. those with the most explanatory power with respect to the variability of gene expression at that location. These leading genes can be a local indicator of relevant biology.
+
+Here we look at leading genes in 2 ways - (1) by finding the single gene with the highest loading at each location; (2) by finding sets of the top 4 genes by loading score, where the order of those genes does not matter (so the ordered set A,B,C,D is considered the same as D,B,A,C).
+
+```{r leading_genes1}
+## Extract leading genes
+pcagw <- gwpca_LeadingGene(gwpca = pcagw, 
+                           m_sfe = sfe, 
+                           pc_nos = 1:4, 
+                           type = "single", 
+                           names = "gene_names")
+
+pcagw <- gwpca_LeadingGene(gwpca = pcagw, 
+                           m_sfe = sfe, 
+                           pc_nos = 1:4, 
+                           genes_n = 4, 
+                           type = "multi", 
+                           method = "membership", 
+                           names = "gene_names")
+```
+
+We can also plot these leading genes on the spot map - as each location by definition has (potentially) a different leading gene.
+
+```{r leading_genes2, fig.show = 'hold', out.width='.49\\linewidth', fig.asp=1, fig.ncol = 1}
+## Plot leading genes
+plotGWPCA_leadingG(gwpca = pcagw,
+                   comps = 1:2,
+                   type = "single",
+                   arrange = FALSE)
+
+plotGWPCA_leadingG(gwpca = pcagw,
+                   comps = 1,
+                   type = "multi",
+                   arrange = FALSE)
+```
+
+The "multi" plot here is problematic, because there are too many groups of genes to be able to print a legible legend. Although the `plotGWPCA_leadingG` function by default highlights gene groups that are present in at least 12 locations, however, provides more arguments to deal with this. The below code snippet is provided to highlight gene groups that are found in at least 12 spots, change the location of the legend, and adjust the legend text size.
+
+```{r leading_genes3, fig.show = 'hold', fig.asp=1, fig.ncol = 1}
+### Plot multi type (extra parameters)
+plotGWPCA_leadingG(gwpca = pcagw,
+                   comps = 1,
+                   type = "multi",
+                   arrange = FALSE,
+                   legend.position = "bottom",
+                   cutoff = 12,
+                   size = 8)
+```
+
+### Percentage of Total Variation (PTV)
+
+Another useful diagnostic for PCA is the percentage of variability in the data explained by each of the components. Locally, this can be achieved by looking at the `local.PV` component of `pcagw`; this is written as `pcagw$local.PV`. This is an 1161 by 20 matrix - where 1161 is the number of observations and 20 is the number of components (`k`). For each location, the 20 columns correspond to the percentage of the total variance explained by each of the principal components at that location. If, say, the first two components contributed 90% of the total variance, then it is reasonable to assume that much of the variability in the data can be seen by just looking at these two components. Because this is geographically weighted PCA, this quantity varies across the map.
+
+```{r 04_ptv, fig.show='hold'}
+## Calculate the PTV for multiple Components
+pcagw <- gwpca_PropVar(gwpca = pcagw, n_comp = 2:10, m_sfe = sfe)
+
+## Plot PTV
+plotGWPCA_ptv(gwpca = pcagw,
+              comps = 1:10,
+              type = "violin")
+
+## Map PTV
+plotGWPCA_ptv(gwpca = pcagw,
+              comps = 1:6,
+              type = "map")
+```
+
+### Identify discrepancies
+
+Global PCA can be used to identify multivariate outliers. Extending this, it is also possible to use local PCA (i.e., GWPCA) to identify local outliers. One way of doing this links back to the cross-validation idea that can be used to select a bandwidth. Recall that this is based on a score of how well each observation can be reconstructed on the basis of local PCs. The score measures the total discrepancies of true data values from the reconstructed ones - and the bandwidth chosen is the one minimising this. However, the total discrepancy score is the sum of the individual discrepancies. A very large individual discrepancy associated with an observation suggests it is very different - in a multidimensional way, to the observations near to it.
+
+```{r 04_discrep1, fig.height=3, fig.width=8}
+## Plot the discrepancies as boxplot
+plotGWPCA_discr(pcagw, type = "box")
+```
+
+```{r 04_discrep2}
+## Plot the discrepancies map
+plotGWPCA_discr(pcagw, type = "map")
+```
+
+```{r 04_discrep3}
+## Get location data for the discrepancies
+discrepancy_loc_dt <- getDiscrepancyLocData(m_sfe = meta_sfe, 
+                                            gwpca = pcagw, 
+                                            sample_id = "JBO019")
+```
+
+Another possibility to understand the nature of the outlier is a parallel coordinates heatmap. Here, each observation neighbouring the location that has been found to be an outlier is shown as a column with the genes in rows. Since here we are investigating local outliers, one particular observation is highlighted in red - the outlier - and the remaining ones in grey, but with the intensity of the grey fading according to their distance from the red observation. This enables you to see what characteristic the red observation has that means it as outlying from its neighbours. The plot can be created using `STExplorerDev::plotGWPCA_discrHeatmap`:
+
+```{r 04_discrep4, message=FALSE, fig.show='hold', fig.height=15, fig.width=9}
+head(discrepancy_loc_dt)
+focus <- discrepancy_loc_dt$barcodes[1:2]
+bw = 3*sfe@metadata[["spotDiameter"]][["JBO019"]][["spot_diameter_fullres"]]
+
+# Plot the heatmap to visualise the genes that make this location an outlier
+plotGWPCA_discrHeatmap(m_sfe = meta_sfe,
+                       assay = "logcounts",
+                       vars = NULL,
+                       focus = focus,
+                       dMetric = "euclidean", 
+                       sample_id = "JBO019",
+                       bw = bw, 
+                       mean.diff = 1, 
+                       show.vars = "top", 
+                       scale = "row", 
+                       gene.names = TRUE,
+                       color = rev(colorRampPalette(brewer.pal(11, "RdBu"))(1000)),
+                       fontsize_row = 3)
+```
+
+```{r 04_discrep5, message=FALSE}
+discrepancy_gene_dt <- getDiscrepancyGeneData(m_sfe = meta_sfe,
+                                              assay = "logcounts",
+                                              vars = NULL,
+                                              focus = focus[2],
+                                              dMetric = "euclidean", 
+                                              sample_id = "JBO019",
+                                              bw = bw, 
+                                              mean.diff = 1, 
+                                              show.vars = "top",
+                                              exportExpression = TRUE)
+head(discrepancy_gene_dt)
+```
+
+### Functional clustering
+
+Further utilising the loading scores, ranked lists of genes can be generated. Through this approach, we can investigate what is the functional impact of these leading genes locally. The ranked lists can be used to initially perform functional annotation per location and subsequently, these annotations are used to cluster together similarly behaving locations and identify which processes or pathways are affected in these locations. Gene Set Enrichment Analysis (GSEA) utilising the Molecular Signatures Database (MSigDB) can help us achieve this in this case. In general, though, any form of gene-related annotation can be used.
+
+The first step in this process is to download the data from the MSigDB. Alternatively a user may skip this step if they already have a term-to-gene 2-column data frame.
+
+```{r functional_clust1, message=FALSE}
+msigdb <- getMSigDBData("Homo sapiens")
+
+```
+
+If the MSigDB is used, it is advisable to check the different classes and sub-classes that exist within the database we just downloaded.
+
+```{r functional_clust2, message=FALSE}
+viewCollections()
+
+```
+
+The next step is to generate the term-to-gene, 2-column data frame. Again here, a user may skip this step if they already have a term-to-gene 2-column data frame.
+
+```{r functional_clust3, message=FALSE}
+t2g <- getTerm2Gene(msig_data = msigdb, cat = "C2", subcat = "CP")
+
+```
+
+Now that we have a term-to-gene data frame, we can perform functional clustering
+
+```{r functional_clust4, message=FALSE}
+gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
+                                       pc = 1,
+                                       genes_no = 1,
+                                       NES = 1.5,
+                                       minGSSize = 5,
+                                       pvalueCutoff = 0.25,
+                                       TERM2GENE = t2g,
+                                       pAdjustMethod = "fdr",
+                                       scoreType = "std",
+                                       nPermSimple = 10000,
+                                       mc.cores = 4)
+
+```
+
+Let's have a look at the individual arguments of the `gwpca_FunctionalClustering()` function:
+
+1.  `gwpca`: A GWPCA object containing the results of the spatial transcriptomics analysis.\
+2.  `pc`: The principal component (PC) index to be used for GSEA. This indicates the PC to be used to extract information out of GWPCA to perform GSEA.\
+3.  `genes_no`: The minimum number of genes in a gene set to be considered for enrichment.\
+4.  `NES`: The minimum Normalized Enrichment Score (NES) for considering a gene set as enriched.\
+5.  `minGSSize`: The minimum gene set size to be considered in GSEA.\
+6.  `pvalueCutoff`: The p-value cutoff for identifying significant gene sets in GSEA.\
+7.  `TERM2GENE`: The term-to-gene mapping for gene sets. It has to be a 2-column data frame. The first column, named 'term' needs to include the ontology term while the second column, named 'gene', needs to include the genes present in an ontology term. Each row must have a single pair of one term and one gene. As a result, for a term which includes 10 genes, the term-to-gene data frame will have 10 rows. One row for each gene in this term.\
+8.  `pAdjustMethod`: The method for multiple testing correction in GSEA (default is "fdr"). For more information on the arguments have a look at the `clusterProfiler::GSEA` documentation (use `?clusterProfiler::GSEA`).\
+9.  `scoreType`: The GSEA scoring type (default is "std"). For more information on the arguments have a look at the `clusterProfiler::GSEA` documentation (use `?clusterProfiler::GSEA`).\
+10. `scoreType`: The number of permutations for simple GSEA.\
+11. `mc.cores`: The number of cores to use for parallel processing.\
+12. `regex` A regular expression pattern for cluster identification. There can be cases where the names of the pathways or the ontology terms are large and a user may want to remove parts of these names. This argument will remove the parts of the ontology names that match the regular expression.\
+
+Now we can plot the Functional Clustering results.
+
+```{r functional_clust5, message=FALSE}
+plotGWPCA_FuncCLust(gsea_map, count = 5, legend = "right")
+
+```
+
+In our example above, we used the Canonical Pathways (CP) module from the MSigDB to run GSEA in each location. After filtering the results per location to remove low-quality results, we selected the most enriched CP to label each location and perform the clustering. However, GSEA provides more information that accompanies each enriched term which assists us in making more informative decisions and increases the depth of our understanding of the result. For this reason, we also plot maps that show normalised enrichment scores, the adjusted p-values, the rank of the gene list, the gene set size, and the number of genes from the ranked list present in each canonical pathway. In the analysis workflow we repeat the functional clustering with a series of gene sets depending on the tissue studied and the biological questions present. Here we give two examples of additional functional clustering using the Hallmark Gene Sets and Liver Cell-type Signatures from the MSigDB.
+
+## Fuzzy Geographically Weighted Clustering (FGWC)
+
+### Background
+
+FGWC is a supervised clustering method that, for each point in space, assigns partial membership to multiple classes. The big difference between FGWC and classic clustering is the assumption that biological clusters do not always have hard boundaries but in many cases, an ecotone exists around each cluster area that generates a gradient between two adjacent clusters. Much like the geographical ecotones we see in nature biological ecotones are either present naturally or can be introduced by the platform used to conduct the experiment.
+
+Usually, when clustering single-cell RNA-sequencing (scRNA-seq) data researchers look to cluster together cells based on their cell type and subtype. In spatial transcriptomics, researchers usually look to identify regions of the tissue that match the existing information of the histopathology expert annotation or reveal hidden patterns in the microenvironment that are not visible through microscopy only.
+
+Fuzzy Geographically Weighted Clustering (FGWC) was developed by Mason and Jacobson (2007) by adding neighborhood effects and population to configure the membership matrix in Fuzzy C-Means. There are seven optimisation algorithms that currently provided in this package, mainly from the Yang (2014). The optimization algorithm uses the centroid as the parameter to be optimized. Here are the algorithm that can be used:
+
+1.  **"classic"** - The classical algorithm of FGWC based on Mason and Jacobson (2007) for centroid optimisation and Runkler and Katz (2006) for membership optimization.\
+
+2.  **"abc"** - Optimization using artificial bee colony algorithm based on Karaboga and Basturk (2007) (see also Wijayanto and Purwarianti 2014 and Wijayanto et al. 2016 for FGWC implementation).\
+
+3.  **"fpa"** - Optimization using flower pollination algorithm based on (Yang 2012).\
+
+4.  **"gsa"** - Optimization using gravitational search algorithm based on Rashedi et al. (2009) and Li and Dong (2017) (see also Pamungkas and Pramana 2019 for FGWC implementation).\
+
+5.  **"hho"** - Optimization using harris-hawk optimization with "heidari" (Heidari et al. 2019) (default). and "bairathi" (Bairathi and Gopalani 2018).\
+
+6.  **"ifa"** - Optimization using intelligent firefly algorithm based on Yang (2009), as well as the intelligent improvement by Fateen and Bonilla-Petriciolet (2013) (see also Nasution et al. 2020 for FGWC implementation).\
+
+7.  **"pso"** - Optimization using particle swarm optimization based on Runkler and Katz (2006) and Bansal et al. (2011) for inertia option (see also Wijayanto and Purwarianti 2014; Putra and Kurniawan 2017; Abdussamad 2020 for FGWC implementation).\
+
+8.  **"tlbo"** - Optimization using teaching - learning based optimization based on Rao et al. (2012) and elitism improvement by Rao and Patel (2012).\
+
+Furthermore, there are 10 distance that can be used to calculate the membership (see cdist for details). the default parameter of FGWC (in case you do not want to tune anything) is
+
+```{r fgwc_params1, eval=FALSE}
+c(kind = 'u', ncluster = 2, m = 2, distance = 'euclidean', order = 2, alpha = 0.7, a = 1, b = 1,
+max.iter = 500, error = 1e-5, randomN = 1)
+```
+
+There is also a universal parameter to the optimization algorithm as well as the details. The default parameter for the optimization algorithm is
+
+```{r fgwc_params2, eval=FALSE}
+c(vi.dist = 'uniform',  npar = 10, par.no = 2, par.dist = 'euclidean', par.order = 2, pso = TRUE, 
+same = 10, type = 'sim.annealing', ei.distr = 'normal', vmax = 0.7, wmax = 0.9, wmin = 0.4, 
+chaos = 4, x0 = 'F', map = 0.7, ind = 1, skew = 0, sca = 1)
+```
+
+If you do not define a certain parameter, the parameter will be set to its default value (the values above).
+
+### Reduce dimensions using NMF
+
+```{r fgwc_nmf}
+sfe_nmf <- fgwc_nmf(sfe, sample_id = "JBO019", top_hvgs = top_hvgs)
+
+```
+
+### Select FGWC parameters
+
+```{r fgwc_params}
+fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
+
+```
+
+### Run FGWC
+
+```{r fgwc}
+fgwc <- fgwcSTE(sfe, "JBO019", data = sfe_nmf, dMetric = "euclidean", fgwc_param = fgwc_param)
+
+```
+
+### Plot the highest membership clusters
+
+```{r fgwc_plot-single}
+plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019")
+
+```
+
+Since FGWC is a method that assigns membership percentages to each cluster, we can select and plot the cluster with the highest percentage of membership in each location and create a map of clusters. If we contrast the highest membership cluster map with the tissue histology (see below) and the scRNA-seq-based annotation we will see that the clustering result resembles, at least, the annotation.
+
+```{r fgwc-tisue_annot, echo=FALSE, out.height="20%", fig.show='hold',fig.align='center', fig.cap="Left: sample image. Right: sample annotation."}
+knitr::include_graphics("./images/tissue_annotation_gtruth.png")
+```
+
+### Plot the membership percentages
+
+Nevertheless, this is not an accurate depiction of the clustering results. A more accurate representation is the one shown below. There, we show maps of percentages from all clusters side-by-side, and we can investigate the ecotones that might exist between clusters.
+
+```{r fgwc_plot-multi}
+plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019")
+
+```
+
+**What is an ecotone?** - An ecotone in geographical sciences is a blurred gradient between a forest area and a grassland. Most of the times, a forest area doesn't stop abruptly to become a grassland but slowly the forest is thinning out to give its place to the grassland. The same idea can be found in spatial transcriptomics too. There might be genes or cells that their expression or presence in space does not form coherent areas but blends with the surrounding areas in a smooth-like transition from one gene expression to the other or from one cell type to the other. Additionally, the fact that the spatial transcriptomics platforms are yet not in single cell level, means that we have an artificial introduction of ecotones. One example is the 10X Genomics Visium platform where each spot can include 2-10+ cells depending on tissue density. This means that a spot can overlap different tissue zones leading to an abnormal clustering if we don't consider ecotones.
+
+```{r  fgwc_ecotones, echo=FALSE, out.height="20%", fig.show='hold',fig.align='center', fig.cap="The ecotone is an area of transition between two areas of different morphology. We can find such ecotones in data from low-resolution spot-based technologies like Visium."}
+knitr::include_graphics("./images/ecotones.png") 
+```
+
+In the multiple membership plot earlier we can see an example of ecotones. Clusters 3 and 5 present the ecotone as a blurred gradient of intermediate percentages between the two clusters. The ecotone though is not always the same size. For example, in clusters like cluster 4, the ecotone is much thinner.
+
+### Plot a heatmap of established biomarkers
+
+For this plot to be generated, it required from the user to provide a data frame (table) with four (4) columns that includes the below information and the specific column names:
+
+1.  **"gene.name"**: gene names (e.g., APOE)\
+2.  **"ensg.ID"**: ENSGene IDs (e.g., ENSG00000130203)\
+3.  **"Type"**: Cell type (e.g., Hepatocytes)\
+4.  **"Subtype"**: Cell subtype (e.g., Stellate cells)\
+
+If no subtype exists, add an empty character string using: `""`
+
+**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them.
+
+```{r fgwc_plot-heatmap}
+## Load the liver markers example dataset
+markers <- data(markers)
+
+## Plot the heatmap
+heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019", markers = markers, cluster_no = 3)
+
+```
+
+In cases where the unit of measurement is an area encompassing more than one cell (i.e., 10X Visium spots), fuzzy clustering looks more appropriate. Indeed, if we look at cell-type markers in cluster 4 we see that each location has a mixture of different cell-type markers indicating that a mixture of cells exists in each spot and thus absolute clustering often fails to capture the high levels of heterogeneity present. This idea of an ecotone and of a gradient rather than absolute cluster boundaries more closely captures the different types of cells that might co-exist in a 10X Visium spot and also leads to a more dynamic clustering that can reveal the existing spatial heterogeneity.
+
+### Visualise subclusters
+
+This approach generates a blurred clustering of the data points and provides us with a way to see inside the spots. Utilising established cell-type markers, specific to the liver tissue, we can examine the intra-cluster cell-type heterogeneity that the ecotone suggested, by subdividing each cluster into subclusters according to their cell-type mixture.
+
+```{r  fgwc_plot-subClust}
+plotFGWC_subClust(heatmap = heatmap, k = 5, clust = 3, m_sfe = sfe, sample_id = "JBO019")
+
+```
+
+### Plot a heatmap for selected subclusters
+
+To understand the composition of each subcluster we can plot a heatmap using the same established markers.
+
+```{r  fgwc_plot-subClust-heatmap}
+## Only plot the sub-cluster heatmap
+plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
+
+## Save the heatmap as an object
+subHeatmap <- plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
+```
+
+### References
+
+Abdussamad S (2020). "Evaluation of Implementation Context Based Clustering In Fuzzy Geographically Weighted Clustering-Particle Swarm Optimization Algorithm." Jurnal EECCIS, 14(1), 10--15. ISSN 2460-8122, <https://jurnaleeccis.ub.ac.id/index.php/eeccis/article/view/609>.
+
+Bairathi D, Gopalani D (2018). "A Novel Swarm Intelligence Based Optimization Method: Harris' Hawk Optimization." In Advances in Intelligent Systems and Computing, 832--842. Springer International Publishing. doi: 10.1007/978-3-030-16660-1_81, <https://doi.org/10.1007/978-3-030-16660-1_81>.
+
+Bansal JC, Singh PK, Saraswat M, Verma A, Jadon SS, Abraham A (2011). "Inertia Weight strategies in Particle Swarm Optimization." In 2011 Third World Congress on Nature and Biologically Inspired Computing. doi: 10.1109/nabic.2011.6089659, <https://doi.org/10.1109/nabic.2011.6089659>.
+
+Fateen SK, Bonilla-Petriciolet A (2013). "Intelligent Firefly Algorithm for Global Optimization." Cuckoo Search and Firefly Algorithm: Theory and Applications, 516, 315--330.
+
+Heidari AA, Mirjalili S, Faris H, Aljarah I, Mafarja M, Chen H (2019). "Harris hawks optimization: Algorithm and applications." Future Generation Computer Systems, 97, 849--872. doi: 10.1016/j.future.2019.02.028, <https://doi.org/10.1016/j.future.2019.02.028>.
+
+Karaboga D, Basturk B (2007). "A powerful and efficient algorithm for numerical function optimization: artificial bee colony (ABC) algorithm." Journal of Global Optimization, 39(3), 459--471. doi: 10.1007/s10898-007-9149-x, <https://doi.org/10.1007/s10898-007-9149-x>.
+
+Li J, Dong N (2017). "Gravitational Search Algorithm with a New Technique." In 2017 13th International Conference on Computational Intelligence and Security (CIS), 516--519. doi: 10.1109/CIS.2017.00120, <https://doi.org/10.1109/CIS.2017.00120>.
+
+Mason GA, Jacobson RD (2007). "Fuzzy Geographically Weighted Clustering." In Proceedings of the 9th International Conference on Geocomputation, 1--7.
+
+Nasution BI, Kurniawan R, Siagian TH, Fudholi A (2020). "Revisiting social vulnerability analysis in Indonesia: An optimized spatial fuzzy clustering approach." International Journal of Disaster Risk Reduction, 51, 101801. doi: 10.1016/j.ijdrr.2020.101801, <https://doi.org/10.1016/j.ijdrr.2020.101801>.
+
+Pamungkas IH, Pramana S (2019). "Improvement Method of Fuzzy Geographically Weighted Clustering using Gravitational Search Algorithm." Journal of Computer Science and Information, 11(1).
+
+Putra FH, Kurniawan R (2017). "Clustering for Disaster Areas Endemic Dengue Hemorrhagic Fever Based on Factors had Caused in East Java Using Fuzzy Geographically Weighted Clustering - Particle Swarm Optimization." Jurnal Aplikasi Statistika & Komputasi Statistik, 8(01), 27. ISSN 2615-1367.
+
+Rao RV, Patel V (2012). "An elitist teaching-learning-based optimization algorithm for solving complex constrained optimization problems." International Journal of Industrial Engineering Computations, 3(4), 535--560. ISSN 19232926, doi: 10.5267/j.ijiec.2012.03.007, <https://doi.org/10.5267/j.ijiec.2012.03.007>.
+
+Rao RV, Savsani VJ, Balic J (2012). "Teaching- learning-based optimization algorithm for unconstrained and constrained real-parameter optimization problems." Engineering Optimization, 44(12), 1447--1462. doi: 10.1080/0305215x.2011.652103, <https://doi.org/10.1080/0305215x.2011.652103>.
+
+Rashedi E, Nezamabadi-pour H, Saryazdi S (2009). "GSA: A Gravitational Search Algorithm." Information Sciences, 179(13).
+
+Runkler TA, Katz C (2006). "Fuzzy Clustering by Particle Swarm Optimization." In 2006 IEEE International Conference on Fuzzy Systems. doi: 10.1109/fuzzy.2006.1681773, <https://doi.org/10.1109/fuzzy.2006.1681773>.
+
+Wijayanto AW, Purwarianti A (2014). "Improvement design of fuzzy geo-demographic clustering using Artificial Bee Colony optimization." In 2014 International Conference on Cyber and IT Service Management (CITSM), 69--74. ISBN 978-1-4799-7975-2.
+
+Wijayanto AW, Purwarianti A (2014). "Improvement of fuzzy geographically weighted clustering using particle swarm optimization." In 2014 International Conference on Information Technology Systems and Innovation (ICITSI), 7--12. ISBN 978-1-4799-6527-4.
+
+Wijayanto AW, Purwarianti A, Son LH (2016). "Fuzzy geographically weighted clustering using artificial bee colony: An efficient geo-demographic analysis algorithm and applications to the analysis of crime behavior in population." Applied Intelligence, 44(2), 377--398. ISSN 0924-669X.
+
+Yang X (2014). Nature-Inspired Optimization Algorithms, Elsevier insights. Elsevier Science. ISBN 9780124167452.
+
+Yang X (2012). "Flower Pollination Algorithm for Global Optimization." In Unconventional Computation and Natural Computation, 240--249. Springer Berlin Heidelberg. doi: 10.1007/978-3-642-32894-7_27, <https://doi.org/10.1007/978-3-642-32894-7_27>.
+
+Yang X (2009). "Firefly Algorithms for Multimodal Optimization." In Stochastic Algorithms: Foundations and Applications, 169--178. Springer Berlin Heidelberg. doi: 10.1007/978-3-642-04944-6_14, <https://doi.org/10.1007/978-3-642-04944-6_14>.
+
+## Geographically Weighted Regression
+
+### GWR
+
+## Spatial Autocorrelation
+
+## Dimensionality reduction
+
+### Background
+
+STx data, just like bulk and single-cell transcriptomics, is captured in high-dimensional space. The reduction of this complexity can be helpful for a number of applications. Principal Components Analysis (PCA) assumes linearity in the data and has historically been used for dimensionality reduction. More modern techniques, such as Uniform Manifold Approximation and Projection (UMAP) [@McInnes2018Feb] and t-Stochastic Neighbor Embedding (tSNE) [@vandermaaten08] do not assume linearity and provide some performance advantages.
+
+The main practical difference between the output of these techniques is that the distances between the data points in PCA space are interpretable and can be used for clustering, while the distances in a UMAP/tSNE embedding are not interpretable in this way. As a result, we will be using PCA to reduce the dimensions of our dataset to assist clustering and UMAP to further reduce the principal components (PCs) in a two-dimensional space and produce better visualisations for the PCA.
+
+Dimensionality reduction prior to clustering has two main advantages, firstly it reduces dataset noise from random variation. Secondly it improves the computational efficiency of downstream analyses such as clustering. In an STx experiment, like the one we are analysing here, we have more than 3,000 spots and almost 1,500 HVGs. As as result, each spot has 1,500 attributes (dimensions) as a basis for subsequent clustering. This large number of variables that differentiate or cluster together spots gives rise to the *curse of dimensionality* [@Keogh2017Apr]. This principle states that data points (spots) with a large number of features appear equidistant in attribute space resulting in poor clustering output.
+
+### PCA: Principal component analysis
+
+Here we will use an efficient implementation of PCA provided in the `scater` package [@McCarthy2017Apr] and retain the top 50 PCs for further downstream analyses. The random seed is required for reproducibility reasons because this implementation uses randomisation.
+
+```{r 02_dimRedct_PCA, message=FALSE, warning=FALSE}
+## Set seed
+set.seed(987)
+## Compute PCA
+sfe <- runPCA(sfe, subset_row = top_hvgs)
+## Check correctness - names
+reducedDimNames(sfe)
+## Check correctness - dimensions
+dim(reducedDim(sfe, "PCA"))
+```
+
+### UMAP: Uniform Manifold Approximation and Projection
+
+Here we will also run UMAP - using `scater`'s implementation - on the 50 PCs generated above and retain the top 2 UMAP components to visualise results.
+
+```{r 02_dimRed_UMAP}
+## Set seed
+set.seed(987)
+## Compute UMAP on top 50 PCs
+sfe <- runUMAP(sfe, dimred = "PCA")
+## Check correctness - names
+reducedDimNames(sfe)
+## Check correctness - dimensions
+dim(reducedDim(sfe, "UMAP"))
+## Update column names for easier plotting
+colnames(reducedDim(sfe, "UMAP")) <- paste0("UMAP", 1:2)
+```
+
+### UMAP visualisations
+
+We can generate plots either using plotting functions from the [ggspavis](https://bioconductor.org/packages/ggspavis) package or [`ggplot2`](https://ggplot2.tidyverse.org/) package. When clustering later, we will add cluster labels to these reduced dimension plots for an off-tissue visualisation.
+
+```{r 02_dimRed_UMAP-vis, fig.width=6, fig.height=5, fig.show='hold'}
+## Plot top 2 PCA dimensions
+# plotDimRed(sfe, type = "PCA")
+
+ggplot(data = as.data.frame(sfe@int_colData@listData$reducedDims$PCA),
+       aes(x = PC1, y = PC2, colour = sfe@colData$ground_truth)) + 
+  geom_point(size = 0.5) + 
+  scale_colour_brewer(type = "qual") + 
+  labs(title = "Reduced dimensions: PCA",
+       x = "PC1",
+       y = "PC2",
+       colour = "Layers") +
+  theme_classic()
+
+## Plot top 2 UMAP dimensions
+# plotDimRed(sfe, type = "UMAP")
+
+ggplot(data = as.data.frame(sfe@int_colData@listData$reducedDims$UMAP),
+       aes(x = UMAP1, y = UMAP2, colour = sfe@colData$ground_truth)) + 
+  geom_point(size = 0.5) + 
+  scale_colour_brewer(type = "qual") + 
+  labs(title = "Reduced dimensions: UMAP",
+       x = "UMAP1",
+       y = "UMAP2",
+       colour = "Layers") +
+  theme_classic()
+```
+
+## Clustering
+
+### Background
+
+The clustering of observations into statistically similar groups is a well-established application in both bulk and single-cell RNA-Seq analysis. Clustering is a helpful tool because it structures and orders the data, allowing useful insights to be gained from complex, multivariate datasets and use those insights to classify the observed data or to generate hypotheses.
+
+Common clustering methods are applied to ST data based on correlation or statistical distance of gene expression measurements. As we briefly mentioned above, the dimensionality of STx data means that sample distances in gene expression space tend to be small and not reliable for identifying clusters, so feature selection (gene selection) or dimensionality reduction approaches (i.e., PCA, UMAP) tend to be taken before clustering.
+
+Common approaches to clustering gene expression data include k-means, hierarchical and Louvain algorithms, and all have been applied to the clustering of ST data. Some of these methods are implemented in some of the most popular single-cell analysis packages, such as `Seurat` [@Hao2021Jun] and `scran` [@Lun2016Oct] and have been used for clustering in a number of ST studies.
+
+### Clustering on HVGs
+
+Here, we apply graph-based clustering to the top 50 PCs calculated on the set of selected HVGs, using the Walktrap method implemented in `scran` [@Lun2016Oct]. To do so, we assume that (i) each spot is equal to a cell and (ii) we can detect from the gene expression the biologically informative spatial distribution patterns of cell types.
+
+```{r 02_clustering}
+## Set seed
+set.seed(987)
+## Set number of Nearest-Neighbours (NNs)
+k <- 10
+## Build the k-NN graph
+g <- buildSNNGraph(sfe, k = k, use.dimred = "PCA")
+## Run walktrap clustering
+g_walk <- igraph::cluster_walktrap(g)
+## Get the cluster labels
+clus <- g_walk$membership
+## Check how many
+table(clus)
+## Store cluster labels in column 'label' in colData
+colLabels(sfe) <- factor(clus)
+```
+
+### HVGs clustering visualisations
+
+We can visualise the clusters in two ways:
+
+1.  plotting in spatial coordinates on the tissue map
+2.  plotting in the UMAP/PCA embeddings.
+
+We can use plotting functions either from the [ggspavis](https://bioconductor.org/packages/ggspavis) package.
+
+For reference, we will also display the ground truth (manually annotated) labels available for this dataset.
+
+```{r 02_clust_vis-map, fig.show = 'hold', out.width="50%", fig.height=5, fig.width=4}
+## Plot in tissue map
+plotSpots(sfe, annotate = "label", 
+          palette = "libd_layer_colors")
+
+## Plot ground truth in tissue map
+plotSpots(sfe, annotate = "ground_truth", 
+          palette = "libd_layer_colors")
+```
+
+```{r 02_clust_vis-DimRed, message=FALSE, fig.show = 'hold', out.width="50%", fig.height=4, fig.width=4}
+## Plot clusters in PCA space
+plotDimRed(sfe, type = "PCA", 
+           annotate = "label", palette = "libd_layer_colors")
+
+## Plot clusters in UMAP space
+plotDimRed(sfe, type = "UMAP", 
+           annotate = "label", palette = "libd_layer_colors")
+```
+
+From the visualizations, we can see that the clustering reproduces, to an extent, the known biological structure of the tissue, but not perfectly. One reason for this could be the fact that each spot may be comprised of a number different cells whose gene expression profiles are diluted in the overall profile of the spot, thus leading to low-quality clustering.
+
+### Spatially-aware clustering
+
+In STx data, we can also perform clustering that takes spatial information into account, for example to identify spatially compact or spatially connected clusters.
+
+A simple strategy is to perform graph-based clustering on a set of features (columns) that includes both molecular features (gene expression) and spatial features (x-y coordinates). In this case, a crucial tuning parameter is the relative amount of scaling between the two data modalities -- if the scaling is chosen poorly, either the molecular or spatial features will dominate the clustering. Depending on data availability, further modalities could also be included. In this section, we will include some examples on this clustering approach.
+
+## Inter-cluster differentially expressed genes (DGEs)
+
+### Background
+
+Here, we will identify differentially expressed genes between clusters.
+
+We will use the `findMarkers` implementation from the `scran` [@Lun2016Oct]. This implementation uses a binomial test, which tests for genes that differ in the proportion expressed vs. not expressed between clusters. This is a more stringent test than the default *t*-tests, and tends to select genes that are easier to interpret and validate experimentally.
+
+### DGEs identification
+
+```{r 02_dges}
+## Set gene names as row names ease of plotting
+rownames(sfe) <- rowData(sfe)$gene_name
+## Test for DGEs
+markers <- findMarkers(sfe, test = "binom", direction = "up")
+## Check output
+markers
+```
+
+The output from the `findMarkers` implementation is a list of length equal to the number of clusters. Each element of the list contains the Log-Fold-Change (LogFC) of each gene between one cluster and all others.
+
+### DGEs visualisation
+
+Here we will plot LogFCs for cluster 1 against all other clusters
+
+```{r 02_dges_vis-clst1, message=FALSE, fig.show = 'hold', out.width="50%", fig.height=4, fig.width=4}
+## Select cluster 1 genes
+interesting <- markers[[1]]
+## Get the top genes
+best_set <- interesting[interesting$Top <= 5, ]
+## Calculate the effect
+logFCs <- getMarkerEffects(best_set)
+## Plot a heat map
+pheatmap(logFCs, breaks = seq(-5, 5, length.out = 101))
+```
+
+Below we will plot the log-transformed normalised expression of the top genes for one cluster alongside their expression in the other clusters.
+
+```{r 02_dges_vis-2, message=FALSE, fig.width=7, fig.height=7}
+## Select genes
+top_genes <- head(rownames(interesting))
+## Plot expression
+plotExpression(sfe, x = "label", features = top_genes)
+```
+
+## Putting it all together
+
+The below code puts all these steps in order by selecting one of the options at each step.
+
+```{r all_in_one, message=FALSE, warning=FALSE, eval=FALSE}
+## Import data
+# sampleDir <- "./data/spaceranger_outs/Human_Liver_Steatotic/JBO019_Results"
+sampleNames <- "JBO019"
+sfe <- read10xVisiumSFE(samples = sampleDir, 
+                        sample_id = sampleNames, 
+                        type = "sparse", 
+                        data = "filtered", 
+                        images = "lowres", 
+                        style = "W", 
+                        zero.policy = TRUE)
+# ----------------------------------------------- #
+# ground_truth <- read_table("./data/to_load/spotzonationGroup.txt")
+## Add QC metrics
+is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$symbol)
+sfe <- addPerLocQC(sfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
+sfe <- addGeometries(sfe, samples = sampleDir, sample_id = sampleNames, res = "fullres")
+sfe <- addPerGeneQC(sfe, assay = "counts", version = NULL, mirror = NULL)
+# ----------------------------------------------- #
+## SPOT SELECTION
+## Select library size threshold
+qc_lib_size <- colData(sfe)$sum < 1000
+## Add threshold in colData
+colData(sfe)$qc_lib_size <- qc_lib_size
+## Select expressed genes threshold
+qc_detected <- colData(sfe)$detected < 550
+## Add threshold in colData
+colData(sfe)$qc_detected <- qc_detected
+## Select mitochondrial percentage threshold
+qc_mito <- colData(sfe)$subsets_mito_percent > 22
+## Add threshold in colData
+colData(sfe)$qc_mito <- qc_mito
+## Combine together the set of discarded spots
+discard <- qc_lib_size | qc_detected | qc_mito
+## Store the set in the object
+colData(sfe)$discard <- discard
+## Remove combined set of low-quality spots
+sfe <- sfe[, !colData(sfe)$discard]
+# ----------------------------------------------- #
+## FEATURE SELECTION
+## Calculate library size factors
+sfe <- computeLibraryFactors(sfe)
+## Calculate logcounts using library size factors
+sfe <- logNormCounts(sfe)
+## Calculate log-counts sample mean
+rowData(sfe)[["JBO019.s_logMean"]] <- rowSums(assay(sfe, "logcounts")) / rowData(sfe)[["JBO019.nLocations"]]
+## Set and apply filters
+is_zero <- rowData(sfe)$total == 0
+is_logLow <- rowData(sfe)[["JBO019.s_logMean"]] <= 1
+discard_gs <- is_zero | is_mito | is_logLow
+rowData(sfe)$discard <- discard_gs
+## Remove mitochondrial and other genes
+sfe <- sfe[!rowData(sfe)$discard, ]
+## Fit mean-variance relationship
+dec <- modelGeneVar(sfe,
+                    assay.type = "logcounts")
+## Select top HVGs
+top_hvgs <- getTopHVGs(dec, 
+                       var.field = "bio", 
+                       prop = 0.5,
+                       var.threshold = 0,
+                       fdr.threshold = 0.05)
+# ----------------------------------------------- #
+## ADD GEOGRAPHY
+## Add a neighbour graph using a weighted distance matrix
+sfe <- addSpatialNeighGraphs(sfe, "JBO019", type = "knearneigh", style = "W", distMod = "raw", k = 6)
+## Calculate a simple distance matrix
+sfe <- addDistMat(sfe, p = 2)
+```
+
+# References {.unnumbered}
+
+Here is the output of `sessionInfo()` on the system on which this document was compiled
+
+```{r echo=FALSE}
+sessionInfo()
+```
