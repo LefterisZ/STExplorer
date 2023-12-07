@@ -25,7 +25,7 @@ is then transformed into a raster format for further processing.
 }
 \seealso{
 \code{\link[SpatialFeatureExperiment]{getImg}},
-\code{\link[SpatialFeatureExperiment]{imgRaster}}
+\code{\link[SpatialFeatureExperiment]{SFE-image}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

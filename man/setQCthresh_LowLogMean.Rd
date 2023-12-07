@@ -41,7 +41,8 @@ msfe <- setQCthresh_LowLogMean(msfe, threshold = 1, sample_id = TRUE)
 
 }
 \seealso{
-\code{\link{.int_logLowMean}}, \code{\link[SpatialFeatureExperiment]{crowData}}
+\code{\link{.int_logLowMean}},
+\code{\link[SpatialFeatureExperiment]{rowData}}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

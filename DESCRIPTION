@@ -54,7 +54,11 @@ Imports:
     msigdbr,
     scran,
     stringr,
-    tidyterra
+    tidyterra,
+    BiocGenerics,
+    naspaclust,
+    parallelly,
+    tidyr
 License: GPL (>= 3)
 Suggests: 
     BiocStyle,

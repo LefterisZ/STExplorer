@@ -486,7 +486,8 @@ setQCthresh_ZeroExpr <- function(msfe, sample_id = TRUE) {
 #' gene expression data for each sample in the provided object. Genes failing
 #' to meet the thresholds are flagged.
 #'
-#' @seealso \code{\link{.int_logLowMean}}, \code{\link[SpatialFeatureExperiment]{crowData}}
+#' @seealso \code{\link{.int_logLowMean}},
+#' \code{\link[SpatialFeatureExperiment]{rowData}}
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

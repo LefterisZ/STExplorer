@@ -9,7 +9,8 @@
 #' case it is supplied to modelGeneVar to generate the required DataFrame.
 #' @param sample_id TRUE selects all samples. Alternatively, provide a
 #' character vector with the sample IDs for filtering.
-#' @param ... Additional arguments to be passed to \code[scran]{getTopHVGs}.
+#' @param ... Additional arguments to be passed to
+#' \code{\link[scran]{getTopHVGs}}.
 #'
 #' @return A list of top high variance genes for each sample, as determined by
 #' the provided DE analysis results.
@@ -17,7 +18,7 @@
 #' @details The function uses a DE analysis result list (`stats`) to extract
 #' the top high variance genes for each sample. It allows for optional
 #' filtering based on sample IDs. Additional arguments can be passed to
-#' the underlying `scran::getTopHVGs` function.
+#' the underlying \code{\link[scran]{getTopHVGs}} function.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
