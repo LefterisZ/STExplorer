@@ -35,7 +35,3 @@ msfe <- MetaSpatialFeatureExperiment()
 sample_ids <- getSampleIDs(msfe)
 
 }
-\seealso{
-\code{\link{MetaSpatialFeatureExperiment}},
-\code{\link{addMultipleSFEs}}
-}

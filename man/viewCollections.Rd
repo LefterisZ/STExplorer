@@ -2,7 +2,7 @@
 % Please edit documentation in R/gwpca_FunctionalClust.R
 \name{viewCollections}
 \alias{viewCollections}
-\title{Look at Gene Set catagories and their subcategories}
+\title{Look at Gene Set categories and their subcategories}
 \usage{
 viewCollections()
 }

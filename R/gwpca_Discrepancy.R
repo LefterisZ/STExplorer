@@ -91,7 +91,7 @@ getDiscrepancyGeneData <- function(m_sfe,
     show.vars <- match.arg(show.vars)
 
     ## SFE or metaSFE?
-    sfe <- .int_sfeORmsfe(m_sfe = m_sfe)
+    sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
     ## Get required data
     data <- assay(sfe, assay)
@@ -121,7 +121,7 @@ getDiscrepancyGeneData <- function(m_sfe,
 
     ## Check if a distance matrix is given
     if (!missing(dMetric)) {
-        dMat <- getDistMat(sfe = sfe, dMetric = dMetric)
+        dMat <- getDistMat(msfe = sfe, dMetric = dMetric)
         dMat <- dMat[sample_locations, sample_locations]
         ## Get the distances for the specific outlier in question
         dists <- dMat[,focus]

@@ -183,13 +183,14 @@ plotQC_spotsAnnotation <- function(sfe,
   }
 
   ## Put together the data to plot
-  data <- .int_dataToPlotAnnot(sfe = sfe, type = type, ids = ids)
+  data <- .int_dataToPlotAnnot(sfe = sfe, type = type, ids = ids,
+                               annotate = TRUE)
 
   ## Plot annotation map
   p <- ggplot2::ggplot() +
     ggplot2::geom_sf(data = data,
-                     aes(geometry = geometry,
-                         fill = annotation)) +
+                     aes(geometry = data$geometry,
+                         fill = data$annotation)) +
     do.call(scale_fill_manual, c(list(...), fill_args)) +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
@@ -349,6 +350,8 @@ plotQC_tissueImg <- function(sfe,
 #'
 #' @keywords spatial quality-control histogram plotting ggplot2
 #'
+#' @importFrom ggplot2 geom_histogram geom_density geom_vline after_stat
+#'
 #' @rdname plotQC_hist
 #' @aliases plotQC_hist
 #'
@@ -398,7 +401,7 @@ plotQC_hist <- function(sfe,
   }
   data <- data.frame(aes_x = aes_x,
                      sample_id = sfe$sample_id) %>%
-    dplyr::filter(sample_id %in% ids)
+    dplyr::filter(.data$sample_id %in% ids)
 
   ## Set some defaults if not provided
   if (DelayedArray::isEmpty(hist_args)) {
@@ -424,7 +427,7 @@ plotQC_hist <- function(sfe,
   p <- ggplot(data = data,
          aes(x = aes_x)) +
     do.call(geom_histogram, c(list(...), hist_args,
-                              list(aes(y = after_stat(density))))) +
+                              list(aes(y = after_stat(data$density))))) +
     do.call(geom_density, c(list(...), dens_args)) +
     do.call(geom_vline, c(list(...), vline_args, list(xintercept = limits))) +
     ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
@@ -479,6 +482,8 @@ plotQC_hist <- function(sfe,
 #'
 #' @rdname plotQC_scat
 #' @aliases plotQC_scat
+#'
+#' @importFrom ggExtra ggMarginal
 #'
 #' @examples
 #' \dontrun{
@@ -537,17 +542,17 @@ plotQC_scat <- function(sfe,
 
   ## Generate plot
   p <- ggplot(data = data,
-         aes(x = x, y = y)) +
+         aes(x = data$x, y = data$y)) +
     do.call(geom_point, c(list(...), point_args)) +
     do.call(geom_hline, c(list(...), hline_args, list(yintercept = limits))) +
-    geom_smooth(se = FALSE) +
+    ggplot2::geom_smooth(se = FALSE) +
     ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
     ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
     ggplot2::xlab("Number of Cells") +
     ggplot2::ylab(lab_y) +
     ggplot2::theme_classic()
 
-  p <- ggMarginal(p, type = 'histogram', margins = 'both')
+  p <- ggExtra::ggMarginal(p, type = 'histogram', margins = 'both')
 
   return(p)
 }
@@ -635,8 +640,8 @@ plotQC_filtered <- function(sfe,
   ## Plot filtered locations map
   p <- ggplot2::ggplot() +
     ggplot2::geom_sf(data = data,
-                     ggplot2::aes(geometry = geometry,
-                                  fill = fill)) +
+                     ggplot2::aes(geometry = data$geometry,
+                                  fill = data$fill)) +
     ggplot2::scale_fill_manual(values = c("grey95", "red")) +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
@@ -712,7 +717,7 @@ plotQC_sizeFactors <- function(sfe,
   ## Fetch the data
   data <- data.frame(aes_x = sfe$sizeFactor,
                      sample_id = sfe$sample_id) %>%
-    dplyr::filter(sample_id %in% ids)
+    dplyr::filter(.data$sample_id %in% ids)
   lab_x <- "Size Factor"
 
   ## Set some defaults if not provided
@@ -730,9 +735,9 @@ plotQC_sizeFactors <- function(sfe,
 
   ## Generate plot
   p <- ggplot(data = data,
-         aes(x = aes_x)) +
+         aes(x = data$aes_x)) +
     do.call(geom_histogram, c(list(...), hist_args,
-                              list(aes(y = after_stat(density))))) +
+                              list(aes(y = after_stat(data$density))))) +
     do.call(geom_density, c(list(...), dens_args)) +
     ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
     ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
@@ -780,13 +785,13 @@ plotQC_sizeFactors <- function(sfe,
   data <- data.frame(sample_id = colData(sfe)$sample_id,
                      in_tissue = colData(sfe)$in_tissue,
                      geometry = colGeometries(sfe)$spotPoly$geometry) %>%
-    dplyr::filter(sample_id %in% ids)
+    dplyr::filter(.data$sample_id %in% ids)
 
   ## Select arguments and data for in-tissue spots plot only or all spots
   if (in_tissue) {
     data <- data[data$in_tissue, ]
     fill <- "Sample ID"
-    geomSF_args <- list(aes(geometry = geometry, fill = sample_id))
+    geomSF_args <- list(aes(geometry = data$geometry, fill = data$sample_id))
     if (is.null(colours)) {
       colours <- getColours(n_samples)
     } else {
@@ -795,7 +800,7 @@ plotQC_sizeFactors <- function(sfe,
 
   } else {
     fill <- "In tissue"
-    geomSF_args <- list(aes(geometry = geometry, fill = in_tissue))
+    geomSF_args <- list(aes(geometry = data$geometry, fill = data$in_tissue))
     if (is.null(colours)) {
       colours <- c("#1F78C8", "#FF0000")
     } else {
@@ -851,14 +856,14 @@ plotQC_sizeFactors <- function(sfe,
   data <- data.frame(sample_id = colData(sfe)$sample_id,
                      in_tissue = colData(sfe)$in_tissue,
                      geometry = colGeometries(sfe)$spotHex$geometry) %>%
-    dplyr::filter(sample_id %in% ids)
+    dplyr::filter(.data$sample_id %in% ids)
 
   ## Select arguments and data for in-tissue spots plot only or all spots
   if (in_tissue) {
     data <- data[data$in_tissue, ]
     fill <- "Sample ID"
-    geomSF_args <- list(aes(geometry = geometry, fill = sample_id))
-    if (is.null(colours)){
+    geomSF_args <- list(aes(geometry = data$geometry, fill = data$sample_id))
+    if (is.null(colours)) {
       colours <- getColours(n_samples)
     } else {
       colours <- colours
@@ -866,8 +871,8 @@ plotQC_sizeFactors <- function(sfe,
 
   } else {
     fill <- "In tissue"
-    geomSF_args <- list(aes(geometry = geometry, fill = in_tissue))
-    if (is.null(colours)){
+    geomSF_args <- list(aes(geometry = data$geometry, fill = data$in_tissue))
+    if (is.null(colours)) {
       colours <- c("#1F78C8", "#FF0000")
     } else {
       colours <- colours
@@ -923,7 +928,7 @@ plotQC_sizeFactors <- function(sfe,
   data$geometry <- colGeometries(sfe)$spotHex$geometry
 
   data <- data %>%
-    dplyr::filter(sample_id %in% ids)
+    dplyr::filter(.data$sample_id %in% ids)
 
   return(data)
 }
@@ -971,7 +976,7 @@ plotQC_sizeFactors <- function(sfe,
     data$geometry <- colGeometries(sfe)$spotHex$geometry
   }
   data <- data[data$in_tissue, ] %>% # in case raw feature matrix was imputed
-    dplyr::filter(sample_id %in% ids)
+    dplyr::filter(.data$sample_id %in% ids)
 
   return(data)
 }
@@ -1130,6 +1135,8 @@ plotQC_sizeFactors <- function(sfe,
 #'
 #' @rdname dot-int_getImgSmplIDs
 #'
+#' @importFrom SpatialFeatureExperiment imgData
+#'
 .int_getImgSmplIDs <- function(sfe, sample_id = NULL) {
   ## Fetch the required sample IDs
   if (is.null(sample_id)) {
@@ -1163,6 +1170,8 @@ plotQC_sizeFactors <- function(sfe,
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @keywords internal
+#'
+#' @importFrom SpatialFeatureExperiment getImg
 #'
 #' @rdname dot-int_getImgDt
 #'
@@ -1284,7 +1293,7 @@ plotQC_sizeFactors <- function(sfe,
                   y = limits_list[[2]]) +
     ggplot2::coord_sf() +
     ggplot2::theme_void() +
-    theme(plot.subtitle = element_text(hjust = 0.5))
+    theme(plot.subtitle = ggplot2::element_text(hjust = 0.5))
 
   ## Put together the data to plot. Choose spots or hexagons too.
   if (!type == "none") {
@@ -1300,15 +1309,15 @@ plotQC_sizeFactors <- function(sfe,
       fill_args <- .int_fillArgs(fill_args, annot_cols = annot_cols)
       ## Plot
       p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = geometry,
-                                    fill = annotation),
+                                aes(geometry = data$geometry,
+                                    fill = data$annotation),
                                 alpha = alpha) +
         do.call(scale_fill_manual, c(list(...), fill_args)) +
         ggplot2::labs(fill = "Annotation")
     } else {
       ## Plot without annotation
       p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = geometry),
+                                aes(geometry = data$geometry),
                                 alpha = alpha)
     }
   }

@@ -36,7 +36,6 @@ t2g <- getTerm2Gene(msig_data = data, cat = C1, subcat = "")
 # Note in the above that if a category has no subcategory then we put "" in
 # the 'subcat' argument.
 
-#' @seealso
-\code{\link[clusterProfiler]{GSEA}}
+#' @seealso \code{\link[clusterProfiler]{GSEA}}
 
 }

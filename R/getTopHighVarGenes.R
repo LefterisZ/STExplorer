@@ -42,7 +42,7 @@ getTopHighVarGenes <- function(stats, sample_id = TRUE, ...) {
   stopifnot(is.list(stats))
 
   ## Select samples
-  ids <- .int_getMSFEsmplID(list = stats, sample_id = sample_id)
+  ids <- .int_getMSFEsmplID(msfe = stats, sample_id = sample_id)
 
   ## Get top high variable genes
   hvgs_int <- lapply(stats[ids], scran::getTopHVGs, ...)

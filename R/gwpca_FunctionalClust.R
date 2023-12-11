@@ -23,7 +23,7 @@ getMSigDBData <- function(species, ...) {
   return(msig_data)
 }
 
-#' Look at Gene Set catagories and their subcategories
+#' Look at Gene Set categories and their subcategories
 #'
 #' This function is a wrapper around the "msigdbr_collections" function that
 #' prints the possible combinations of categories and subcategories. It is
@@ -57,6 +57,7 @@ viewCollections <- function(){
 #' @return A term-to-gene data frame with columns "term" and "gene."
 #'
 #' @importFrom data.table data.table
+#' @importFrom data.table .SD
 #'
 #' @examples
 #' # Get MSigDB data
@@ -71,8 +72,7 @@ viewCollections <- function(){
 #' # Note in the above that if a category has no subcategory then we put "" in
 #' # the 'subcat' argument.
 #'
-#' #' @seealso
-#' \code{\link[clusterProfiler]{GSEA}}
+#' #' @seealso \code{\link[clusterProfiler]{GSEA}}
 #'
 #' @export
 getTerm2Gene <- function(user_data = NULL,
@@ -92,13 +92,15 @@ getTerm2Gene <- function(user_data = NULL,
     msig_data <- data.table::data.table(msig_data)
     ## Perform subsetting based on "gs_cat" and "gs_subcat"
     if (!is.null(cat) && !is.null(subcat)) {
-      msig_data <- msig_data[gs_cat %in% cat & gs_subcat %in% subcat]
+      msig_data <- msig_data[msig_data$gs_cat %in% cat &
+                               msig_data$gs_subcat %in% subcat]
     }
 
     ## Perform subsetting to select "gs_name" and the appropriate
     ## "ensembl_gene" column
     gene_column <- grep("_ensembl_gene", colnames(msig_data), value = TRUE)
-    result <- msig_data[, .(term = gs_name, gene = .SD[[gene_column]]),
+    result <- msig_data[, .(term = .SD[["gs_name"]],
+                            gene = .SD[[gene_column]]),
                         .SDcols = c("gs_name", gene_column)]
     return(result)
 
@@ -162,8 +164,7 @@ getTerm2Gene <- function(user_data = NULL,
 #' ## Functional clustering on Principal Component 1 (PC1)
 #' # gsea_result <- gwpca_FunctionalClustering(gwpca_result, pc = 1)
 #'
-#' @seealso
-#' \code{\link{gwpcaSTE}}, \code{\link[clusterProfiler]{GSEA}}
+#' @seealso \code{\link{gwpcaSTE}}, \code{\link[clusterProfiler]{GSEA}}
 #'
 #' @export
 gwpca_FunctionalClustering <- function(gwpca,
@@ -200,7 +201,7 @@ gwpca_FunctionalClustering <- function(gwpca,
 
   gsea <-  gsea %>%
     dplyr::mutate(genes_no = str_count(.data$core_enrichment,"ENSG")) %>%
-    dplyr::group_by(Location) %>%
+    dplyr::group_by(.data$Location) %>%
     dplyr::filter(genes_no > genes_no) %>%
     dplyr::filter(abs(NES) > NES, .by_group = TRUE) %>%
     # dplyr::filter(qvalue < 0.3, .by_group = TRUE) %>%
@@ -215,7 +216,7 @@ gwpca_FunctionalClustering <- function(gwpca,
                     gwpca$geometry,
                     by = "row.names",
                     all.y = TRUE) %>%
-    dplyr::mutate(cluster = gsub(regex, "", ID)) %>%
+    dplyr::mutate(cluster = gsub(regex, "", .data$ID)) %>%
     tibble::column_to_rownames("Row.names")
 
   return(gsea_map)

@@ -22,7 +22,7 @@
 #' @returns A ggplot object.
 #'
 #' @importFrom ggplot2 geom_point geom_line ggplot labs theme ylim
-#' @importFrom ggplot2 theme_classic aes
+#' @importFrom ggplot2 theme_classic aes scale_y_continuous element_text
 #' @importFrom methods is
 #'
 #' @author Eleftherios (Lefteris) Zormpas
@@ -804,15 +804,15 @@ plotGWPCA_discrHeatmap <- function(m_sfe,
   ## The Legend labels
   spot_labels <- data.frame(table(lead.item[pc.No])) %>%
     dplyr::rename(LeadingGs = colnames(lead.item)[pc.No],
-                  count = Freq) %>%
-    dplyr::arrange(desc(count)) %>%
-    mutate(show = ifelse(count > cutoff, TRUE, FALSE))
+                  count = .data$Freq) %>%
+    dplyr::arrange(dplyr::desc(.data$count)) %>%
+    mutate(show = ifelse(.data$count > cutoff, TRUE, FALSE))
 
   ## The legend breaks:
   spot_breaks <- spot_labels %>%
-    dplyr::filter(show == TRUE) %>%
-    dplyr::arrange(LeadingGs) %>%
-    dplyr::select(LeadingGs) %>%
+    dplyr::filter(.data$show == TRUE) %>%
+    dplyr::arrange(.data$LeadingGs) %>%
+    dplyr::select(.data$LeadingGs) %>%
     .[["LeadingGs"]] %>%
     as.vector()
   n_cols <- ceiling(sum(spot_labels$show) / 10)
@@ -860,6 +860,8 @@ plotGWPCA_discrHeatmap <- function(m_sfe,
 #' "bottom", "left", "right".
 #' @importFrom gridExtra grid.arrange
 #' @importFrom dplyr rename arrange filter select mutate
+#' @importFrom ggplot2 scale_fill_viridis_d scale_fill_manual
+#' @importFrom ggplot2 scale_fill_gradient2 scale_fill_viridis_c
 #'
 #' @return A grid of spatial plots representing different aspects of functional
 #' clustering results.
@@ -874,16 +876,17 @@ plotGWPCA_discrHeatmap <- function(m_sfe,
 #' @export
 plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
   ## The Legend labels
+  lookup <- c(cluster = "Var1", count = "Freq")
   spot_labels <- data.frame(table(gsea_map$cluster)) %>%
-    dplyr::rename(cluster = Var1, count = Freq) %>%
-    dplyr::arrange(desc(count)) %>%
+    dplyr::rename(all_of(lookup)) %>%
+    dplyr::arrange(dplyr::desc(count)) %>%
     mutate(show = ifelse(count > count, TRUE, FALSE))
 
   ## The legend breaks:
   spot_breaks <- spot_labels %>%
-    dplyr::filter(show == TRUE) %>%
-    dplyr::arrange(cluster) %>%
-    dplyr::select(cluster) %>%
+    dplyr::filter(.data$show == TRUE) %>%
+    dplyr::arrange(.data$cluster) %>%
+    dplyr::select(.data$cluster) %>%
     .[["cluster"]] %>%
     as.vector()
   n_cols1 <- ceiling(length(unique(gsea_map$genes_no)) / 10)
@@ -899,8 +902,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[1]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = geometry,
-                fill = cluster),
+            aes(geometry = data$geometry,
+                fill = data$cluster),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_manual(values = colour_values,
@@ -913,8 +916,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[2]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = geometry,
-                fill = NES),
+            aes(geometry = data$geometry,
+                fill = data$NES),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_gradient2(high = "#B2182B",
@@ -929,8 +932,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[3]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = geometry,
-                fill = p.adjust),
+            aes(geometry = data$geometry,
+                fill = data$p.adjust),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_c(option = "magma",
@@ -941,8 +944,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[4]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = geometry,
-                fill = rank),
+            aes(geometry = data$geometry,
+                fill = data$rank),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_c(option = "magma",
@@ -953,8 +956,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[5]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = geometry,
-                fill = as.factor(genes_no)),
+            aes(geometry = data$geometry,
+                fill = as.factor(data$genes_no)),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_d(option = "magma",
@@ -966,8 +969,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[6]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = geometry,
-                fill = as.factor(setSize)),
+            aes(geometry = data$geometry,
+                fill = as.factor(data$setSize)),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_d(option = "magma",

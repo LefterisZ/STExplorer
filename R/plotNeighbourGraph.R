@@ -45,7 +45,7 @@ plotNeighbourGraph <- function(msfe,
   res <- match.arg(res)
 
   ## Select samples
-  ids <- .int_getMSFEsmplID(list = msfe, sample_id = sample_id)
+  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Prepare neighbour graph data
   nb_data_list <-  lapply(msfe[ids], .int_getNBdata)
@@ -99,8 +99,11 @@ plotNeighbourGraph <- function(msfe,
 #' @keywords spatial image raster
 #'
 #' @rdname dot-int_getImgDtMSFE
+#'
 #' @aliases .int_getImgDtMSFE
+#'
 #' @importFrom SpatialFeatureExperiment imgRaster
+#' @importFrom SpatialFeatureExperiment getImg
 #'
 .int_getImgDtMSFE <- function(sfe, image_id) {
   ## Fetch image data and transform to raster
@@ -194,7 +197,7 @@ plotNeighbourGraph <- function(msfe,
                   y = limits_list[[id]][[2]]) +
     ggplot2::coord_sf() +
     ggplot2::theme_void() +
-    theme(plot.subtitle = element_text(hjust = 0.5))
+    theme(plot.subtitle = ggplot2::element_text(hjust = 0.5))
 
   # return(p)
 }

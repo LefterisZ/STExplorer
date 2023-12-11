@@ -445,8 +445,8 @@ plotFGWC_single <- function(fgwc,
   ## Plot single cluster
   ggplot() +
     geom_sf(data = data,
-            aes(geometry = geometry,
-                fill = as.factor(Cluster)),
+            aes(geometry = data$geometry,
+                fill = as.factor(data$Cluster)),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_manual(values = annot_cols) +
@@ -490,6 +490,7 @@ plotFGWC_single <- function(fgwc,
 #' is going to be the same with colour for 50% in map 3.
 #'
 #' @importFrom tidyr pivot_longer
+#' @importFrom ggplot2 scale_fill_distiller
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #' @keywords clustering fuzzy-logic spatial ggplot2 visualization fgwc
@@ -507,14 +508,14 @@ plotFGWC_multi <- function(fgwc,
 
   ## Prepare data to plot
   data <- .int_fgwcPlotData(fgwc = fgwc, sfe = sfe, mode = "multi") %>%
-    tidyr::pivot_longer(cols = !geometry,
+    tidyr::pivot_longer(cols = !.data$geometry,
                         names_to = "cluster",
                         values_to = "membership")
 
   ggplot() +
     geom_sf(data = data,
-            aes(geometry = geometry,
-                fill = membership),
+            aes(geometry = .data$geometry,
+                fill = .data$membership),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_distiller(palette = palette, limits = c(0, 1)) +
@@ -566,6 +567,8 @@ plotFGWC_multi <- function(fgwc,
 #' @rdname plotFGWC_heatmap
 #' @aliases plotFGWC_heatmap
 #'
+#' @importFrom grDevices colorRampPalette
+#'
 #' @export
 plotFGWC_heatmap <- function(fgwc,
                              m_sfe,
@@ -606,13 +609,16 @@ plotFGWC_heatmap <- function(fgwc,
   ## Remove genes that might not be present in the input
   annot_row <- annot_row %>%
     filter(rownames(.) %in% rownames(pheat_in)) %>%
-    arrange(Type)
+    arrange(.data[["Type"]])
   col_type <- length(unique(markers$Type))
   col_subT <- length(unique(markers$Subtype))
   annot_colours <- list(Type = getColours(col_type),
                         Subtype = c4a(palette = "carto.pastel", n = col_subT))
   names(annot_colours$Type) <- unique(markers$Type)
   names(annot_colours$Subtype) <-  unique(markers$Subtype)
+
+  ## group rows
+  gaps_row <- utils::head(as.numeric(cumsum(table(annot_row$Type))), -1)
 
   ## Heatmap colour and set it around zero
   paletteLength <- 25
@@ -668,6 +674,9 @@ plotFGWC_heatmap <- function(fgwc,
 #'  sub-clusters on top of the original spatial features, allowing users to
 #'  visualise the distribution of sub-clusters within the main cluster areas.
 #'
+#' @importFrom sf st_polygon
+#' @importFrom ggplot2 scale_colour_manual
+#'
 #' @examples
 #' \dontrun{
 #' # Plot sub-clusters with default colors.
@@ -706,7 +715,9 @@ plotFGWC_subClust <- function(heatmap, k, clust,
     ) %>%
     dplyr::left_join(subclusts, by = "Barcode") %>%
     dplyr::mutate(
-      subclust = ifelse(subclust > 0, paste0(clust, LETTERS[subclust]), NA)
+      subclust = ifelse(.data$subclust > 0,
+                        paste0(clust, LETTERS[.data$subclust]),
+                        NA)
       ) %>%
     rename("geometry_subC" = "geometry.1")
   subclust_map$geometry_subC[is.na(subclust_map$subclust)] <- st_polygon()
@@ -726,9 +737,9 @@ plotFGWC_subClust <- function(heatmap, k, clust,
   }
 
   ggplot(data = subclust_map) +
-      geom_sf(aes(geometry = geometry, fill = gTruth),
+      geom_sf(aes(geometry = .data$geometry, fill = .data$gTruth),
               alpha = 0.8) +
-      geom_sf(aes(geometry = geometry_subC, colour = subclust),
+      geom_sf(aes(geometry = .data$geometry_subC, colour = .data$subclust),
               fill = NA,
               linewidth = 1.1) +
       scale_fill_manual(values = colour.annot,
@@ -816,13 +827,16 @@ plotFGWC_subHeatmap <- function(heatmap,
   ## Remove genes that might not be present in the input
   annot_row <- annot_row %>%
     filter(rownames(.) %in% rownames(pheat_in)) %>%
-    arrange(Type)
+    arrange(.data$Type)
   col_type <- length(unique(markers$Type))
   col_subT <- length(unique(markers$Subtype))
   annot_colours <- list(Type = getColours(col_type),
                         Subtype = c4a(palette = "carto.pastel", n = col_subT))
   names(annot_colours$Type) <- unique(markers$Type)
   names(annot_colours$Subtype) <-  unique(markers$Subtype)
+
+  ## group rows
+  gaps_row <- utils::head(as.numeric(cumsum(table(annot_row$Type))), -1)
 
   ## Heatmap colour and set it around zero
   paletteLength <- 25
@@ -942,11 +956,11 @@ plotFGWC_subHeatmap <- function(heatmap,
     ## Join with annotations
     dplyr::left_join(.,
               markers[,c("gene.name", "ensg.ID")],
-              by = join_by(ensg.ID)) %>%
+              by = dplyr::join_by(.data$ensg.ID)) %>%
     ## Remove ENSG.IDs
-    dplyr::select(-ensg.ID) %>%
+    dplyr::select(-.data$ensg.ID) %>%
     ## Bring gene names column to the front
-    dplyr::relocate(gene.name) %>%
+    dplyr::relocate(.data$gene.name) %>%
     ## Populate rownames with gene names
     tibble::column_to_rownames("gene.name") %>%
     ## Transpose to make it observation x variable
@@ -994,11 +1008,11 @@ plotFGWC_subHeatmap <- function(heatmap,
   ## Check for clusters or subclusters
   if ("cluster" %in% colnames(marker_clusts)) {
     input <- marker_clusts %>%
-      dplyr::filter(cluster == cluster_no) %>%
+      dplyr::filter(.data$cluster == cluster_no) %>%
       dplyr::select(-all_of("cluster"))
   } else if ("subclust" %in% colnames(marker_clusts)) {
     input <- marker_clusts %>%
-      dplyr::filter(subclust == cluster_no) %>%
+      dplyr::filter(.data$subclust == cluster_no) %>%
       dplyr::select(-all_of("subclust"))
   }
 
@@ -1147,7 +1161,7 @@ plotFGWC_subHeatmap <- function(heatmap,
 .int_removeDuplicates <- function(markers, column) {
   markers <- markers %>%
     dplyr::mutate(dups = BiocGenerics::duplicated({{ column }})) %>%
-    dplyr::filter(!dups)
+    dplyr::filter(!.data$dups)
 
   return(markers)
 }
@@ -1219,7 +1233,7 @@ plotFGWC_subHeatmap <- function(heatmap,
 #'
 .int_getSubClusts <- function(heatmap, k) {
   # Get the subclusters
-  subclusts <- cutree(heatmap$tree_col, k = k) %>%
+  subclusts <- stats::cutree(heatmap$tree_col, k = k) %>%
     .[heatmap$tree_col$order] %>%
     as.data.frame() %>%
     dplyr::rename("subclust" = ".") %>%

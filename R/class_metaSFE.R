@@ -22,6 +22,8 @@ setClass(
 #'
 #' @return An instance of the MetaSpatialFeatureExperiment class.
 #'
+#' @importFrom methods new
+#'
 #' @examples
 #' ## Create a MetaSpatialFeatureExperiment object
 #' msfe <- MetaSpatialFeatureExperiment()
@@ -117,7 +119,7 @@ getMultipleSFE <- function(x, sample_ids) {
   ## Combine into one SFE object
 
 
-  return(sfe)
+  # return(sfe)
 }
 
 #' Method to retrieve sample IDs from MetaSpatialFeatureExperiment
@@ -146,9 +148,6 @@ getMultipleSFE <- function(x, sample_ids) {
 #'
 #' # Retrieve sample IDs
 #' sample_ids <- getSampleIDs(msfe)
-#'
-#' @seealso \code{\link{MetaSpatialFeatureExperiment}},
-#' \code{\link{addMultipleSFEs}}
 #'
 getSampleIDs <- function(x) {
   unlist(x@sample_ids)

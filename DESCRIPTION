@@ -58,10 +58,12 @@ Imports:
     BiocGenerics,
     naspaclust,
     parallelly,
-    tidyr
+    tidyr,
+    ggExtra
 License: GPL (>= 3)
 Suggests: 
     BiocStyle,
     knitr,
-    rmarkdown
+    rmarkdown,
+    usethis
 VignetteBuilder: knitr

@@ -26,6 +26,8 @@
 #'
 #' @seealso \code{\link[scater]{computeLibraryFactors}}
 #'
+#' @importFrom scater librarySizeFactors
+#'
 #' @examples
 #' \dontrun{# Compute library size factors within each sample
 #' sfe # An SFE object
