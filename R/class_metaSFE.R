@@ -25,7 +25,7 @@ setClass(
 #' @importFrom methods new
 #'
 #' @examples
-#' ## Create a MetaSpatialFeatureExperiment object
+#' ## Create an empty MetaSpatialFeatureExperiment object
 #' msfe <- MetaSpatialFeatureExperiment()
 #'
 #' ## Add an SFE object to the MetaSpatialFeatureExperiment
@@ -64,19 +64,21 @@ MetaSpatialFeatureExperiment <- function(sfe_data = list(),
 addSFE <- function(x, sfe, sample_id = TRUE) {
   id <- .int_getSmplIDs(sfe = sfe, sample_id = sample_id)
   x@sfe_data[[id]] <- sfe
+  x@sample_id[[id]] <- id
   x
 }
 
 #' Method to access a SpatialFeatureExperiment by name
 #'
 #' @param x An instance of the MetaSpatialFeatureExperiment class.
-#' @param name Name of the experiment/sample for the SFE to access.
+#' @param sample_id Character string. The name of the experiment/sample for
+#' the SFE to be accessed.
 #'
 #' @return The SFE object associated with the provided name.
 #'
 #' @export
-getSFE <- function(x, name) {
-  x@sfe_data[[name]]
+getSFE <- function(x, sample_id) {
+  x@sfe_data[[sample_id]]
 }
 
 #' Method to add an SFE object with multiple samples to the
@@ -107,19 +109,32 @@ addMultipleSFE <- function(x, sfe) {
 #' Method to retrieve multiple SFE objects as a single SFE object
 #'
 #' @param x An instance of the MetaSpatialFeatureExperiment class.
-#' @param sample_ids The sample IDs from the SFE objects to be combined and
-#' retrieved as one SFE object
+#' @param sample_ids Character string. The sample IDs from the SFE objects to
+#' be combined and retrieved as one SFE object
 #'
 #' @return An SFE object with multiple samples inside.
 #'
 #' @export
 getMultipleSFE <- function(x, sample_ids) {
   ## Check provided sample IDs are correct
+  test_names <- sample_ids %in% getSampleIDs(x)
+  if (!all(test_names)) {
+    no_match <- sample_ids[!test_names]
+    stop("Some sample names do not match the names in the MSFE object provided",
+         " in the `x` argument.\n",
+         "Please check the names you provided in the `sample_ids` argument.\n",
+         "The non-matching names are: \n",
+         paste(no_match, collapse = ", "))
+  }
+
+  ## Check that all sfe objects have the counts assay as 'dgCMatrix'.
+  ## If NOT, then transform to 'dgCMatrix'.
+  class(assay(x@sfe_data[[id]]))
 
   ## Combine into one SFE object
 
 
-  # return(sfe)
+  return(sfe)
 }
 
 #' Method to retrieve sample IDs from MetaSpatialFeatureExperiment
