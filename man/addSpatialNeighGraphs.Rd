@@ -56,17 +56,18 @@ weight type “dpd” but optional for all other types. Argument passed to
 \code{spdep}'s \code{nb2listwdist} function, see its help page for more info.}
 
 \item{zero.policy}{default TRUE; if TRUE permit the weights list to be
-formed with zero-length weights vectors description, if FALSE stop with error
-for any empty neighbour sets, if NULL use global option value. Leave it as
-TRUE to avoid conflict with SFE object.}
+formed with zero-length weights vectors description, if FALSE stop with
+error for any empty neighbour sets, if NULL use global option value. Leave
+it as TRUE to avoid conflict with SFE object.}
 
-\item{sym}{a logical argument indicating whether or not neighbours should be
-symmetric (if i->j then j->i) description. Used internally by the
+\item{sym}{a logical argument indicating whether or not neighbours should
+be symmetric (if i->j then j->i) description. Used internally by the
 \code{graph2nb} function and only for graph-based neighbour types.}
 
-\item{sfe_out}{a logical argument indicating whether or not the output should be
-added in the \code{colGraphs} slot of the SFE object or not. Default is TRUE;
-it will be added; if FALSE a \code{listw} object is returned.}
+\item{sfe_out}{a logical argument indicating whether or not the output
+should be added in the \code{colGraphs} slot of the SFE object or not.
+Default is TRUE; it will be added; if FALSE a \code{listw} object is
+returned.}
 
 \item{...}{arguments that are passed down to the \code{spdep} functions
 called by the \code{type} argument. To see what else is needed for the

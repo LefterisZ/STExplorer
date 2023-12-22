@@ -4,12 +4,13 @@
 \alias{getSFE}
 \title{Method to access a SpatialFeatureExperiment by name}
 \usage{
-getSFE(x, name)
+getSFE(x, sample_id)
 }
 \arguments{
 \item{x}{An instance of the MetaSpatialFeatureExperiment class.}
 
-\item{name}{Name of the experiment/sample for the SFE to access.}
+\item{sample_id}{Character string. The name of the experiment/sample for
+the SFE to be accessed.}
 }
 \value{
 The SFE object associated with the provided name.

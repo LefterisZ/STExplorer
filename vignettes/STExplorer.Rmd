@@ -160,7 +160,7 @@ As attributes are typically stored in `data.frame` objects (or the very similar 
 The following seven simple feature types are the most common:
 
 | type                 | description                                                                                                                                                                                                               |
-|----------------|--------------------------------------------------------|
+|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `POINT`              | zero-dimensional geometry containing a single point                                                                                                                                                                       |
 | `LINESTRING`         | sequence of points connected by straight, non-self intersecting line pieces; one-dimensional geometry                                                                                                                     |
 | `POLYGON`            | geometry with a positive area (two-dimensional); sequence of points form a closed, non-self intersecting ring; the first ring denotes the exterior ring, zero or more subsequent rings denote holes in this exterior ring |
@@ -168,6 +168,7 @@ The following seven simple feature types are the most common:
 | `MULTILINESTRING`    | set of linestrings                                                                                                                                                                                                        |
 | `MULTIPOLYGON`       | set of polygons                                                                                                                                                                                                           |
 | `GEOMETRYCOLLECTION` | set of geometries of any type except GEOMETRYCOLLECTION                                                                                                                                                                   |
+
 : (#tab:table) Most common simple feature types.
 
 Each of the geometry types can also be a (typed) empty set, containing zero coordinates (for `POINT` the standard is not clear how to represent the empty geometry). Empty geometries can be thought of as being the analogue to missing (`NA`) attributes, NULL values or empty lists.

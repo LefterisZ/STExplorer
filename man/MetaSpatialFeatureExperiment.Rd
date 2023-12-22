@@ -19,7 +19,7 @@ An instance of the MetaSpatialFeatureExperiment class.
 Constructor function for MetaSpatialFeatureExperiment class
 }
 \examples{
-## Create a MetaSpatialFeatureExperiment object
+## Create an empty MetaSpatialFeatureExperiment object
 msfe <- MetaSpatialFeatureExperiment()
 
 ## Add an SFE object to the MetaSpatialFeatureExperiment

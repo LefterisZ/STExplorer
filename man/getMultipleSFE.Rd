@@ -9,8 +9,8 @@ getMultipleSFE(x, sample_ids)
 \arguments{
 \item{x}{An instance of the MetaSpatialFeatureExperiment class.}
 
-\item{sample_ids}{The sample IDs from the SFE objects to be combined and
-retrieved as one SFE object}
+\item{sample_ids}{Character string. The sample IDs from the SFE objects to
+be combined and retrieved as one SFE object}
 }
 \value{
 An SFE object with multiple samples inside.

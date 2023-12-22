@@ -117,24 +117,31 @@ addMultipleSFE <- function(x, sfe) {
 #' @export
 getMultipleSFE <- function(x, sample_ids) {
   ## Check provided sample IDs are correct
-  test_names <- sample_ids %in% getSampleIDs(x)
-  if (!all(test_names)) {
-    no_match <- sample_ids[!test_names]
-    stop("Some sample names do not match the names in the MSFE object provided",
-         " in the `x` argument.\n",
-         "Please check the names you provided in the `sample_ids` argument.\n",
-         "The non-matching names are: \n",
-         paste(no_match, collapse = ", "))
-  }
+  .int_checkSampleNames(x, sample_ids)
 
   ## Check that all sfe objects have the counts assay as 'dgCMatrix'.
   ## If NOT, then transform to 'dgCMatrix'.
-  class(assay(x@sfe_data[[id]]))
+  for (id in sample_ids) {
+    sfe <- getSFE(x, id)
+    mtx_nm <- names(SummarizedExperiment::assays(sfe))
 
-  ## Combine into one SFE object
+    for (nm in mtx_nm) {
+      if (!is(assay(sfe, nm), "dgCMatrix")) {
+        sfe <- .int_convertToDgCMatrix(sfe, nm)
+      }
+    }
 
+    ## Place the updated sfe object back into the msfe
+    x@sfe_data[[id]] <- sfe
+  }
 
-  return(sfe)
+  ## Extract SFE objects based on sample_ids
+  sfe_list <- lapply(sample_ids, function(id) getSFE(x, id))
+
+  ## Use Reduce with cbind to combine SFE objects
+  sfe_out <- Reduce(cbind, sfe_list)
+
+  return(sfe_out)
 }
 
 #' Method to retrieve sample IDs from MetaSpatialFeatureExperiment
@@ -166,5 +173,47 @@ getMultipleSFE <- function(x, sample_ids) {
 #'
 getSampleIDs <- function(x) {
   unlist(x@sample_ids)
+}
+
+
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+#' Internal: Check if sample names are correct
+#'
+#' An internal function to check that the sample names provided for extraction
+#' are correct.
+#'
+#' @param x An instance of the MetaSpatialFeatureExperiment class.
+#' @param sample_ids Character string. The sample IDs to be checked.
+#'
+#' @rdname dot-int_checkSampleNames
+#'
+#' @return Logical vector indicating whether each sample ID is correct.
+.int_checkSampleNames <- function(x, sample_ids) {
+  test_names <- sample_ids %in% getSampleIDs(x)
+  if (!all(test_names)) {
+    no_match <- sample_ids[!test_names]
+    stop("Some sample names do not match the names in the MSFE object ",
+         "provided in the `x` argument.\n",
+         "Please check the names you provided in the `sample_ids` argument.\n",
+         "The non-matching names are: \n",
+         paste(no_match, collapse = ", "))
+  }
+}
+
+#' Internal: Convert assay matrix to dgCMatrix
+#'
+#' An internal function to convert any assay matrix class to dgCMatrix class.
+#'
+#' @param sfe An instance of the SummarizedExperiment class.
+#' @param nm Name of the assay matrix.
+#'
+#' @rdname dot-int_convertToDgCMatrix
+#'
+#' @return SummarizedExperiment with the specified assay matrix converted to
+#' dgCMatrix.
+.int_convertToDgCMatrix <- function(sfe, nm) {
+  assay(sfe, nm) <- as(assay(sfe, nm), "dgCMatrix")
+  return(sfe)
 }
 
