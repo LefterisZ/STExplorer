@@ -177,6 +177,7 @@ getSampleIDs <- function(x) {
 
 
 # ---------------------------------------------------------------------------- #
+#  ########### INTERNAL FUNCTIONS ASSOCIATED WITH THE MSFE CLASS ############
 # ---------------------------------------------------------------------------- #
 #' Internal: Check if sample names are correct
 #'
@@ -217,3 +218,57 @@ getSampleIDs <- function(x) {
   return(sfe)
 }
 
+#' Internal Function: Get SpatialFeatureExperiment Sample IDs
+#'
+#' This internal function retrieves the sample IDs based on the provided
+#' criteria.
+#'
+#' @param msfe A SpatialFeatureExperiment object.
+#' @param sample_id Either a logical vector indicating the samples to include
+#' (if TRUE, all samples are included), or a character vector specifying the
+#' sample IDs to include.
+#'
+#' @return A character vector of selected sample IDs.
+#'
+.int_getMSFEsmplID <- function(msfe, sample_id) {
+  ## Select samples
+  if (isTRUE(sample_id)) {
+    ids <- names(msfe@sfe_data)
+  } else if (is.character(sample_id)) {
+    ids <- sample_id
+  }
+
+  return(ids)
+}
+
+
+#' Internal Function: Get SpatialFeatureExperiment or
+#' MetaSpatialFeatureExperiment
+#'
+#' This internal function checks the class type of the input object and returns
+#' either the original SpatialFeatureExperiment (SFE) object or, in the case of
+#' a MetaSpatialFeatureExperiment (MetaSFE), retrieves a subset based on the
+#' provided sample IDs.
+#'
+#' @param m_sfe An object of class SpatialFeatureExperiment or
+#' MetaSpatialFeatureExperiment.
+#' @param sample_id A character vector specifying the sample IDs to include
+#' (only relevant for MetaSpatialFeatureExperiment).
+#'
+#' @return An object of class SpatialFeatureExperiment. If the input is already
+#' an SFE, it returns the original object. If the input is a MetaSFE, it
+#' returns a subset based on the provided sample IDs.
+#'
+#' @rdname dot-int_sfeORmsfe
+#'
+.int_sfeORmsfe <- function(m_sfe, sample_id) {
+  SFE <- is(m_sfe, "SpatialFeatureExperiment")
+  metaSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
+  if (SFE) {
+    sfe <- m_sfe
+  } else if (metaSFE) {
+    sfe <- getSFE(m_sfe, sample_id)
+  }
+
+  return(sfe)
+}

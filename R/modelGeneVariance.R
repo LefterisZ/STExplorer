@@ -76,37 +76,5 @@ modelGeneVariance <- function(msfe,
   return(var_int)
 }
 
-#' Internal Function: Get SpatialFeatureExperiment Sample IDs
-#'
-#' This internal function retrieves the sample IDs based on the provided
-#' criteria.
-#'
-#' @param msfe A SpatialFeatureExperiment object.
-#' @param sample_id Either a logical vector indicating the samples to include
-#' (if TRUE, all samples are included), or a character vector specifying the
-#' sample IDs to include.
-#'
-#' @return A character vector of selected sample IDs.
-#'
-#' @examples
-#' \dontrun{
-#' # Get all sample IDs in the SpatialFeatureExperiment.
-#' .int_getMSFEsmplID(msfe, TRUE)
-#'
-#' # Get sample IDs based on a logical vector.
-#' .int_getMSFEsmplID(msfe, sample_id = c(TRUE, FALSE, TRUE, TRUE))
-#'
-#' # Get sample IDs based on a character vector.
-#' .int_getMSFEsmplID(msfe, sample_id = c("Sample1", "Sample3"))
-#' }
-#'
-.int_getMSFEsmplID <- function(msfe, sample_id) {
-  ## Select samples
-  if (isTRUE(sample_id)) {
-    ids <- names(msfe@sfe_data)
-  } else if (is.character(sample_id)) {
-    ids <- sample_id
-  }
-
-  return(ids)
-}
+# The internal function `.int_getMSFEsmplID` can be found in the
+# `class_metaSFE.R` file.

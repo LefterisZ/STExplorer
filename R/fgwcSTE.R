@@ -868,6 +868,9 @@ plotFGWC_subHeatmap <- function(heatmap,
 }
 
 
+# ---------------------------------------------------------------------------- #
+#  ############## INTERNAL FUNCTIONS ASSOCIATED WITH THE FGWC ###############
+# ---------------------------------------------------------------------------- #
 #' Internal Function: Generate Data for FGWC Plot
 #'
 #' This function generates data suitable for plotting FFGWC results.

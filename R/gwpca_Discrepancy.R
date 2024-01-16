@@ -236,15 +236,5 @@ getDiscrepancyLocData <- function(m_sfe, gwpca, sample_id) {
 }
 
 
-
-.int_sfeORmsfe <- function(m_sfe, sample_id) {
-  SFE <- is(m_sfe, "SpatialFeatureExperiment")
-  metaSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
-  if (SFE) {
-    sfe <- m_sfe
-  } else if (metaSFE) {
-    sfe <- getSFE(m_sfe, sample_id)
-  }
-
-  return(sfe)
-}
+# The code for the `.int_sfeORmsfe` function can be found in the
+# `class_metaSFE.R` file.

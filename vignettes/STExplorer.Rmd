@@ -1294,6 +1294,14 @@ Yang X (2009). "Firefly Algorithms for Multimodal Optimization." In Stochastic A
 
 ## Spatial Autocorrelation
 
+### GLobal and local measures
+
+### Moran's I
+
+### Geary's C
+
+### Getis & Ord's G
+
 ## Dimensionality reduction
 
 ### Background

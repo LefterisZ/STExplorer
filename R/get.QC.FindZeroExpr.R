@@ -15,8 +15,8 @@
 #'
 #' @details This function takes a SpatialFeaturesExperiment object and
 #' calculates the total number of UMIs for each gene in the specified sample.
-#' It extracts the data for the given sample from the specified assay, finds the
-#' total UMIs for each gene, and stores the results in the rowData of the
+#' It extracts the data for the given sample from the specified assay, finds
+#' the total UMIs for each gene, and stores the results in the rowData of the
 #' SpatialFeaturesExperiment object.
 #'
 #' @importFrom Matrix rowSums
