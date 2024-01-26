@@ -76,7 +76,7 @@
 #' @importFrom spdep nb2listw nb2listwdist knearneigh dnearneigh knn2nb
 #' @importFrom spdep graph2nb
 #' @importFrom SpatialFeatureExperiment colData colGeometries spatialCoords
-#' @importFrom SpatialFeatureExperiment colGraph `colGraph<-`
+#' @importFrom SpatialFeatureExperiment colGraph colGraph<-
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

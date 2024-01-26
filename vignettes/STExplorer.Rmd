@@ -160,7 +160,7 @@ As attributes are typically stored in `data.frame` objects (or the very similar 
 The following seven simple feature types are the most common:
 
 | type                 | description                                                                                                                                                                                                               |
-|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|-------------|-----------------------------------------------------------|
 | `POINT`              | zero-dimensional geometry containing a single point                                                                                                                                                                       |
 | `LINESTRING`         | sequence of points connected by straight, non-self intersecting line pieces; one-dimensional geometry                                                                                                                     |
 | `POLYGON`            | geometry with a positive area (two-dimensional); sequence of points form a closed, non-self intersecting ring; the first ring denotes the exterior ring, zero or more subsequent rings denote holes in this exterior ring |
@@ -1293,6 +1293,22 @@ Yang X (2009). "Firefly Algorithms for Multimodal Optimization." In Stochastic A
 ### GWR
 
 ## Spatial Autocorrelation
+
+When we are performing spatial analysis in research, we're looking to achieve one (or more) of three things:
+
+1.  **Analyse the distribution of a phenomena**
+2.  **Analyse the relationship between phenomena, to identify factors/predictors**
+3.  **Create new spatial data that can then be used in the above** 
+
+> “The first law of geography: Everything is related to everything else, but near things are more related than distant things.” *Waldo R. Tobler (1970)* 
+
+When you attach values to the polygons of spots or cells in a spatial omics dataset, and visualise them, different patterns appear, and the different shapes and sizes of the polygons effect what these patterns look like and how prominent they are to the human eye. 
+
+There can appear to be clusters, or, in some cases, the distribution can be random. 
+
+When values are clustered, this issue is known as spatial autocorrelation and results from what is known as **spatial dependence**. 
+
+Spatial autocorrelation measures can be categorised broadly into two categories; Global and Local.
 
 ### GLobal and local measures
 

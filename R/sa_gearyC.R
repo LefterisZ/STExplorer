@@ -751,10 +751,14 @@ gearyLocalCPerm <- function(m_sfe,
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
 
-  spdep::localC(x = x,
+ res <-  spdep::localC(x = x,
                 listw = listw,
                 ...,
                 zero.policy = zero.policy)
+
+  out <- data.frame(Ci = as.vector(res))
+
+  return(out)
 }
 
 

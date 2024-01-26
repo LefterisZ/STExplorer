@@ -100,7 +100,7 @@ get.QC.Sparsity <- function(sfe,
 #'
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SpatialFeatureExperiment colData rowData
-#' @importFrom S4Vectors metadata `metadata<-`
+#' @importFrom S4Vectors metadata metadata<-
 #'
 .int_sparsity_1 <- function(sfe,
                             assay,

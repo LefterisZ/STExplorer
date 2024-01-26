@@ -238,3 +238,6 @@ plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019")
 heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019", markers = markers, cluster_no = 3)
 plotFGWC_subClust(heatmap = heatmap, k = 5, clust = 4, m_sfe = sfe, sample_id = "JBO019")
 plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 1)
+
+# SA ----
+

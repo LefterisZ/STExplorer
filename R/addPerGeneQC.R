@@ -29,7 +29,7 @@
 #' @importFrom scater addPerFeatureQC
 #' @importFrom Matrix rowSums
 #' @importFrom SpatialFeatureExperiment rowData colData
-#' @importFrom SummarizedExperiment `rowData<-`
+#' @importFrom SummarizedExperiment rowData<-
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'

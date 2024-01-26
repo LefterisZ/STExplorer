@@ -822,11 +822,8 @@ moranLocalIPerm <- function(m_sfe,
                            adjust.x = adjust.x)
 
   ## Get attributes into a dataframe
-  fdrColName <- grep("Pr.*",
-                     colnames(attr(res, "pseudo-p")),
-                     value = TRUE)
-  out <- data.frame(Ii = res$Ii,
-                    IiFDR = res[,fdrColName],
+  out <- data.frame(Ii = res[,"Ii"],
+                    IiFDR = res[,dimnames(res)[[2]][5]],
                     IiClust = attr(res, "quadr")[,"pysal"]) # maybe give option to select between mean, median, and pysal
 
   return(out)
@@ -866,7 +863,7 @@ moranLocalIPerm <- function(m_sfe,
   .int_checkSAInput(x = x, listw = listw)
 
   ## Call the localmoran_perm function from spdep
-  out <- spdep::localmoran_perm(x = x,
+  res <- spdep::localmoran_perm(x = x,
                                 listw = listw,
                                 nsim = nsim,
                                 zero.policy = zero.policy,
@@ -880,11 +877,8 @@ moranLocalIPerm <- function(m_sfe,
                                 no_repeat_in_row = no_repeat_in_row)
 
   ## Get attributes into a dataframe
-  fdrColName <- grep("Pr.z.*Sim",
-                     colnames(attr(res, "pseudo-p")),
-                     value = TRUE)
-  out <- data.frame(Ii = res$Ii,
-                    IiFDR = res[,fdrColName],
+  out <- data.frame(Ii = res[,"Ii"],
+                    IiFDR = res[,dimnames(res)[[2]][5]],
                     IiClust = attr(res, "quadr")[,"pysal"]) # maybe give option to select between mean, median, and pysal
 
   return(out)

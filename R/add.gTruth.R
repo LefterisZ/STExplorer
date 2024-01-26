@@ -31,7 +31,7 @@
 #' @keywords internal
 #'
 #' @importFrom SpatialFeatureExperiment colData
-#' @importFrom SpatialFeatureExperiment `colData<-`
+#' @importFrom SpatialFeatureExperiment colData<-
 #' @importFrom S4Vectors DataFrame
 #'
 #' @author Eleftherios (Lefteris) Zormpas
