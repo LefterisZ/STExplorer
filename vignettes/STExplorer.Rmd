@@ -1,4 +1,5 @@
 ---
+sssssssssssssssssssss---
 title: "Geographically-inspired Spatial Transcriptomics data analysis using STExplorer"
 author: 
   - name: "Eleftherios Zormpas"
@@ -33,7 +34,7 @@ Welcome to the vignette of STExplorer. STExplorer is a package the performs geog
 
 ## Install package
 
-```{r setup}
+```{r }
 ## To install the stable version of the package from Bioconductor run the below:
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -53,28 +54,28 @@ devtools::install_github("LefterisZ/STExplorer",
 library(STExplorer)
 ```
 
-```{r load_pkgs, echo=FALSE, eval=FALSE, message=FALSE}
-# library(SpatialFeatureExperiment)
-# library(tidyverse)
-# library(scran)
-# library(scater)
-# library(ggspavis)
-# library(sf)
-# library(spdep)
-# library(GWmodel)
-# library(tidyterra)
-# library(ggplot2)
-# library(igraph)
-# library(pheatmap)
-# library(ggExtra)
-# library(future)
-# library(doFuture)
-# library(foreach)
-# library(progressr)
-# library(parallel)
-# library(cols4all)
-# library(pheatmap)
-# library(RColorBrewer)
+```{r setup, echo=FALSE, eval=FALSE, message=FALSE}
+library(SpatialFeatureExperiment)
+library(tidyverse)
+library(scran)
+library(scater)
+library(ggspavis)
+library(sf)
+library(spdep)
+library(GWmodel)
+library(tidyterra)
+library(ggplot2)
+library(igraph)
+library(pheatmap)
+library(ggExtra)
+library(future)
+library(doFuture)
+library(foreach)
+library(progressr)
+library(parallel)
+library(cols4all)
+library(pheatmap)
+library(RColorBrewer)
 ```
 
 The STExplorer package utilises methods from Geography's spatial data analysis techniques and packages to perform a spatially-aware and spatially-weighted analysis of spatial transcriptomics data. Below is a series of packages from the field of Geography that STExplorer depends on in one way or another.
@@ -160,7 +161,7 @@ As attributes are typically stored in `data.frame` objects (or the very similar 
 The following seven simple feature types are the most common:
 
 | type                 | description                                                                                                                                                                                                               |
-|-------------|-----------------------------------------------------------|
+|-----------------------|-------------------------------------------------|
 | `POINT`              | zero-dimensional geometry containing a single point                                                                                                                                                                       |
 | `LINESTRING`         | sequence of points connected by straight, non-self intersecting line pieces; one-dimensional geometry                                                                                                                     |
 | `POLYGON`            | geometry with a positive area (two-dimensional); sequence of points form a closed, non-self intersecting ring; the first ring denotes the exterior ring, zero or more subsequent rings denote holes in this exterior ring |
@@ -475,9 +476,9 @@ At present, the dataset contains both on- and off-tissue spots - we plotted thes
 ## Dataset dimensions before the filtering
 dim(sfe)
 
-## Subset to keep only on-tissue spots
-sfe <- sfe[, colData(sfe)$in_tissue == 1]
-dim(sfe)
+# ## Subset to keep only on-tissue spots
+# sfe <- sfe[, colData(sfe)$in_tissue == 1]
+# dim(sfe)
 ```
 
 The next thing we need to do before we make decisions on how to quality *"trim"* the dataset is to calculate the percentage per spot of mitochodrial gene expression and store this information inside the `colData`. First of all, find the mitochrondrial genes - their gene names start with "MT-" or "mt-".
@@ -1294,29 +1295,165 @@ Yang X (2009). "Firefly Algorithms for Multimodal Optimization." In Stochastic A
 
 ## Spatial Autocorrelation
 
-When we are performing spatial analysis in research, we're looking to achieve one (or more) of three things:
+When we are performing spatial analysis in research, we're looking to achieve one (or more) of mainly three things:
 
 1.  **Analyse the distribution of a phenomena**
 2.  **Analyse the relationship between phenomena, to identify factors/predictors**
-3.  **Create new spatial data that can then be used in the above** 
+3.  **Create new spatial data that can then be used in the above**
 
-> “The first law of geography: Everything is related to everything else, but near things are more related than distant things.” *Waldo R. Tobler (1970)* 
+When you attach values to the polygons of spots or cells in a spatial omics dataset, and visualise them, different patterns appear, and the different shapes and sizes of the polygons effect what these patterns look like and how prominent they are to the human eye.
 
-When you attach values to the polygons of spots or cells in a spatial omics dataset, and visualise them, different patterns appear, and the different shapes and sizes of the polygons effect what these patterns look like and how prominent they are to the human eye. 
+There can appear to be clusters, or, in some cases, the distribution can be random.
 
-There can appear to be clusters, or, in some cases, the distribution can be random. 
+When values are clustered, this issue is known as spatial autocorrelation and results from what is known as **spatial dependence**.
 
-When values are clustered, this issue is known as spatial autocorrelation and results from what is known as **spatial dependence**. 
+The concept of spatial autocorrelation has existed for many years. It is captured in what has become known as Tobler’s “first law of geography” which states that
 
-Spatial autocorrelation measures can be categorised broadly into two categories; Global and Local.
+> “Everything is related to everything else, but near things are more related than distant things.” *Waldo R. Tobler (1970)*
 
-### GLobal and local measures
+This reflects what we intuitively know about the world we live in —phenomena are clustered and not randomly distributed— and implies some form of distance decay in observation values and that measurements of a phenomenon will be correlated over space. This lack of observation independence has to be accounted for with statistical models.
+
+Several established tests for spatial autocorrelation exist for measurements in a spatially resolved dataset which all have a similar underlying operation. Essentially, they generate measures of similarity by comparing each observation value with those in its neighbourhood. The neighbourhood may be defined by a distance or some form of adjacency (1st order to nth order), and the spatial autocorrelation test may report local measures of spatial autocorrelation or a global (whole map) one which is essentially summarized from local measures. For example, in spatial transcriptomics, a global measure will indicate whether a gene exhibits spatial autocorrelation or not, while a local measure will reveal the exact pattern of said autocorrelation in space. The advantages of the local measures are that they indicate the locales of spatial autocorrelation within the data, critically the local significance of the spatial autocorrelation test. In order to understand the local measures of spatial autocorrelation, we first need to consider their global counterparts [@Zormpas2023Cell].
+
+### Global and local measures
+
+> "**Global spatial autocorrelation measures**: statistics assessing the degree of spatial autocorrelation for a variable in the whole dataset."
+
+> "**Local spatial autocorrelation measures**: statistics assessing the degree of spatial autocorrelation for a variable in every location compared to its neighbours."
+
+Moran’s correlation coefficient, known as Moran’s I, is a univariate measure of spatial autocorrelation. It is the most well-recognized and widely used spatial autocorrelation statistic. I can take values between −1 and +1, where values near +1 indicate strong positive spatial autocorrelation, values near −1 indicate strong negative spatial autocorrelation (i.e., perfect dispersion), and values near zero suggest a randomly dispersed variable [@Zormpas2023Cell].
 
 ### Moran's I
 
+```{r moran-global}
+sfe <- moranGlobalIPerm(sfe, sample_id = "JBO019", genes = TRUE, mc.cores = 1)
+
+head(rowData(sfe))
+
+```
+
+Once we calculate the Global Moran's I we can use the pseudo-pvalue generated by permutation and select only the genes that are most likely to be affected by spatial autocorrelation.
+
+The below chunk of code allows the user to create a named vector of the genes that pass the selection provided filters:
+
+1.  `pVal` : is the p-value threshold that will allow only genes with a pseudo p-value less than the filter to pass.
+
+2.  `stat_thresh` : is the global statistic threshold that will allow only genes with a global statistic greater than the threshold to pass.
+
+At the end, both filters need to be `TRUE` for a gene to be present in the final named vector. The same logic will be applied for Geary's C and Getis & Ord's G in the next chapters.
+
+```{r moran-select}
+gs <- getSAGlobalGenes()
+
+```
+
+Now that we selected the genes that exhibit putatively interesting patterns in space, we can calculate the local measure of SA (*here local Moran's I*) and visualise the results on a map of the tissue section.
+
+```{r moran-local}
+sfe <- moranLocalIPerm(m_sfe = sfe,
+                       sample_id = "JBO019",
+                       genes = gs,
+                       mc.cores = 8)
+```
+
+When mapping the local statistics you can present it in two ways:
+
+1.  All measurements and significant ones highlighted with a grey-white line.
+
+2.  Only the significant measurements with the rest of the tissue greyed-out.
+
+This is selected by providing to the `locations` argument either `"all"` (for option 1) or `"significant"` (for option 2).
+
+```{r moran-plot}
+for (g in gs) {
+  p <- plotSA_local(m_sfe = sfe, 
+             sample_id = "JBO019",
+             feature = g,
+             statistic = "moran",
+             test = "permutation",
+             pVal = 0.05,
+             type = "hex",
+             title = "name",
+             locations = "significant")
+  
+  print(p)
+}
+
+for (g in gs) {
+  p <- plotSA_localClust(m_sfe = sfe, 
+             sample_id = "JBO019",
+             feature = g,
+             statistic = "moran",
+             test = "permutation",
+             pVal = 0.05,
+             type = "hex",
+             title = "name",
+             clust_col = NULL)
+  
+  print(p)
+}
+```
+
 ### Geary's C
 
+Alternative measures to Moran’s I include Geary’s C and Getis and Ord’s G statistic. Geary’s C takes only positive values, where C = 1 means that there is a lack of spatial autocorrelation. Values of C approaching 0 show increasing positive spatial autocorrelation, and C ≫ 1 is indicative of negative spatial autocorrelation which suggests large differences between a location and its neighbours. Thus, Geary’s C is inversely related to Moran’s I, though as the measures are calculated differently, they are not directly related. Due to these differences in calculation, Moran’s I is more a global measure and more sensitive to extreme values while Geary’s C is sensitive to differences between values in neighbouring areas [@Zormpas2023Cell].
+
+```{r geary-global}
+sfe <- gearyGlobalCPerm(sfe, sample_id = "JBO019", genes = TRUE, mc.cores = 8)
+
+head(rowData(sfe))
+```
+
+```{r moran-select}
+gs <- getSAGlobalGenes()
+
+```
+
+```{r moran-local}
+sfe <- moranLocalIPerm(m_sfe = sfe,
+                       sample_id = "JBO019",
+                       genes = gs,
+                       mc.cores = 8)
+```
+
+```{r moran-plot}
+for (g in gs) {
+  p <- plotSA_local(m_sfe = sfe, 
+             sample_id = "JBO019",
+             feature = g,
+             statistic = "moran",
+             test = "permutation",
+             pVal = 0.05,
+             type = "hex",
+             title = "name",
+             locations = "significant")
+  
+  print(p)
+}
+
+
+for (g in gs) {
+  p <- plotSA_localClust(m_sfe = sfe, 
+             sample_id = "JBO019",
+             feature = g,
+             statistic = "moran",
+             test = "permutation",
+             pVal = 0.05,
+             type = "hex",
+             title = "name",
+             clust_col = NULL)
+  
+  print(p)
+}
+```
+
 ### Getis & Ord's G
+
+The G statistic is ideal for checking whether similar values co-locate as it only provides a measure of positive spatial autocorrelation. It is more useful as a local model of spatial autocorrelation, as discussed in the next section [@Zormpas2023Cell].
+
+```{r getis}
+
+```
 
 ## Dimensionality reduction
 

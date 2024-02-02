@@ -131,8 +131,8 @@ getisGlobalGTest <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$getisG_test <- out$statistic
-  SummarizedExperiment::rowData(sfe)$getisGPval_test <- out$p.value
+  SummarizedExperiment::rowData(sfe)$getisG_test <- unlist(out$statistic)
+  SummarizedExperiment::rowData(sfe)$getisGPval_test <- unlist(out$p.value)
 
   return(sfe)
 }

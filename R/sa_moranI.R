@@ -235,8 +235,8 @@ moranGlobalIPerm <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$I <- out$statistic
-  SummarizedExperiment::rowData(sfe)$moranPval_perm <- out$p.value
+  SummarizedExperiment::rowData(sfe)$moranI <- unlist(out$statistic)
+  SummarizedExperiment::rowData(sfe)$moranPval_perm <- unlist(out$p.value)
 
   return(sfe)
 }
@@ -383,8 +383,8 @@ moranGlobalITest <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$I <- out$statistic
-  SummarizedExperiment::rowData(sfe)$moranPval_test <- out$p.value
+  SummarizedExperiment::rowData(sfe)$moranI <- unlist(out$statistic)
+  SummarizedExperiment::rowData(sfe)$moranPval_test <- unlist(out$p.value)
 
   return(sfe)
 }

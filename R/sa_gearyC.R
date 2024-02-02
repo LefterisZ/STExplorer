@@ -112,8 +112,8 @@ gearyGlobalC <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$gearyC <- out$C
-  SummarizedExperiment::rowData(sfe)$gearyK <- out$K
+  SummarizedExperiment::rowData(sfe)$gearyC <- unlist(out$C)
+  SummarizedExperiment::rowData(sfe)$gearyK <- unlist(out$K)
 
   return(sfe)
 }
@@ -245,10 +245,10 @@ gearyGlobalCPerm <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$gearyC_perm <- out$statistic
-  SummarizedExperiment::rowData(sfe)$gearyPval_perm <- out$p.value
+  SummarizedExperiment::rowData(sfe)$gearyC_perm <- unlist(out$statistic)
+  SummarizedExperiment::rowData(sfe)$gearyPval_perm <- unlist(out$p.value)
 
-  return(out)
+  return(sfe)
 }
 
 #' Geary's C Test for Spatial Autocorrelation
@@ -375,8 +375,8 @@ gearyGlobalCTest <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$gearyC_test <- out$statistic
-  SummarizedExperiment::rowData(sfe)$gearyCPval_test <- out$p.value
+  SummarizedExperiment::rowData(sfe)$gearyC_test <- unlist(out$statistic)
+  SummarizedExperiment::rowData(sfe)$gearyCPval_test <- unlist(out$p.value)
 
   return(sfe)
 }
