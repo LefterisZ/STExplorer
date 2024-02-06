@@ -404,11 +404,12 @@ For this vignette we will be using the human steatotic liver dataset from the [L
 First we generate the `MetaSpatialFeaturesExperiment` object which includes two `SpatialFeaturesExperiment` (sfe) objects that include 1 sample each.
 
 ```{r 03_load_sfe, warning=FALSE, message=FALSE}
-sampleDir <- "./data/spaceranger_outs/Human_Liver_Steatotic/JBO019_Results"
-sampleNames <- "JBO019"
-sfe <- read10xVisiumSFE(samples = sampleDir, 
+sampleDir <- c("./data/test_data/Visium_Human_Liver/Healthy/JBO022_Results",
+               "./data/test_data/Visium_Human_Liver/Steatotic/JBO019_Results")
+sampleNames <- c("JBO022", "JBO019")
+sfe_2samples <- read10xVisiumSFE(samples = sampleDir, 
                         sample_id = sampleNames, 
-                        type = "sparse", 
+                        type = "HDF5", 
                         data = "filtered", 
                         images = "lowres", 
                         style = "W", 
@@ -417,6 +418,7 @@ sfe <- read10xVisiumSFE(samples = sampleDir,
 ground_truth <- read_table("./data/to_load/spotzonationGroup.txt")
 
 ```
+
 
 ## Spot-level Quality Control
 

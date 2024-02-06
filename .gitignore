@@ -6,3 +6,5 @@
 inst/doc
 test.RData
 STExplorer.Rproj
+data/example_data/*
+data/test_data/*
