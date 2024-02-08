@@ -254,7 +254,7 @@ sfe <- getSFE(msfe, "JBO019")
 msfe <- addSFE(msfe, sfe = sfe)
 ```
 
-The `MSFE` class is also equipped with getter (`getMultipleSFE`) and setter (`addMultipleSFE`) functions to retrieve and add `SFE` objects that contain multiple samples inside in case the user wants to work on an individual `SFE` object containing multiple samples or wants to import such an object into the `MSFE` object.
+The `MSFE` class is also equipped with getter (`getMultiSFE`) and setter (`addMultiSFE`) functions to retrieve and add `SFE` objects that contain multiple samples inside in case the user wants to work on an individual `SFE` object containing multiple samples or wants to import such an object into the `MSFE` object.
 
 ```{r msfe_getSet-multi}
 ## Get a single SFE object containing multiple samples from within the MSFE object 

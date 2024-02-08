@@ -90,7 +90,7 @@ getSFE <- function(x, sample_id) {
 #'
 #' @return An updated MetaSpatialFeatureExperiment object with the added SFEs.
 #'
-#' @export
+#'
 addMultiSFE <- function(x, sfe) {
   ## Get sample IDs
   ids <- .int_getSmplIDs(sfe = sfe, sample_id = TRUE)
@@ -115,7 +115,7 @@ addMultiSFE <- function(x, sfe) {
 #'
 #' @return An SFE object with multiple samples inside.
 #'
-#' @export
+#'
 getMultiSFE <- function(x, sample_ids) {
   ## Check provided sample IDs are correct
   .int_checkSampleNames(x, sample_ids)

@@ -209,9 +209,9 @@ Then find what proportion of reads in a spot's library are attributable to the e
 
 ```{r 03_QC_sfe1, message=FALSE, warning=FALSE}
 is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$gene_name)
-sfe <- addPerLocQC(sfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
-sfe <- addGeometries(sfe, samples = sampleDir, sample_id = sampleNames, res = "fullres")
-sfe <- addPerGeneQC(sfe, assay = "counts", version = NULL, mirror = NULL)
+msfe <- addPerLocQC(msfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
+sfe <- addGeometries(msfe, samples = sampleDir, sample_id = sampleNames, res = "fullres")
+sfe <- addPerGeneQC(msfe, assay = "counts", version = NULL, mirror = NULL)
 
 ## Keep in-tissue locations
 sfe <- filterInTissue(sfe, sample_id = TRUE)
