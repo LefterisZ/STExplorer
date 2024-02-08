@@ -35,10 +35,10 @@ Welcome to the vignette of STExplorer. STExplorer is a package the performs geog
 
 ```{r }
 ## To install the stable version of the package from Bioconductor run the below:
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("STExplorer")
+# if (!require("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# 
+# BiocManager::install("STExplorer")
 
 
 ## To install the development version of the package form GitHub run the below:
