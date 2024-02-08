@@ -10,36 +10,58 @@ sfe_2samples <- read10xVisiumSFE(samples = sampleDir,
                           images = "lowres",
                           style = "W",
                           zero.policy = TRUE)
+usethis::use_data(sfe_2samples, overwrite = TRUE)
+saveIn <- c("./data/test_data/Visium_Human_Liver")
+saveRDS(sfe_2samples, file = file.path(saveIn, "sfe_2samples.rds"))
 
-sfeLiv <- read10xVisiumSFE(samples = samplesPr[2],
-                           sample_id = sample_idPr[2],
+sfeLivH <- read10xVisiumSFE(samples = sampleDir[2],
+                           sample_id = sampleNames[2],
                            type = "HDF5",
                            data = "filtered",
                            images = "lowres",
                            style = "W",
                            zero.policy = TRUE)
+usethis::use_data(sfeLivH, overwrite = TRUE)
+
+sfeLivS <- read10xVisiumSFE(samples = sampleDir[1],
+                            sample_id = sampleNames[1],
+                            type = "HDF5",
+                            data = "filtered",
+                            images = "lowres",
+                            style = "W",
+                            zero.policy = TRUE)
+usethis::use_data(sfeLivS, overwrite = TRUE)
 
 sfe_raw <- sfeLiv[,order(as.data.frame(spatialCoords(sfeLiv))$pxl_col_in_fullres)[2:300]]
 usethis::use_data(sfe_raw, overwrite = TRUE)
 
+# Create MSFE objects ----
+msfe <- MetaSpatialFeatureExperiment()
+msfe <- addSFE(msfe, sfe = sfeLivH)
+msfe <- addSFE(msfe, sfe = sfeLivS)
+usethis::use_data(msfe, overwrite = TRUE)
 
-colData(sfePr)
+msfe_2sample <- MetaSpatialFeatureExperiment()
+msfe_2sample <- addMultipleSFE(msfe_2sample, sfe = sfe_2samples)
+usethis::use_data(msfe_2sample, overwrite = TRUE)
+
+colData(sfe)
 
 # Prepare data ----
-is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfePr)$gene_name)
-sfePr <- addPerLocQC(sfePr, gTruth = NULL, assay = "counts", MARGIN = 2, subsets = list(mito = is_mito))
-sfePr <- addGeometries(sfePr, samples = samplesPr, sample_id = sample_idPr, res = "fullres")
-sfePr <- addPerGeneQC(sfePr, assay = "counts", version = NULL, mirror = NULL)
+is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$gene_name)
+sfe <- addPerLocQC(sfe, gTruth = NULL, assay = "counts", MARGIN = 2, subsets = list(mito = is_mito))
+sfe <- addGeometries(sfe, samples = samplesPr, sample_id = sample_idPr, res = "fullres")
+sfe <- addPerGeneQC(sfe, assay = "counts", version = NULL, mirror = NULL)
 
 ## Add fake annotations
 # For some reason if it is not a tibble then it doesn't merge right.
-ground_truthPr <- as.data.frame(colData(sfePr)) %>%
-  mutate(annotation = sample(c("A", "B", "C", "D", "E", "F"), ncol(sfePr), replace = TRUE)) %>%
+ground_truthPr <- as.data.frame(colData(sfe)) %>%
+  mutate(annotation = sample(c("A", "B", "C", "D", "E", "F"), ncol(sfe), replace = TRUE)) %>%
   dplyr::filter(in_tissue == TRUE) %>%
   dplyr::select(Barcode, sample_id, annotation) %>%
   remove_rownames() %>%
   as_tibble()
-merger <-  merge(colData(sfePr), DataFrame(ground_truthPr),
+merger <-  merge(colData(sfe), DataFrame(ground_truthPr),
                  by = c("Barcode", "sample_id"),
                  all = TRUE)
 merger$index2 = as.numeric(sub("spot_", "", merger$index))
@@ -47,18 +69,18 @@ merger <- merger[order(merger$index2),]
 merger$index2 <- NULL
 
 # Add into colData
-colData(sfePr)$annotation <- merger$annotation
+colData(sfe)$annotation <- merger$annotation
 rm(merger)
 
 
 ## Add fake cell counts
-cellCountPr <- as.data.frame(colData(sfePr)) %>%
-  mutate(cellCount = sample(c(1:20), ncol(sfePr), replace = TRUE)) %>%
+cellCountPr <- as.data.frame(colData(sfe)) %>%
+  mutate(cellCount = sample(c(1:20), ncol(sfe), replace = TRUE)) %>%
   dplyr::filter(in_tissue == TRUE) %>%
   dplyr::select(Barcode, sample_id, cellCount) %>%
   remove_rownames() %>%
   as_tibble()
-merger <-  merge(colData(sfePr), DataFrame(cellCountPr),
+merger <-  merge(colData(sfe), DataFrame(cellCountPr),
                  by = c("Barcode", "sample_id"),
                  all = TRUE)
 merger$index2 = as.numeric(sub("spot_", "", merger$index))
@@ -66,35 +88,35 @@ merger <- merger[order(merger$index2),]
 merger$index2 <- NULL
 
 # Add into colData
-colData(sfePr)$cellCount <- merger$cellCount
+colData(sfe)$cellCount <- merger$cellCount
 rm(merger)
 
 # Plot spatial coordinates without annotations ----
-plotQC_spots(sfePr, type = "spot", sample_id = TRUE, in_tissue = FALSE, colours = NULL)
-plotQC_spots(sfePr, type = "spot", sample_id = NULL, in_tissue = TRUE)
-plotQC_spots(sfePr, type = "hex", sample_id = TRUE, in_tissue = FALSE, colours = c("#3C5338", "#FF9999"))
-plotQC_spots(sfePr, type = "hex", sample_id = "PrsCncA1", in_tissue = TRUE)
+plotQC_spots(sfe, type = "spot", sample_id = TRUE, in_tissue = FALSE, colours = NULL)
+plotQC_spots(sfe, type = "spot", sample_id = NULL, in_tissue = TRUE)
+plotQC_spots(sfe, type = "hex", sample_id = TRUE, in_tissue = FALSE, colours = c("#3C5338", "#FF9999"))
+plotQC_spots(sfe, type = "hex", sample_id = "PrsCncA1", in_tissue = TRUE)
 
 # Plot spatial coordinates with annotations ----
-plotQC_spotsAnnotation(sfe = sfePr, type = "spot", sample_id = TRUE)
-plotQC_spotsAnnotation(sfe = sfePr, type = "spot", sample_id = NULL)
-plotQC_spotsAnnotation(sfe = sfePr, type = "hex", sample_id = "PrsCncA1")
+plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = TRUE)
+plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = NULL)
+plotQC_spotsAnnotation(sfe = sfe, type = "hex", sample_id = "PrsCncA1")
 
 # Plot manual annotation or spots with tissue image ----
-plotQC_tissueImg(sfePr, res = "lowres", type = "spot", sample_id = TRUE, annotate = TRUE, alpha = 0.3)
-plotQC_tissueImg(sfePr, res = "lowres", type = "spot", sample_id = TRUE, annotate = FALSE, alpha = 0.3)
-plotQC_tissueImg(sfePr, res = "lowres", type = "hex", sample_id = NULL, annotate = TRUE, alpha = 0.3)
-plotQC_tissueImg(sfePr, res = "lowres", type = "hex", sample_id = NULL, annotate = FALSE, alpha = 0.3)
-plotQC_tissueImg(sfePr, res = "lowres", type = "none", sample_id = "PrsCncA1", annotate = FALSE)
+plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = TRUE, annotate = TRUE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = TRUE, annotate = FALSE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = NULL, annotate = TRUE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = NULL, annotate = FALSE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "none", sample_id = "PrsCncA1", annotate = FALSE)
 
 # Keep in-tissue locations ----
-sfePr <- filterInTissue(sfePr, sample_id = TRUE)
+sfe <- filterInTissue(sfe, sample_id = TRUE)
 
 # Library sizes ----
 ## Density and histogram
-plotQC_hist(sfePr, metric = "libsize")
-plotQC_hist(sfePr, metric = "libsize", limits = c(3000, 36500))
-plotQC_hist(sfePr, metric = "libsize", limits = c(3000, 36500),
+plotQC_hist(sfe, metric = "libsize")
+plotQC_hist(sfe, metric = "libsize", limits = c(3000, 36500))
+plotQC_hist(sfe, metric = "libsize", limits = c(3000, 36500),
             hist_args = list(bins = 100),
             dens_args = list(alpha = 0.5,
                              adjust = 0.5,
@@ -102,67 +124,67 @@ plotQC_hist(sfePr, metric = "libsize", limits = c(3000, 36500),
             vline_args = list(colour = "blue",
                               linetype = "dashed"))
 ## Scatter plot library sizes vs number of cells
-plotQC_scat(sfePr, metric = "libsize")
+plotQC_scat(sfe, metric = "libsize")
 ## Select library size threshold
-sfePr <- setQCthresh_LibSize(sfePr, sample_id = TRUE, min_t = 3000, max_t = 37000)
+sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 3000, max_t = 37000)
 ## Check putative spatial patterns of removed spots
-plotQC_filtered(sfePr, metric = "libsize", sample_id = TRUE)
+plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
 
 # Genes expressed ----
 ## Density and histogram
-plotQC_hist(sfePr, metric = "detected")
-plotQC_hist(sfePr, metric = "detected", limits = c(2000, NA))
+plotQC_hist(sfe, metric = "detected")
+plotQC_hist(sfe, metric = "detected", limits = c(2000, NA))
 ## Scatter plot genes expressed vs number of cells
-plotQC_scat(sfePr, metric = "detected")
+plotQC_scat(sfe, metric = "detected")
 ## Select threshold
-sfePr <- setQCthresh_GenesExpr(sfePr, sample_id = TRUE, min_t = 2000, max_t = NA)
+sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 2000, max_t = NA)
 ## Check putative spatial patterns of removed spots
-plotQC_filtered(sfePr, metric = "detected", sample_id = TRUE)
+plotQC_filtered(sfe, metric = "detected", sample_id = TRUE)
 
 # Mitochondrial expression ----
 ## Density and histogram of %
-plotQC_hist(sfePr, metric = "mito")
-plotQC_hist(sfePr, metric = "mito", limits = c(NA, 22))
+plotQC_hist(sfe, metric = "mito")
+plotQC_hist(sfe, metric = "mito", limits = c(NA, 22))
 ## Scatter plot % of mitochondrial expression vs number of cells
-plotQC_scat(sfePr, metric = "mito")
+plotQC_scat(sfe, metric = "mito")
 ## Select threshold
-sfePr <- setQCthresh_Mito(sfePr, sample_id = TRUE, min_t = NA, max_t = 22)
+sfe <- setQCthresh_Mito(sfe, sample_id = TRUE, min_t = NA, max_t = 22)
 ## Check putative spatial patterns of removed spots
-plotQC_filtered(sfePr, metric = "mito", sample_id = TRUE)
+plotQC_filtered(sfe, metric = "mito", sample_id = TRUE)
 
 # Cells in each spot ----
 ## Density and histogram of the number
-plotQC_hist(sfePr, metric = "cellCount")
+plotQC_hist(sfe, metric = "cellCount")
 ## Scatter plot genes expressed vs number of cells
-plotQC_scat(sfePr, metric = "detected")
+plotQC_scat(sfe, metric = "detected")
 ## Select threshold
-sfePr <- setQCthresh_CellCount(sfePr, sample_id = TRUE, min_t = NA, max_t = 25)
+sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, min_t = NA, max_t = 25)
 ## Check putative spatial patterns of removed spots
-plotQC_filtered(sfePr, metric = "cellCount", sample_id = TRUE)
+plotQC_filtered(sfe, metric = "cellCount", sample_id = TRUE)
 
 # NAs in annotation ----
 ## Select threshold
-sfePr <- setQCthresh_NAs(sfePr, sample_id = TRUE)
+sfe <- setQCthresh_NAs(sfe, sample_id = TRUE)
 ## Check putative spatial patterns of removed spots
-plotQC_filtered(sfePr, metric = "NAs", sample_id = TRUE)
+plotQC_filtered(sfe, metric = "NAs", sample_id = TRUE)
 
 # QC Discard Locations ----
 ## Set the combined filtering threshold using the QC metrics
-sfePr <- setQCtoDiscard_loc(sfePr, sample_id = TRUE, filters = TRUE)
+sfe <- setQCtoDiscard_loc(sfe, sample_id = TRUE, filters = TRUE)
 
 ## Check putative spatial patterns of removed spots
-plotQC_filtered(sfePr, metric = "discard", sample_id = TRUE)
+plotQC_filtered(sfe, metric = "discard", sample_id = TRUE)
 
 # Apply location-level QC threshold ----
-sfePr <- applyQCthresh_loc(sfePr, sample_id = TRUE)
+sfe <- applyQCthresh_loc(sfe, sample_id = TRUE)
 
 # Compute Library Size factors ----
-sfePr <- computeLibSizeFactors(sfePr)
+sfe <- computeLibSizeFactors(sfe)
 ## Density and histogram of library sizes
-plotQC_sizeFactors(sfePr)
+plotQC_sizeFactors(sfe)
 
 # Generate a metaSFE object ----
-meta_sfePr <- asMetaSFE(sfePr)
+meta_sfePr <- asMetaSFE(sfe)
 
 # Normalise counts ----
 meta_sfePr <- normaliseCounts(msfe = meta_sfePr)

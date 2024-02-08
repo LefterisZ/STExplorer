@@ -92,7 +92,7 @@ moranGlobalI <- function(m_sfe,
   if (is.null(S0)) S0 <- spdep::Szero(listw)
 
   ## Calculate global moran's I
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_moran,
                             sfe = sfe,
                             listw = listw,
@@ -103,11 +103,14 @@ moranGlobalI <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's rowData
-  out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$moranI <- out$I
-  SummarizedExperiment::rowData(sfe)$moranK <- out$K
+  res <- as.data.frame(rlist::list.rbind(res))
+  SummarizedExperiment::rowData(sfe)$moranI <- res$I
+  SummarizedExperiment::rowData(sfe)$moranK <- res$K
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 
@@ -220,7 +223,7 @@ moranGlobalIPerm <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_moranIPerm,
                             sfe = sfe,
                             listw = listw,
@@ -234,11 +237,14 @@ moranGlobalIPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's rowData
-  out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$moranI <- unlist(out$statistic)
-  SummarizedExperiment::rowData(sfe)$moranPval_perm <- unlist(out$p.value)
+  res <- as.data.frame(rlist::list.rbind(res))
+  SummarizedExperiment::rowData(sfe)$moranI <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)$moranPval_perm <- unlist(res$p.value)
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 
@@ -367,7 +373,7 @@ moranGlobalITest <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_moranITest,
                             sfe = sfe,
                             listw = listw,
@@ -382,11 +388,14 @@ moranGlobalITest <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's rowData
-  out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$moranI <- unlist(out$statistic)
-  SummarizedExperiment::rowData(sfe)$moranPval_test <- unlist(out$p.value)
+  res <- as.data.frame(rlist::list.rbind(res))
+  SummarizedExperiment::rowData(sfe)$moranI <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)$moranPval_test <- unlist(res$p.value)
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 
@@ -564,7 +573,7 @@ moranLocalI <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_moranLocalI,
                             sfe = sfe,
                             listw = listw,
@@ -578,10 +587,13 @@ moranLocalI <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  out <- S4Vectors::DataFrame(rlist::list.cbind(out))
-  localResults(sfe, name = "localMoranI") <- out
+  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
+  localResults(sfe, name = "localMoranI") <- res
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 
@@ -634,7 +646,7 @@ moranLocalIPerm <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_moranLocalIPerm,
                             sfe = sfe,
                             listw = listw,
@@ -651,10 +663,13 @@ moranLocalIPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  out <- S4Vectors::DataFrame(rlist::list.cbind(out))
-  localResults(sfe, name = "localMoranIPerm") <- out
+  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
+  localResults(sfe, name = "localMoranIPerm") <- res
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 

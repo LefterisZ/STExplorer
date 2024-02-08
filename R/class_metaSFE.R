@@ -64,7 +64,7 @@ MetaSpatialFeatureExperiment <- function(sfe_data = list(),
 addSFE <- function(x, sfe, sample_id = TRUE) {
   id <- .int_getSmplIDs(sfe = sfe, sample_id = sample_id)
   x@sfe_data[[id]] <- sfe
-  x@sample_id[[id]] <- id
+  x@sample_ids[[id]] <- id
   x
 }
 
@@ -81,8 +81,8 @@ getSFE <- function(x, sample_id) {
   x@sfe_data[[sample_id]]
 }
 
-#' Method to add an SFE object with multiple samples to the
-#' MetaSpatialFeatureExperiment
+#' Method to add an SFE object with multiple samples to a
+#' MetaSpatialFeatureExperiment object
 #'
 #' @param x An instance of the MetaSpatialFeatureExperiment class.
 #' @param sfe An instance of the SpatialFeatureExperiment class with multiple
@@ -91,7 +91,7 @@ getSFE <- function(x, sample_id) {
 #' @return An updated MetaSpatialFeatureExperiment object with the added SFEs.
 #'
 #' @export
-addMultipleSFE <- function(x, sfe) {
+addMultiSFE <- function(x, sfe) {
   ## Get sample IDs
   ids <- .int_getSmplIDs(sfe = sfe, sample_id = TRUE)
 
@@ -106,7 +106,8 @@ addMultipleSFE <- function(x, sfe) {
   x
 }
 
-#' Method to retrieve multiple SFE objects as a single SFE object
+#' Method to retrieve multiple SFE objects as a single SFE object from within
+#' an MSFE object
 #'
 #' @param x An instance of the MetaSpatialFeatureExperiment class.
 #' @param sample_ids Character string. The sample IDs from the SFE objects to
@@ -115,7 +116,7 @@ addMultipleSFE <- function(x, sfe) {
 #' @return An SFE object with multiple samples inside.
 #'
 #' @export
-getMultipleSFE <- function(x, sample_ids) {
+getMultiSFE <- function(x, sample_ids) {
   ## Check provided sample IDs are correct
   .int_checkSampleNames(x, sample_ids)
 
@@ -272,3 +273,40 @@ getSampleIDs <- function(x) {
 
   return(sfe)
 }
+
+
+#' Internal: Check and Output MSFE or SFE Object
+#'
+#' An internal function to check the class type of the input object
+#' (\code{m_sfe}) and return either the original SpatialFeatureExperiment (SFE)
+#' object or, in the case of a MetaSpatialFeatureExperiment (MetaSFE), add a
+#' subset based on the provided sample IDs (\code{sample_id}).
+#'
+#' @param m_sfe An object of class SpatialFeatureExperiment or
+#' MetaSpatialFeatureExperiment.
+#' @param sfe An object of class SpatialFeatureExperiment.
+#' @param sample_id A character vector specifying the sample ID for the sample
+#' we used.
+#'
+#' @return An object of class SpatialFeatureExperiment. If the input is already
+#' an SFE, it returns the original object. If the input is a MetaSFE, it
+#' returns a subset based on the provided sample IDs.
+#'
+#' @seealso \code{\link{addSFE}}
+#'
+#' @rdname dot-int_checkAndOutput
+.int_checkAndOutput <- function(m_sfe, sfe, sample_id) {
+  # Check if m_sfe is a MetaSpatialFeatureExperiment object
+  MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
+
+  # If MSFE, add SFE using the addSFE function
+  if (MSFE) {
+    out <- addSFE(x = m_sfe, sfe = sfe, sample_id = sample_id)
+  } else {
+    out <- sfe
+  }
+
+  # Return the resulting object
+  return(out)
+}
+

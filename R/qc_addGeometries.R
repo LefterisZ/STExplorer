@@ -6,7 +6,8 @@
 #' A function to add centroid and hexagon geometries in the \code{colGeometries}
 #' slot of a SpatialFeatureExperiment (SFE) object.
 #'
-#' @param sfe The SpatialFeatureExperiment object.
+#' @param m_sfe An object of class SpatialFeatureExperiment or
+#' MetaSpatialFeatureExperiment.
 #'
 #' @param samples A character vector specifying one or more directories, each
 #' corresponding to a 10x Genomics Visium sample (see Details). If provided,
@@ -48,11 +49,14 @@
 #' }
 #'
 #' @export
-addGeometries <- function(sfe,
+addGeometries <- function(m_sfe,
                           samples,
                           sample_id,
                           res = c("lowres", "hires", "fullres")) {
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
+  ## Check arguments
   res <- match.arg(res)
 
   ## Add Centroids
@@ -71,5 +75,8 @@ addGeometries <- function(sfe,
                      sample_id = sample_id,
                      res = res)
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }

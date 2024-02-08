@@ -1309,15 +1309,15 @@ plotQC_sizeFactors <- function(sfe,
       fill_args <- .int_fillArgs(fill_args, annot_cols = annot_cols)
       ## Plot
       p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = data$geometry,
-                                    fill = data$annotation),
+                                aes(geometry = geometry,
+                                    fill = annotation),
                                 alpha = alpha) +
         do.call(scale_fill_manual, c(list(...), fill_args)) +
         ggplot2::labs(fill = "Annotation")
     } else {
       ## Plot without annotation
       p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = data$geometry),
+                                aes(geometry = geometry),
                                 alpha = alpha)
     }
   }

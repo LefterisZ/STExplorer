@@ -5,7 +5,12 @@
 #' @description
 #' A function to add a series of feature (gene)-related QC metrics.
 #'
-#' @param sfe The SpatialFeaturesExperiment object.
+#' @param m_sfe An object of class SpatialFeatureExperiment or
+#' MetaSpatialFeatureExperiment.
+#'
+#' @param sample_id A character vector specifying the sample IDs to include
+#' (only relevant if a MetaSpatialFeatureExperiment has been provided in the
+#' `m_sfe` argument).
 #'
 #' @param assay the name of the assay to use. Defaults to 'counts'.
 #'
@@ -44,12 +49,16 @@
 #'
 #' @export
 #'
-addPerGeneQC <- function(sfe,
-                        assay = "counts",
-                        organism = "human",
-                        version = NULL,
-                        mirror = NULL,
-                        ...) {
+addPerGeneQC <- function(m_sfe,
+                         sample_id,
+                         assay = "counts",
+                         organism = "human",
+                         version = NULL,
+                         mirror = NULL,
+                         ...) {
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
   ## Add Biomart annotations
   if (is.null(version)) {
       colnames(rowData(sfe)) <- "gene_name"
@@ -87,5 +96,8 @@ addPerGeneQC <- function(sfe,
     sfe <- get.QC.CoefficientOfVar(sfe, assay = assay, .sample_id = s)
   }
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }

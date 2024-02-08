@@ -116,7 +116,7 @@ getisGlobalGTest <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_getisCTest,
                             sfe = sfe,
                             listw = listw,
@@ -130,11 +130,14 @@ getisGlobalGTest <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's rowData
-  out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$getisG_test <- unlist(out$statistic)
-  SummarizedExperiment::rowData(sfe)$getisGPval_test <- unlist(out$p.value)
+  res <- as.data.frame(rlist::list.rbind(res))
+  SummarizedExperiment::rowData(sfe)$getisG_test <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)$getisGPval_test <- unlist(res$p.value)
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 
@@ -285,7 +288,7 @@ getisLocalG <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_getisLocal,
                             sfe = sfe,
                             listw = listw,
@@ -297,10 +300,13 @@ getisLocalG <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  out <- S4Vectors::DataFrame(rlist::list.cbind(out))
-  localResults(sfe, name = "localGetisG") <- out
+  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
+  localResults(sfe, name = "localGetisG") <- res
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 
@@ -353,7 +359,7 @@ getisLocalGPerm <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_getisLocalPerm,
                             sfe = sfe,
                             listw = listw,
@@ -368,10 +374,13 @@ getisLocalGPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  out <- S4Vectors::DataFrame(rlist::list.cbind(out))
-  localResults(sfe, name = "localGetisGPerm") <- out
+  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
+  localResults(sfe, name = "localGetisGPerm") <- res
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
+
+  return(out)
 }
 
 
@@ -459,11 +468,11 @@ getisLocalGPerm <- function(m_sfe,
   fdrColName <- grep("Pr.*",
                      colnames(attr(res, "internals")),
                      value = TRUE)
-  out <- data.frame(Gi = as.vector(res),
+  res <- data.frame(Gi = as.vector(res),
                     GiFDR = attr(res, "internals")[,fdrColName],
                     GiClust = attr(res, "cluster"))
 
-  return(out)
+  return(res)
 }
 
 
@@ -511,9 +520,9 @@ getisLocalGPerm <- function(m_sfe,
   fdrColName <- grep("Pr.z.*Sim",
                      colnames(attr(res, "internals")),
                      value = TRUE)
-  out <- data.frame(Gi = as.vector(res),
+  res <- data.frame(Gi = as.vector(res),
                     GiFDR = attr(res, "internals")[,fdrColName],
                     GiClust = attr(res, "cluster"))
 
-  return(out)
+  return(res)
 }

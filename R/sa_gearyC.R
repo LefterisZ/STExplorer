@@ -100,7 +100,7 @@ gearyGlobalC <- function(m_sfe,
   if (is.null(S0)) S0 <- spdep::Szero(listw)
 
   ## Call the geary function from spdep
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                   .int_geary,
                   sfe = sfe,
                   listw = listw,
@@ -111,11 +111,19 @@ gearyGlobalC <- function(m_sfe,
                   mc.cores = mc.cores)
 
   ## Import output into the SFE object's rowData
-  out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$gearyC <- unlist(out$C)
-  SummarizedExperiment::rowData(sfe)$gearyK <- unlist(out$K)
+  res <- as.data.frame(rlist::list.rbind(res))
+  SummarizedExperiment::rowData(sfe)$gearyC <- unlist(res$C)
+  SummarizedExperiment::rowData(sfe)$gearyK <- unlist(res$K)
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
+  if (MSFE) {
+    out <- addSFE(x = m_sfe, sfe = sfe, sample_id = sample_id)
+  } else {
+    out <- sfe
+  }
+
+  return(out)
 }
 
 #' Calculate Geary's C Global Statistic with permutation testing
@@ -231,7 +239,7 @@ gearyGlobalCPerm <- function(m_sfe,
   }
 
   ## Call the geary function from spdep
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_gearyCPerm,
                             sfe = sfe,
                             listw = listw,
@@ -244,13 +252,20 @@ gearyGlobalCPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's rowData
-  out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$gearyC_perm <- unlist(out$statistic)
-  SummarizedExperiment::rowData(sfe)$gearyPval_perm <- unlist(out$p.value)
+  res <- as.data.frame(rlist::list.rbind(res))
+  SummarizedExperiment::rowData(sfe)$gearyC_perm <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)$gearyPval_perm <- unlist(res$p.value)
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
+  if (MSFE) {
+    out <- addSFE(x = m_sfe, sfe = sfe, sample_id = sample_id)
+  } else {
+    out <- sfe
+  }
+
+  return(out)
 }
-
 #' Geary's C Test for Spatial Autocorrelation
 #'
 #' This function is a wrapper of the \code{\link[spdep]{geary.test}} function
@@ -362,7 +377,7 @@ gearyGlobalCTest <- function(m_sfe,
   }
 
   ## Call the geary.test function from spdep
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_gearyTest,
                             sfe = sfe,
                             listw = listw,
@@ -374,11 +389,19 @@ gearyGlobalCTest <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's rowData
-  out <- as.data.frame(rlist::list.rbind(out))
-  SummarizedExperiment::rowData(sfe)$gearyC_test <- unlist(out$statistic)
-  SummarizedExperiment::rowData(sfe)$gearyCPval_test <- unlist(out$p.value)
+  res <- as.data.frame(rlist::list.rbind(res))
+  SummarizedExperiment::rowData(sfe)$gearyC_test <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)$gearyCPval_test <- unlist(res$p.value)
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
+  if (MSFE) {
+    out <- addSFE(x = m_sfe, sfe = sfe, sample_id = sample_id)
+  } else {
+    out <- sfe
+  }
+
+  return(out)
 }
 
 
@@ -502,7 +525,7 @@ gearyLocalC <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_gearyLocalC,
                             sfe = sfe,
                             listw = listw,
@@ -511,10 +534,18 @@ gearyLocalC <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  out <- S4Vectors::DataFrame(rlist::list.cbind(out))
-  localResults(sfe, name = "localGearyC") <- out
+  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
+  localResults(sfe, name = "localGearyC") <- res
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
+  if (MSFE) {
+    out <- addSFE(x = m_sfe, sfe = sfe, sample_id = sample_id)
+  } else {
+    out <- sfe
+  }
+
+  return(out)
 }
 
 
@@ -559,7 +590,7 @@ gearyLocalCPerm <- function(m_sfe,
     zero.policy = attr(listw, "zero.policy")
   }
 
-  out <- parallel::mclapply(genes,
+  res <- parallel::mclapply(genes,
                             .int_gearyLocalCPerm,
                             sfe = sfe,
                             listw = listw,
@@ -572,10 +603,18 @@ gearyLocalCPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  out <- S4Vectors::DataFrame(rlist::list.cbind(out))
-  localResults(sfe, name = "localGearyCPerm") <- out
+  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
+  localResults(sfe, name = "localGearyCPerm") <- res
 
-  return(sfe)
+  ## Check and output either an msfe or an sfe object
+  MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
+  if (MSFE) {
+    out <- addSFE(x = m_sfe, sfe = sfe, sample_id = sample_id)
+  } else {
+    out <- sfe
+  }
+
+  return(out)
 }
 
 
@@ -756,9 +795,9 @@ gearyLocalCPerm <- function(m_sfe,
                 ...,
                 zero.policy = zero.policy)
 
-  out <- data.frame(Ci = as.vector(res))
+  res <- data.frame(Ci = as.vector(res))
 
-  return(out)
+  return(res)
 }
 
 
@@ -803,9 +842,9 @@ gearyLocalCPerm <- function(m_sfe,
   fdrColName <- grep("Pr.z.*Sim",
                      colnames(attr(res, "pseudo-p")),
                      value = TRUE)
-  out <- data.frame(Ci = as.vector(res),
+  res <- data.frame(Ci = as.vector(res),
                     CiFDR = attr(res, "pseudo-p")[,fdrColName],
                     CiClust = attr(res, "cluster"))
 
-  return(out)
+  return(res)
 }

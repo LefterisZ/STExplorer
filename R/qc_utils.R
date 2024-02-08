@@ -102,9 +102,9 @@ add.gTruth <- function(sfe, gtruth) {
   ## Add the row names in a column because after merging are being lost.
   # colData(sfe)$rowNames <- colnames(sfe) #--> deprecated. Delete?
   ## Merge colData and ground truth
-  merger <-  merge(colData(sfe), DataFrame(gtruth),
-                   by = c("Barcode", "sample_id"),
-                   all = TRUE)
+  merger <- merge(colData(sfe), DataFrame(gtruth),
+                  by = c("Barcode", "sample_id"),
+                  all = TRUE)
 
   ## Re-order the merger
   ## - The merger is ordered automatically on the combo "Barcode"/"sample_id".
