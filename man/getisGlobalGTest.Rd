@@ -5,31 +5,36 @@
 \title{Global G test for spatial autocorrelation}
 \usage{
 getisGlobalGTest(
-  x,
-  listw,
+  m_sfe,
+  sample_id,
+  genes = TRUE,
   zero.policy = NULL,
   alternative = "greater",
   spChk = NULL,
   adjust.n = TRUE,
   B1correct = TRUE,
   adjust.x = TRUE,
-  Arc_all_x = FALSE
+  Arc_all_x = FALSE,
+  mc.cores = getOption("mc.cores", 2L)
 )
 }
 \arguments{
-\item{x}{Numeric vector the same length as the neighbors
-list in listw}
+\item{m_sfe}{An object of class SpatialFeatureExperiment or
+MetaSpatialFeatureExperiment.}
 
-\item{listw}{\code{listw} object created, for example,
-by \code{nb2listw}; if a sequence of distance bands is
-to be used, it is recommended that the weights style be
-binary (one of \code{c("B", "C", "U")}).}
+\item{sample_id}{A character vector specifying the sample IDs to include
+(only relevant if a MetaSpatialFeatureExperiment has been provided in the
+\code{m_sfe} argument).}
 
-\item{zero.policy}{Default \code{attr(listw,
-  "zero.policy")} as set when \code{listw} was created. If
-attribute not set, use global option value. If TRUE,
-assign zero to the lagged value of zones without
-neighbors; if FALSE, assign NA.}
+\item{genes}{TRUE or a named character vector with gene names for which the
+SA statistic needs to be calculated. If left to TRUE then the SA statistic
+is calculated for every gene.}
+
+\item{zero.policy}{Default is NULL. If not changed then internally, it is
+set to \code{attr(listw, "zero.policy")} as set when \code{listw} was
+created. If TRUE, assign zero to the lagged value of zones without
+neighbours. If FALSE, assign NA. If attribute not set, use the global option
+value.}
 
 \item{alternative}{A character string specifying the
 alternative hypothesis, must be one of "greater"
@@ -41,36 +46,35 @@ TRUE, or FALSE, default NULL to use
 \code{get.spChkOption()}.}
 
 \item{adjust.n}{Default TRUE, if FALSE the number of
-observations is not adjusted for no-neighbor
+observations is not adjusted for no-neighbour
 observations, if TRUE, the number of observations is
 adjusted.}
 
 \item{B1correct}{Default TRUE, if TRUE, the erratum
 referenced below: "On page 195, the coefficient of W2
-in B1, (just below center of the page) should be 6,
+in B1, (just below centre of the page) should be 6,
 not 3." is applied; if FALSE, 3 is used (as in CrimeStat
 IV).}
 
 \item{adjust.x}{Default TRUE, if TRUE, x values of
-observations with no neighbors are omitted in the
+observations with no neighbours are omitted in the
 denominator of G.}
 
 \item{Arc_all_x}{Default FALSE, if Arc_all_x=TRUE and
 adjust.x=TRUE, use the full x vector in part of the
 denominator term for G.}
+
+\item{mc.cores}{Argument from \code{link[parallel]{mclapply}}. The number of
+cores to use, i.e., at most how many child processes will be run
+simultaneously. The option is initialized from environment variable MC_CORES
+if set. Must be at least one, and parallelisation requires at least two
+cores.}
 }
 \value{
-A list with class \code{htest} containing the
-following components:
-\item{statistic}{the value of the standard deviate
+An SFE object with the below two columns added in the \code{rowData}:
+\item{getisG_test}{the value of the standard deviate
 of Getis-Ord G.}
-\item{p.value}{the p-value of the test.}
-\item{estimate}{the value of the observed statistic,
-its expectation and variance.}
-\item{alternative}{a character string describing the
-alternative hypothesis.}
-\item{data.name}{a character string giving the
-name(s) of the data.}
+\item{getisGPval_test}{the p-value of the test.}
 }
 \description{
 This function is a wrapper of the \code{\link[spdep]{moran}} function from

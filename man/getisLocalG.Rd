@@ -6,36 +6,48 @@
 \title{G and Gstar local spatial statistics}
 \usage{
 getisLocalG(
-  x,
-  listw,
+  m_sfe,
+  sample_id,
+  genes = TRUE,
   zero.policy = NULL,
   spChk = NULL,
   GeoDa = FALSE,
-  alternative = "two.sided"
+  alternative = "two.sided",
+  return_internals = TRUE,
+  mc.cores = getOption("mc.cores", 2L)
 )
 
 getisLocalGPerm(
-  x,
-  listw,
-  nsim = 499,
+  m_sfe,
+  sample_id,
+  genes = TRUE,
+  nsim = 999,
   zero.policy = NULL,
   spChk = NULL,
   alternative = "two.sided",
   iseed = NULL,
   fix_i_in_Gstar_permutations = TRUE,
-  no_repeat_in_row = FALSE
+  no_repeat_in_row = FALSE,
+  mc.cores = getOption("mc.cores", 2L)
 )
 }
 \arguments{
-\item{x}{Numeric vector the same length as the neighbors
-list in listw}
+\item{m_sfe}{An object of class SpatialFeatureExperiment or
+MetaSpatialFeatureExperiment.}
 
-\item{listw}{A \code{listw} object created, for example,
-by \code{nb2listw}}
+\item{sample_id}{A character vector specifying the sample IDs to include
+(only relevant if a MetaSpatialFeatureExperiment has been provided in the
+\code{m_sfe} argument).}
 
-\item{zero.policy}{Default NULL, use global option value;
-if TRUE assign zero to the lagged value of zones without
-neighbors, if FALSE assign NA}
+\item{genes}{TRUE or a named character vector with gene names for which the
+SA statistic needs to be calculated. If left to TRUE then the SA statistic
+is calculated for every gene.}
+
+\item{zero.policy}{Default is NULL. If not changed then internally, it is
+set to \code{attr(listw, "zero.policy")} as set when \code{listw} was
+created. If TRUE, assign zero to the lagged value of zones without
+neighbours. If FALSE, assign NA. If attribute not set, use the global option
+value.}
 
 \item{spChk}{Should the data vector names be checked
 against the spatial objects for identity integrity,
@@ -48,6 +60,12 @@ summations}
 \item{alternative}{A character string specifying the
 alternative hypothesis, must be one of \code{"two.sided"}
 (default), \code{"greater"} or \code{"less"}.}
+
+\item{mc.cores}{Argument from \code{link[parallel]{mclapply}}. The number of
+cores to use, i.e., at most how many child processes will be run
+simultaneously. The option is initialized from environment variable MC_CORES
+if set. Must be at least one, and parallelisation requires at least two
+cores.}
 
 \item{nsim}{Default 499, number of conditional permutation
 simulations}
@@ -65,13 +83,15 @@ replacements to avoid duplicate values,
 \url{https://github.com/r-spatial/spdep/issues/124}}
 }
 \value{
-A vector of G or Gstar standard deviate values,
-with attributes "gstari" set to TRUE or FALSE, "call"
-set to the function call, and class "localG". For
-conditional permutation, the returned value is the same
-as for \code{localG()}, and the simulated standard deviate
-is returned as column \code{"StdDev.Gi"} in
-\code{attr(., "internals")}.
+An SFE object with the results added in the \code{localResults} slot
+which contains a DataFrame named \code{localGetisG}/\code{localGetisGPerm} that
+contains the per location Ci statistics values for each gene:
+\item{ENSG***.Gi}{A vector of G or Gstar statistic (standard deviate values)}
+\item{ENSG***.GiFDR}{P-value of the calculated statistic}
+\item{ENSG***.GiClust}{High positive values indicate the posibility of a
+local cluster of high values of the variable being
+analysed, very low relative values a similar cluster of
+low values.}
 }
 \description{
 The local spatial statistic G is calculated for each
