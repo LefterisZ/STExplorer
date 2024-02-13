@@ -54,6 +54,7 @@ library(STExplorer)
 ```
 
 ```{r setup, echo=FALSE, eval=FALSE, message=FALSE}
+library(readr)
 # library(SpatialFeatureExperiment)
 # library(tidyverse)
 # library(scran)
@@ -125,17 +126,22 @@ The `outs` folder and its contents **must** have these names. What will change i
 ## Create the MSFE object
 msfe <- MetaSpatialFeatureExperiment()
 
-sampleDir <- c("./data/test_data/Visium_Human_Liver/Healthy/JBO022_Results",
-               "./data/test_data/Visium_Human_Liver/Steatotic/JBO019_Results")
+## Prepare vectors with the paths to the data folders
+## NOTE: make sure that the `sampleDir` vector is a named vector with
+##       names the names from the `sampleNames` vector.
+sampleDir <- c("../data/test_data/Visium_Human_Liver/Healthy/JBO022_Results",
+               "../data/test_data/Visium_Human_Liver/Steatotic/JBO019_Results")
 
 sampleNames <- c("JBO022", "JBO019")
+
+names(sampleDir) <- sampleNames
 
 ## Load sfe objects inside the msfe
 ## The `addSFE` function is appending each sfe to a new slot inside the msfe.
 ## Do it one by one. I tried a for loop but for a reason it overwrites the msfe instead of appending. 
 msfe <- addSFE(msfe,
-               read10xVisiumSFE(samples = sampleDir[1], 
-                      sample_id = sampleNames[1], 
+               read10xVisiumSFE(samples = sampleDir[2], 
+                      sample_id = sampleNames[2], 
                       type = "HDF5", 
                       data = "filtered", 
                       images = "lowres", 
@@ -162,7 +168,7 @@ msfe <- addSFE(msfe,
 ##          Remove the "_1" from the end.
 ## NOTE2: make sure at the end to have a separate data frame with annotations per sample.
 ##        Below I am loading them into a list.
-ground_truth <- read_table("./data/test_data/Visium_Human_Liver/spotZonationGroup.txt")
+ground_truth <- read_table("../data/test_data/Visium_Human_Liver/spotZonationGroup.txt")
 
 gTruth_list <- list(JBO022 = ground_truth[ground_truth$sample_id == "JBO022",],
                     JBO019 = ground_truth[ground_truth$sample_id == "JBO019",])
@@ -208,10 +214,10 @@ The next thing we need to do before we make decisions on how to quality *"trim"*
 Then find what proportion of reads in a spot's library are attributable to the expression of these genes. This uses a function, `addPerCellQC()` from `scater` (which in this instance is actually a wrapper around `scuttle`).
 
 ```{r 03_QC_sfe1, message=FALSE, warning=FALSE}
-is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$gene_name)
-msfe <- addPerLocQC(msfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
-sfe <- addGeometries(msfe, samples = sampleDir, sample_id = sampleNames, res = "fullres")
-sfe <- addPerGeneQC(msfe, assay = "counts", version = NULL, mirror = NULL)
+is_mito <- getSubset(msfe, sample_id = TRUE, subset = "(^MT-)|(^mt-)", set = "rowData", col_name = "symbol")
+msfe <- addPerLocQC(msfe, sample_id = "JBO022", gTruth = gTruth_list[["JBO022"]], assay = "counts", 2, subsets = list(mito = is_mito[["JBO022"]]))
+msfe <- addGeometries(msfe, samples = sampleDir["JBO022"], sample_id = "JBO022", res = "lowres")
+msfe <- addPerGeneQC(msfe, sample_id = "JBO022", assay = "counts", version = NULL, mirror = NULL)
 
 ## Keep in-tissue locations
 sfe <- filterInTissue(sfe, sample_id = TRUE)
@@ -540,7 +546,7 @@ Starting from a binary neighbours list, in which regions are either listed as ne
 
 the latter of which leads to 𝑤𝑖𝑗=0 for all 𝑑𝑖𝑗\>𝑑max. Note that *IDW* weights show extreme behaviour close to 0 and can take on the value infinity. In such cases, the infinite values are replaced by the largest finite weight present in the weights list.
 
-25### Generate distance matrices
+### Generate distance matrices
 
 A distance matrix is a mirrored matrix that contains the distance between a spot and every other spot. This distance can be a simple Euclidean distance based on the coordinates of the spots or a weighted distance according to a bandwidth around each spot using a kernel that gives higher scores to distances between spots that are closer together compared to the ones that are farther away. These weighted distance matrices are later used to run geographically weighted (GW) models.
 

@@ -229,12 +229,13 @@ add.spotCntd <- function(sfe, sample_id) {
     as.data.frame() %>%
     st_as_sf(coords = coords,
              remove = TRUE)
-  ## Add rownames
-  rownames(cntds) <- colnames(sfe)
   ## Add inside colGeometries slot
   for (sID in sample_id) {
     selection <- colData(sfe)$sample_id %in% sID
-    colGeometry(sfe, sample_id = sID, "spotCntd") <- cntds[selection, ]
+    cntd_subset <- cntds[selection, ]
+    ## Add rownames
+    rownames(cntd_subset) <- colnames(sfe)
+    colGeometry(sfe, sample_id = sID, "spotCntd") <- cntd_subset
   }
 
   return(sfe)
@@ -355,7 +356,7 @@ add.spotHex <- function(sfe,
                                    st_convex_hull(cntd_union))
 
     ## Generate the POLYGONS from the MULTILINESTRING
-    select_cntds <- centroids$Section == 1 | centroids$Section == 0
+    select_cntds <- centroids$Section == 1 # centroids$Section == 0
     polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
       st_cast() %>% # convert GEOMETRYCOLLECTION to multiple POLYGONS
       st_sf() %>%  # convert sfc object to sf for st_join afterwards
@@ -373,9 +374,10 @@ add.spotHex <- function(sfe,
   hexes <- dplyr::bind_rows(dataList)
   rownames(hexes) <- colnames(sfe)
   ## Add inside colGeometries slot
+  ## NOTE: remove this for loop. Not needed anymore
   for (sID in sample_id) {
     selection <- colData(sfe)$sample_id %in% sID
-    colGeometry(sfe, sample_id = sID, "spotHex") <- hexes[selection, ]
+    colGeometry(sfe, sample_id = sID, "spotHex") <- hexes #hexes[selection, ]
   }
 
   return(sfe)
@@ -669,42 +671,39 @@ get.QC.Sparsity <- function(sfe,
 #'
 spot.diameter <- function(sfe,
                           samples,
-                          sample_id = paste0("sample",
-                                             sprintf("%02d",
-                                                     seq_along(samples))),
+                          sample_id,
                           res = c("lowres", "hires", "fullres")) {
 
   ## Set required resolution
   res <- match.arg(res)
 
-  if (!is.null(names(samples))) {
-    sample_id <- names(samples)
+  # if (!is.null(names(samples))) {
+  #   sample_id <- names(samples)
+  # }
+
+  #for (smpl in seq_along(samples)) {
+  ## Import scale factors
+  scaleF <- jsonlite::fromJSON(txt = file.path(samples[sample_id],
+                                               "outs/spatial",
+                                               "scalefactors_json.json"))
+
+  ## Calculate spot diameter
+  if (res == "lowres") {
+    s_diam <- scaleF$tissue_lowres_scalef * scaleF$spot_diameter_fullres
+    name <- "spot_diameter_lowres"
+  } else if (res == "hires") {
+    s_diam <- scaleF$tissue_hires_scalef * scaleF$spot_diameter_fullres
+    name <- "spot_diameter_hires"
+  } else if (res == "fullres") {
+    s_diam <- scaleF$spot_diameter_fullres
+    name <- "spot_diameter_fullres"
   }
 
+  #s_id <- sample_id[smpl]
 
-  for (smpl in seq_along(samples)) {
-    ## Import scale factors
-    scaleF <- jsonlite::fromJSON(txt = file.path(samples[smpl],
-                                                 "outs/spatial",
-                                                 "scalefactors_json.json"))
-
-    ## Calculate spot diameter
-    if (res == "lowres") {
-      s_diam <- scaleF$tissue_lowres_scalef * scaleF$spot_diameter_fullres
-      name <- "spot_diameter_lowres"
-    } else if (res == "hires") {
-      s_diam <- scaleF$tissue_hires_scalef * scaleF$spot_diameter_fullres
-      name <- "spot_diameter_hires"
-    } else if (res == "fullres") {
-      s_diam <- scaleF$spot_diameter_fullres
-      name <- "spot_diameter_fullres"
-    }
-
-    s_id <- sample_id[smpl]
-
-    ## Add info to metadata
-    metadata(sfe)$spotDiameter[[s_id]][[name]] <- s_diam
-  }
+  ## Add info to metadata
+  metadata(sfe)$spotDiameter[[sample_id]][[name]] <- s_diam
+  #}
 
   ## Return
   return(sfe)
