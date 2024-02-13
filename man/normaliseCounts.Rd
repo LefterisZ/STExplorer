@@ -4,20 +4,20 @@
 \alias{normaliseCounts}
 \title{Normalise Counts in a Spatial Transcriptomics Experiment}
 \usage{
-normaliseCounts(msfe, method = c("log"), ...)
+normaliseCounts(m_sfe, sample_id, method = c("log"), ...)
 }
 \arguments{
-\item{method}{The normalisation method to be applied. Currently, only "log"
-transformation is supported.}
-
-\item{...}{Additional arguments to be passed to the normalisation function.}
-
 \item{m_sfe}{An object of class SpatialFeatureExperiment or
 MetaSpatialFeatureExperiment.}
 
 \item{sample_id}{A character string specifying unique sample identifiers,
 one for each directory specified via samples. This parameter is ignored if
 the names of samples are not null (!is.null(names(samples))).}
+
+\item{method}{The normalisation method to be applied. Currently, only "log"
+transformation is supported.}
+
+\item{...}{Additional arguments to be passed to the normalisation function.}
 }
 \value{
 A normalised SpatialFeatureExperiment object.
