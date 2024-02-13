@@ -46,7 +46,8 @@ if (!require("devtools", quietly = TRUE))
     install.packages("devtools")
 
 devtools::install_github("LefterisZ/STExplorer",
-                         auth_token = "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")
+                         auth_token = "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",
+                         force = TRUE)
 
 
 ## To load the package use:
@@ -175,6 +176,9 @@ gTruth_list <- list(JBO022 = ground_truth[ground_truth$sample_id == "JBO022",],
 
 str(gTruth_list)
 ## If the data frames in the list are empty, please check you have no typos in the sample ids.
+## Example. the sample_id names in the .txt file are missing the "0". We can solve this by
+## typing the below command:
+##        ground_truth$sample_id <- gsub("JBO", "JBO0", ground_truth$sample_id)
 ```
 
 ## Spot-level Quality Control
@@ -220,11 +224,12 @@ msfe <- addGeometries(msfe, samples = sampleDir["JBO022"], sample_id = "JBO022",
 msfe <- addPerGeneQC(msfe, sample_id = "JBO022", assay = "counts", version = NULL, mirror = NULL)
 
 ## Keep in-tissue locations
-sfe <- filterInTissue(sfe, sample_id = TRUE)
+## Use it only if you have loaded "raw" data and not "filtered"
+# sfe <- filterInTissue(sfe, sample_id = TRUE)
 
-colData(sfe)
-rowData(sfe)
-colGeometries(sfe)
+colData(msfe@sfe_data[["JBO022"]])
+rowData(msfe@sfe_data[["JBO022"]])
+colGeometries(msfe@sfe_data[["JBO022"]])
 ```
 
 After calculating a required metric, we need to apply a cut-off threshold for the metric to decide whether or not to keep each spot. It is important to consider an individual dataset on its own merits, as it might need slightly different cut-off values to be applied. As a result we cannot rely on identifying a single value to use every time and we need to rely on plotting these metrics and making a decision on a dataset-by-dataset basis.
@@ -233,27 +238,51 @@ After calculating a required metric, we need to apply a cut-off threshold for th
 
 The dorso-lateral prefrontal cortex (DLPFC) is a functional brain region in primates involved in executive function. It consists of six layers of neurons that differ in their cell types, density and connections. The DLPFC dataset we looked at in session one, and will be here using comes with manual annotation of these layers (and the adjacent white matter - WM) by the authors @Maynard2021Mar. We can plot the tissue map with and without the annotations to get a complete view.
 
+> **NOTE:** To save the plots, we suggest using the below code chunk. Save them in SVG format at 300dpi resolution.
+
+> **NOTE:** To introduce a consistency framework, we also suggest using the name structure in the code chunk's example.
+
+```{r eval=FALSE}
+## Set a prefix indicating the analysis step (i.e., qc, hvg, gwpca, fgwc, gwr, sa)
+prfx <- "qc"
+main <- "_TissueWithSpots"
+sfx <- "_annotated"
+other <- ""
+
+ggsave(paste0("../data/graphics_out/", prfx, main, sfx, other, ".svg"),
+         device = "svg",
+         width = grDevices::dev.size(units = "in")[1],
+         height = grDevices::dev.size(units = "in")[2],
+         units = "in",
+         dpi = 300)
+
+```
+
+
+> We suggest you set one of the MetaSFE object's SFE obect and move on with the analysis like below. Alternatively you can replace the subsequent `sfe` instances with `msfe@sample_data[["YourSampleID"]]`
+
+```{r}
+sfe <- getSFE(msfe, "JBO022")
+```
+
+> **NOTE:** The below chunks contain multiple examples per function for illustrative purposes. It is intended to showcase all the possible combinations you can use. You don't have to run all of them each time.
+
 ```{r 02_plot-maps-gTruth, fig.show = 'hold', out.width="50%", fig.height=5, fig.width=4}
 ## Plot spatial coordinates without annotations
-plotQC_spots(sfe, type = "spot", sample_id = TRUE, in_tissue = FALSE, colours = NULL)
 plotQC_spots(sfe, type = "spot", sample_id = NULL, in_tissue = TRUE)
-plotQC_spots(sfe, type = "spot", sample_id = TRUE, in_tissue = FALSE, colours = c("#3C5338", "#FF9999"))
-plotQC_spots(sfe, type = "spot", sample_id = "JBO022", in_tissue = TRUE)
+plotQC_spots(sfe, type = "hex", sample_id = "JBO022", in_tissue = TRUE)
 
 ## Plot spatial coordinates with annotations
-plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = TRUE)
-plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = NULL)
-plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = "JBO019")
+plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = "JBO022")
+plotQC_spotsAnnotation(sfe = sfe, type = "hex", sample_id = "JBO022")
 ```
 
 ### Plot manual annotation with tissue image
 
 ```{r 03_QC_sfe2, message=FALSE, warning=FALSE}
-plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = TRUE, annotate = TRUE, alpha = 0.3)
-plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = TRUE, annotate = FALSE, alpha = 0.3)
-plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = NULL, annotate = TRUE, alpha = 0.3)
-plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = NULL, annotate = FALSE, alpha = 0.3)
-plotQC_tissueImg(sfe, res = "lowres", type = "none", sample_id = "PrsCncA1", annotate = FALSE)
+plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = "JBO022", annotate = TRUE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = "JBO022", annotate = TRUE, alpha = 0.3)
+
 
 ```
 
@@ -418,27 +447,24 @@ Here we will be using methods from the `scater` [@McCarthy2017Apr] and `scran` [
 
 ```{r 03_LogNorm_sfe}
 ## Calculate library size factors
-sfe <- computeLibSizeFactors(sfe, type = "intra")
+msfe <- computeLibSizeFactors(msfe)
 ```
 
 As described above, the mean size factor is 1.0.
 
 ```{r 03_LogNorm_sfe2}
 ## Density and histogram of library sizes
-plotQC_sizeFactors(sfe)
+plotQC_sizeFactors(msfe@sfe_data[["JBO022"]])
 ```
 
 The log-transformation that takes place is a log2-transformation and in order to avoid *- Infinity* values we add a pseudo value of 1. Both the log2- transformation and the pseudocount of 1 are defaults in this method.
 
 ```{r 03_LogNorm_sfe3}
-# Generate a metaSFE object 
-meta_sfe <- asMetaSFE(sfe)
-
 ## Calculate logcounts using library size factors
-meta_sfe <- normaliseCounts(msfe = meta_sfe)
+m_sfe <- normaliseCounts(m_sfe = m_sfe)
 
 ## Check that a new assay has been added
-assayNames(meta_sfe[[1]])
+SummarizedExperiment::assayNames(m_sfe@sfe_data[["JBO022"]])
 ```
 
 ## Gene-level Quality Control

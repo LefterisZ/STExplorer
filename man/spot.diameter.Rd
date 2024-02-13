@@ -4,12 +4,7 @@
 \alias{spot.diameter}
 \title{Calculate spot diameter}
 \usage{
-spot.diameter(
-  sfe,
-  samples,
-  sample_id = paste0("sample", sprintf("\%02d", seq_along(samples))),
-  res = c("lowres", "hires", "fullres")
-)
+spot.diameter(sfe, samples, sample_id, res = c("lowres", "hires", "fullres"))
 }
 \arguments{
 \item{sfe}{The SpatialFeaturesExperiment object.}

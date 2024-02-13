@@ -2,7 +2,7 @@
 % Please edit documentation in R/qc_getSubset.R
 \name{getSubset}
 \alias{getSubset}
-\title{Get Subset of Samples from SpatialFeatureExperiment or
+\title{Get Subset of Features from SpatialFeatureExperiment or
 MetaSpatialFeatureExperiment}
 \usage{
 getSubset(
@@ -18,7 +18,7 @@ getSubset(
 MetaSpatialFeatureExperiment.}
 
 \item{sample_id}{A character vector specifying the sample IDs to include
-(TRUE for all IDs in m_sfe or specific IDs).}
+(TRUE for all IDs in m_sfe).}
 
 \item{subset}{A regular expression string to be used for subsetting.}
 
@@ -30,13 +30,13 @@ row or column data.}
 }
 \value{
 If m_sfe is a SpatialFeatureExperiment (SFE) object, it returns
-a logical vector indicating the subset of samples based on the criteria.
+a logical vector indicating the subset of features based on the criteria.
 If m_sfe is a MetaSpatialFeatureExperiment (MetaSFE) object, it returns
 a list where each element is a logical vector indicating the subset of
 samples for each SFE object within the MetaSFE.
 }
 \description{
-This function retrieves a subset of samples based on the specified criteria
+This function retrieves a subset of features based on the specified criteria
 from either a SpatialFeatureExperiment (SFE) or a
 MetaSpatialFeatureExperiment (MetaSFE) object.
 }

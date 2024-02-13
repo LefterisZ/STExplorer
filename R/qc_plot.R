@@ -427,7 +427,7 @@ plotQC_hist <- function(sfe,
   p <- ggplot(data = data,
          aes(x = aes_x)) +
     do.call(geom_histogram, c(list(...), hist_args,
-                              list(aes(y = after_stat(data$density))))) +
+                              list(aes(y = after_stat(density))))) +
     do.call(geom_density, c(list(...), dens_args)) +
     do.call(geom_vline, c(list(...), vline_args, list(xintercept = limits))) +
     ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +

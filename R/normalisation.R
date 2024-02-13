@@ -4,7 +4,11 @@
 #' \code{SpatialFeatureExperiment} object. Size factors represent a scaling
 #' factor for each sample, adjusting for differences in sequencing depth.
 #'
-#' @param sfe A \code{SpatialFeatureExperiment} object.
+#' @param m_sfe An object of class SpatialFeatureExperiment or
+#' MetaSpatialFeatureExperiment.
+#' @param sample_id A character string specifying unique sample identifiers,
+#' one for each directory specified via samples. This parameter is ignored if
+#' the names of samples are not null (!is.null(names(samples))).
 #' @param type Character string, one of "inter" or "intra", indicating whether
 #' to calculate size factors within each sample ("intra") or across all samples
 #' ("inter"). The default is "intra".
@@ -39,12 +43,22 @@
 #' }
 #'
 #' @export
-computeLibSizeFactors <- function(sfe, type = c("inter", "intra"), ...) {
+computeLibSizeFactors <- function(m_sfe,
+                                  sample_id,
+                                  type = c("inter", "intra"),
+                                  ...) {
+  UseMethod("computeLibSizeFactors")
+}
 
-  ## Check arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
 
-  ## Check valid type argument
+#' @export
+computeLibSizeFactors.SpatialFeatureExperiment <-
+  function(m_sfe,
+           sample_id,
+           type = c("inter", "intra"),
+           ...) {
+
+    ## Check valid type argument
   if (missing(type)) {
     in_sample <- TRUE
   } else {
@@ -59,28 +73,71 @@ computeLibSizeFactors <- function(sfe, type = c("inter", "intra"), ...) {
   if (!in_sample) {
     ## Calculate library size factors
     ## Take into account all samples together
-    sfe <- scater::computeLibraryFactors(sfe, ...)
+    m_sfe <- scater::computeLibraryFactors(m_sfe, ...)
+
+    ## Return the value
+    return(m_sfe)
   } else if (in_sample) {
     ## Calculate library size factors
     ## Take into account one sample at a time
 
     ## Get sample IDs
-    ids <- .int_getSmplIDs(sfe = sfe, sample_id = TRUE)
+    ids <- .int_getSmplIDs(sfe = m_sfe, sample_id = TRUE)
 
     ## Create a list of filtered SpatialFeatureExperiment objects
-    sfe_list <- lapply(ids, .int_sizeFactCalc, sfe = sfe, ...)
+    sfe_list <- lapply(ids, .int_sizeFactCalc, sfe = m_sfe, ...)
 
     ## Merge the list of SpatialFeatureExperiment objects into one
     sfeOut <- Reduce(function(x, y) cbind(x, y), sfe_list)
 
     ## Clean up duplicate entries in the metadata slot
     sfeOut <- .int_cleanMetaData(sfeOut = sfeOut)
+
+    ## Have a look at the size factors
+    print(.int_summarySizeFact(sfe = sfeOut, ids = ids))
+
+    ## Return the value
+    return(sfeOut)
+  }
+}
+
+
+#' @export
+computeLibSizeFactors.MetaSpatialFeatureExperiment <-
+  function(m_sfe,
+           sample_id = TRUE,
+           type = NULL,
+           ...) {
+
+  ## Check valid type argument
+  if (is.null(type)) {
+    in_sample <- TRUE
+  } else {
+    type <- match.arg(type)
+    if (type == "intra") {
+      in_sample <- TRUE
+    } else {
+      in_sample <- FALSE
+    }
   }
 
-  ## Have a look at the size factors
-  print(.int_summarySizeFact(sfe = sfeOut, ids = ids))
+  if (sample_id) {
+    ## Calculate library size factors
+    ## Take into account all samples together
+    m_sfe@sfe_data <- lapply(m_sfe@sfe_data,
+                             .int_msfeCompSizeFact,
+                             ... = ...)
 
-  return(sfeOut)
+    return(m_sfe)
+  } else if (is.character(sample_id)) {
+    ## Calculate library size factors
+    ## Take into account only specified samples
+    m_sfe@sfe_data <- lapply(m_sfe@sfe_data[[sample_id]],
+                             .int_msfeCompSizeFact,
+                             ... = ...)
+
+    return(m_sfe)
+  }
 }
 
 
@@ -89,8 +146,11 @@ computeLibSizeFactors <- function(sfe, type = c("inter", "intra"), ...) {
 #' This function normalises counts in a spatial transcriptomics experiment
 #' using specified methods.
 #'
-#' @param msfe An object containing spatial transcriptomics experiment data
-#' (MetaSpatialFeatureExperiment).
+#' @param m_sfe An object of class SpatialFeatureExperiment or
+#' MetaSpatialFeatureExperiment.
+#' @param sample_id A character string specifying unique sample identifiers,
+#' one for each directory specified via samples. This parameter is ignored if
+#' the names of samples are not null (!is.null(names(samples))).
 #' @param method The normalisation method to be applied. Currently, only "log"
 #' transformation is supported.
 #' @param ... Additional arguments to be passed to the normalisation function.
@@ -114,15 +174,18 @@ computeLibSizeFactors <- function(sfe, type = c("inter", "intra"), ...) {
 #' # msfe <- # MetaSpatialFeatureExperiment object
 #' msfe <- normaliseCounts(msfe, method = "log", base = 2)
 #' }
-
-normaliseCounts <- function(msfe,
+normaliseCounts <- function(m_sfe,
+                            sample_id,
                             method = c("log"),
                             ...) {
-  ## Check arguments
-  ## When we will establish the metaSFE object remember to let it inherit the
-  ## SpatialFeatureExperiment class.
-  # stopifnot(is(msfe, "SpatialFeatureExperiment"))
+  UseMethod("normaliseCounts")
+}
 
+
+#' @export
+normaliseCounts.SpatialFeatureExperiment <- function(m_sfe,
+                                                     method = c("log"),
+                                                     ...) {
   ## Check valid method argument
   if (missing(method)) {
     method <- "log"
@@ -131,10 +194,29 @@ normaliseCounts <- function(msfe,
   }
 
   if (method == "log") {
-    msfe_int <- lapply(msfe, scater::logNormCounts, ...)
+    m_sfe <- lapply(m_sfe, scater::logNormCounts, ...)
   }
 
-  return(msfe_int)
+  return(m_sfe)
+}
+
+
+#' @export
+normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                         method = c("log"),
+                                                         ...) {
+  ## Check valid method argument
+  if (missing(method)) {
+    method <- "log"
+  } else {
+    method <- match.arg(method)
+  }
+
+  if (method == "log") {
+    m_sfe@sfe_data <- lapply(msfe@sfe_data, scater::logNormCounts, ...)
+  }
+
+  return(m_sfe)
 }
 
 
@@ -249,3 +331,16 @@ normaliseCounts <- function(msfe,
 # ---------------------------------------------------------------------------- #
 #  ########## INTERNAL FUNCTIONS ASSOCIATED WITH LIB SIZE FACTORS ###########
 # ---------------------------------------------------------------------------- #
+#' INTERNAL: Compute Library Size Factors in a SpatialFeatureExperiment
+#'
+#' @param sfe A SpatialFeatureExperiment object.
+#' @param ... other arguments to be passed to `scater::computeLibraryFactors`
+#'
+#' @return A logical vector indicating the subset of features based on the
+#' criteria.
+#'
+#' @rdname dot-int_msfeCompSizeFact
+#'
+.int_msfeCompSizeFact <- function(sfe, ...) {
+  scater::computeLibraryFactors(sfe, ...)
+}

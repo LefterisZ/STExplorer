@@ -7,13 +7,17 @@
 normaliseCounts(msfe, method = c("log"), ...)
 }
 \arguments{
-\item{msfe}{An object containing spatial transcriptomics experiment data
-(MetaSpatialFeatureExperiment).}
-
 \item{method}{The normalisation method to be applied. Currently, only "log"
 transformation is supported.}
 
 \item{...}{Additional arguments to be passed to the normalisation function.}
+
+\item{m_sfe}{An object of class SpatialFeatureExperiment or
+MetaSpatialFeatureExperiment.}
+
+\item{sample_id}{A character string specifying unique sample identifiers,
+one for each directory specified via samples. This parameter is ignored if
+the names of samples are not null (!is.null(names(samples))).}
 }
 \value{
 A normalised SpatialFeatureExperiment object.
