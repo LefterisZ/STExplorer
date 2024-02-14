@@ -18,6 +18,7 @@ devtools::install_github("LefterisZ/STExplorer")
 ```
 
 ### Bioconductor stable version
+This option is still not available. Please use the GitHub installation from above. The package is Bioconductor-compatible and we are working towards submitting it to Bioconductor as soon as possible.
 You can install the stable version of STExplorer from [Bioconductor](https://bioconductor.org/) with:
 
 ``` r
