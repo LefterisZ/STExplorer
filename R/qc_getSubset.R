@@ -34,6 +34,8 @@
 #' }
 #'
 #' @rdname getSubset
+#'
+#' @export
 getSubset <- function(m_sfe,
                       sample_id,
                       subset,
