@@ -139,10 +139,10 @@ names(sampleDir) <- sampleNames
 
 ## Load sfe objects inside the msfe
 ## The `addSFE` function is appending each sfe to a new slot inside the msfe.
-## Do it one by one. I tried a for loop but for a reason it overwrites the msfe instead of appending. 
+## Do it one by one. I tried a for-loop but for a reason it overwrites the msfe instead of appending. 
 msfe <- addSFE(msfe,
-               read10xVisiumSFE(samples = sampleDir[2], 
-                      sample_id = sampleNames[2], 
+               read10xVisiumSFE(samples = sampleDir[1], 
+                      sample_id = sampleNames[1], 
                       type = "HDF5", 
                       data = "filtered", 
                       images = "lowres", 
@@ -183,7 +183,7 @@ str(gTruth_list)
 
 ## Spot-level Quality Control
 
-Considered quality control (QC) procedures are essential for analysing any high-throughput data in molecular biology. The removal of noise and low quality data from complex datasets can improve the reliability of downsrtream analyses. STx is no different in this regard, and QC can be undertaken in 2 main places - spot-level and gene-level. Here, we focus on spot-level QC.
+Considered quality control (QC) procedures are essential for analysing any high-throughput data in molecular biology. The removal of noise and low quality data from complex datasets can improve the reliability of downstream analyses. STx is no different in this regard, and QC can be undertaken in 2 main places - spot-level and gene-level. Here, we focus on spot-level QC.
 
 Spot-level quality control (sQC) procedures are employed to eliminate low-quality spots before conducting further analyses. Low-quality spots may result from issues during library preparation or other experimental procedures, such as a high percentage of dead cells due to cell damage during library preparation, or low mRNA capture efficiency caused by ineffective reverse transcription or PCR amplification. Keeping these spots usually leads to creating problems during downstream analyses.
 
@@ -201,15 +201,15 @@ A few publications for further reading that can help you understand the quality 
 
 ### Calculating QC metrics
 
-We will calculate the three main QC metrics described above using methods from the `scater` [@McCarthy2017Apr] package, and investigate their influence on the DLPFC dataset with some plots from `ggspavis`, along with some additional plots of our own.
+We will calculate the three main QC metrics described above using methods from the `scater` [@McCarthy2017Apr] package, and investigate their influence on the healthy liver (JBO022) dataset with some plots from `STExplorer`, inspired by `scater` and `ggspavis`. The difference is that `STExplorer` plots are easily modified to the user's likeness.
 
-At present, the dataset contains both on- and off-tissue spots - we plotted these in the previous practical. For any future analysis though we are only interested in the on-tissue spots. Therefore, before we run any calculations we want to remove the off-tissue spots.
+At present, the dataset contains only on-tissue spots. However, datasets may have the off-tissue spots still present. For any future analysis though we are only interested in the on-tissue spots. Therefore, before we run any calculations we want to remove the off-tissue spots, if existing.
 
 ***NOTE***: the on- or off-tissue information for each spot can be found in the `colData` of the `sfe` object and in the `in_tissue` column where *0 = off-tissue* and *1 = on-tissue*.
 
 ```{r 02_keep_on-tissue}
 ## Dataset dimensions before the filtering
-dim(msfe@sfe_data)
+dim(msfe@sfe_data[["JBO022"]])
 
 ```
 
@@ -236,9 +236,9 @@ After calculating a required metric, we need to apply a cut-off threshold for th
 
 ### Plot tissue map {#plot-tissue-map}
 
-The dorso-lateral prefrontal cortex (DLPFC) is a functional brain region in primates involved in executive function. It consists of six layers of neurons that differ in their cell types, density and connections. The DLPFC dataset we looked at in session one, and will be here using comes with manual annotation of these layers (and the adjacent white matter - WM) by the authors @Maynard2021Mar. We can plot the tissue map with and without the annotations to get a complete view.
+The healthy liver sample JBO022 comes with a set of annotations from the [liver cell atlas](https://www.livercellatlas.org/). We can use this information to make sure that our quality control is not removing any obvious biology from the tissue. This "obvious" biology could be a specific zone from a zonated tissue, or a histological feature (i.e., a vein). If our dataset doesn't have this, then a pathologist's annotation can help.
 
-> **NOTE:** To save the plots, we suggest using the below code chunk. Save them in SVG format at 300dpi resolution.
+> **NOTE:** To save the plots, we suggest using the below code chunk. Save them in SVG format at 300dpi resolution.ssss
 
 > **NOTE:** To introduce a consistency framework, we also suggest using the name structure in the code chunk's example.
 
@@ -292,7 +292,7 @@ We can plot a histogram of the library sizes across spots. The library size is t
 
 As we can see there are no obvious issues with the library sizes. An example of an issue could be a high frequency of small libraries which would indicate poor experimental output. Generally we do not want to keep spots with too small libraries.
 
-If the dataset we are analysing contains the number of cells that are present in each spot (this one does), then it makes sense to also plot the library sizes against the number of cells per spot. In that way we are making sure that we don't remove any spots that may have biological meaning. In many cases though the datasets do not have such information unless we can generate it using a nuclei segmentation tool to extract this information from the H&E images.
+If the dataset we are analysing contains the number of cells that are present in each spot (this one doesn't), then it makes sense to also plot the library sizes against the number of cells per spot. In that way we are making sure that we don't remove any spots that may have biological meaning. In many cases though the datasets do not have such information unless we can generate it using a nuclei segmentation tool to extract this information from the H&E images.
 
 The horizontal red line (argument `threshold` in the `plotQC` function) shows a first guess at a possible filtering threshold for library size based on the above histogram.
 
@@ -300,26 +300,22 @@ The horizontal red line (argument `threshold` in the `plotQC` function) shows a 
 # ----------------------------------------------- #
 ## Density and histogram of library sizes
 plotQC_hist(sfe, metric = "libsize")
-plotQC_hist(sfe, metric = "libsize", limits = c(3000, 36500))
+plotQC_hist(sfe, metric = "libsize", limits = c(500, 25000))
 plotQC_hist(sfe, metric = "libsize", limits = c(3000, 36500),
             hist_args = list(bins = 100),
             dens_args = list(alpha = 0.5,
-                             adjust = 0.5,
-                             fill = "#F0AAA8"),
-            vline_args = list(colour = "blue",
-                             linetype = "dashed"))
+                             adjust = 0.5))
 
 ## Scatter plot library sizes vs number of cells
+## Use this only if your dataset has information about the number of cells per spot
 plotQC_scat(sfe, metric = "libsize")
 
 ## Select threshold
-sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 2000, max_t = 35000)
+sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 500, max_t = 25000)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
 ```
-
-**NOTE**: using `ggExtra` we provide the marginal histograms here.
 
 We need to keep in mind here that the threshold is, to an extent, arbitrary. It is therefore important to look at the number of spots that are left out of the dataset by this choice of cut-off value, and also have a look at their putative spatial patterns. If we filtered out spots with biological relevance, then we should observe some patterns on the tissue map that correlate with some of the known biological structures of the tissue. If we do observe such a phenomenon, we have probably set our threshold too high (i.e. not permissive enough).
 
@@ -329,19 +325,20 @@ As we did with the library sizes, we can plot a histogram of the number of expre
 
 We will follow the same logic for the plots as we did for the library size earlier.
 
-Finally, again as before, we apply the chosen threshold to flag spots with (in this case) fewer than 500 expressed genes.
+Finally, again as before, we apply the chosen threshold to flag spots with (in this case) fewer than 250 expressed genes.
 
 ```{r 03_QC_sfe4}
 # ----------------------------------------------- #
 ## Density and histogram of expressed genes
 plotQC_hist(sfe, metric = "detected")
-plotQC_hist(sfe, metric = "detected", limits = c(1000, NA))
+plotQC_hist(sfe, metric = "detected", limits = c(250, NA))
 
 ## Scatter plot expressed genes vs number of cells
+## Use this only if your dataset has information about the number of cells per spot
 plotQC_scat(sfe, metric = "detected")
 
 ## Select threshold
-sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 700, max_t = NA)
+sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 250, max_t = NA)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "detected", sample_id = TRUE)
@@ -355,19 +352,20 @@ As we briefly touched on at the beginning, a high proportion of mitochondrial re
 
 We calculated this data earlier on in this session, and can now investigate the percentage of mitochondrial expression across spots by looking at the column `subsets_mito_percent` in the `colData`.
 
-In this instance, a higher percentage of mitochondrial expression is the thing to avoid, so the threshold is an upper bound, rather than the lower bounds we have observed so far. Our suggestion this time is to cut-off at 28%.
+In this instance, a higher percentage of mitochondrial expression is the thing to avoid, so the threshold is an upper bound, rather than the lower bounds we have observed so far. Our suggestion this time is to cut-off at 15%. This suggestion comes after inspecting the distribution first.
 
 ```{r 03_QC_sfe5}
 # ----------------------------------------------- #
 ## Density and histogram of percentage of mitochondrial expression
 plotQC_hist(sfe, metric = "mito")
-plotQC_hist(sfe, metric = "mito", limits = c(NA, 20))
+plotQC_hist(sfe, metric = "mito", limits = c(NA, 15))
 
 ## Scatter plot % mito expression vs number of cells
+## Use this only if your dataset has information about the number of cells per spot
 plotQC_scat(sfe, metric = "mito")
 
 ## Select threshold
-sfe <- setQCthresh_Mito(sfe, sample_id = TRUE, min_t = NA, max_t = 21)
+sfe <- setQCthresh_Mito(sfe, sample_id = TRUE, min_t = NA, max_t = 15)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "mito", sample_id = TRUE)
@@ -377,45 +375,61 @@ plotQC_filtered(sfe, metric = "mito", sample_id = TRUE)
 
 As previously mentioned, number of cells per spot is an attribute that not all datasets include. Nonetheless, it can be useful to further control the quality of the dataset prior to any downstream analysis. Of course, the number of cells per spot depends on the tissue type and organism and according to [10X Genomics](https://kb.10xgenomics.com/hc/en-us/articles/360035487952-How-many-cells-are-captured-in-a-single-spot-), each spot typically contains between 0 and 10 cells.
 
-The DPFLC dataset does contain information on the number of cells per spot (acquired by processing and cell segmentation of high-resolution histology images obtained prior on-slide cDNA synthesis, see @Maynard2021Mar for details). To investigate the number of cells in each spot looking for any outlier values that could indicate problems we need to take a look in the column `cell_count` in `colData`.
+If the number of cells per spot is an existing information for our dataset, we can use it to investigate the presence of any outlier values that could indicate problems. To do so we need to take a look in the column `cell_count` in `colData`.
 
-```{r 02_plot-cellsPerSpot-histo, fig.height=4, warning=FALSE, message=FALSE}
+Unfortunately, our current example dataset doesn't include this information. If it did, we would sue the below chunks of code to check it.
+
+```{r 02_plot-cellsPerSpot-histo, eval=FALSE, fig.height=4, warning=FALSE, message=FALSE}
 ## Density and histogram of the number of cells in each spot
 plotQC_hist(sfe, metric = "cellCount")
 
 ```
 
-```{r 02_cellsPerSpot-scatter, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
+```{r 02_cellsPerSpot-scatter, eval=FALSE, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
 ## plot number of expressed genes vs. number of cells per spot
 plotQC_scat(sfe, metric = "detected")
 ```
 
-As we can see from both the histogram and the scatter plot there is a tail of very high values, which could indicate problems for these spots. More specifically, we can see from the scatter plot that most of the spots with very high cell counts also tend to have lower numbers of expressed genes. This indicates problems with the experiment on these spots, and they should be removed.
+If we see from both the histogram and the scatter plot there a tail of very high values, this could indicate problems for these spots. More specifically, if we see from the scatter plot that most of the spots with very high cell counts also tend to have lower numbers of expressed genes, this indicates problems with the experiment on these spots, and they should be removed.
 
-```{r 02_cellsPerSpot-thresh, fig.height=4}
+```{r 02_cellsPerSpot-thresh, eval=FALSE, fig.height=4}
 ## Select threshold
 sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, min_t = NA, max_t = 25)
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "cellCount", sample_id = TRUE)
 
 ```
+We still need to check if there is a spatial pattern to the discarded spots. If it does not appear to be correlated with the known biological features then it is safe to remove them. The discarded spots are typically at the edges of the tissue. It seems plausible that something has gone wrong with the cell segmentation on the edges of the images, so it makes sense to remove these spots.
 
-While there is a spatial pattern to the discarded spots, it does not appear to be correlated with the known biological features (cortical layers). The discarded spots are typically at the edges of the tissue. It seems plausible that something has gone wrong with the cell segmentation on the edges of the images, so it makes sense to remove these spots.
+> **NOTE:** aslo remember that a tissue slice can be accidentaly folded on the edges while placed on the slide. This is another reason to look out for low quality on the tissue edges.
+
 
 ### Remove low-quality spots
 
-All the steps so far have flagged spots with potential issues - before proceeding with analysis, we want to remove these spots from our SpatialExperiment object. Since we have calculated different spot-level QC metrics and selected thresholds for each one, we can combine them to identify a set of low-quality spots, and remove them from our `sfe` object in a single step.
+All the steps so far have flagged spots with potential issues - before proceeding with analysis, we want to remove these spots from our SpatialFeatureExperiment object. Since we have calculated different spot-level QC metrics and selected thresholds for each one, we can combine them to identify a set of low-quality spots, and remove them from our `sfe` object in a single step.
 
 If the dataset has also manual annotation ([remember](#plot-tissue-map))) we see that there are locations that are not annotated (marked with `NA`). We could further remove those locations to reduce potential noise and further increase the quality of the dataset.
 
-```{r 02_notAnnotSpots, fig.height=4}
+Before doing so, it is sensible first to have a look at the areas annotated with `NA`s. In our example (healthy liver sample JBO022) the `NA`s cover almost 1/4 of the tissue. As a result it is not advised to remove them on the basis of their annotation.
+
+However, id we were to do so, we would use the below two code chunks.
+
+```{r 02_notAnnotSpots, eval=FALSE, fig.height=4}
 ## Select locations without annotation
 sfe <- setQCthresh_NAs(sfe, sample_id = TRUE)
+```
+
+We can also check once more that the combined set of discarded spots does not correspond to any obvious biologically relevant group of spots.
+
+```{r 02_notAnnotSpotscheck, eval=FALSE, fig.height=4}
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "NAs", sample_id = TRUE)
 ```
 
-We can also check once more that the combined set of discarded spots does not correspond to any obvious biologically relevant group of spots.
+
+Now that we finished setting our thresholds for each individual metric, we can combine them to mark the spots/locations we need to remove. Of course, we need to check that our thresholds combined don't remove any obvious biology. If we are satisfied with our QC, then we can apply our thresholds. This final step, will remove any spots/locations selected for their low quality.
+
+The `setQCtoDiscard_loc` includes the `filters` argument that allows you to select which filters will be taken into account for the final selection. If left to `TRUE` then all filters are used. If, for whatever reason, you want to use only part of the filters from earlier, then you can provide a character vector with the column names of the QC metrics to consider for filtering locations. QC metric columns begin with "qc_". You can always remind yourself of the column names by typing `colnames(colData(sfe))` in the console.
 
 ```{r 03_QC_sfe6}
 # ----------------------------------------------- #
@@ -434,7 +448,7 @@ sfe <- applyQCthresh_loc(sfe, sample_id = TRUE)
 
 ### Background
 
-Normalisation is applied in STx data for the same reason as any other RNA-Seq technique - the differences observed in the count data can arise from a range of systematic factors, not just a physiologically-relevant change in expression. The primary systematic effect is that of library size (or in the case of STx, counts/UMIs per spot). `scater` corrects for library size by scaling the sizes across all spots such that the mean library size is 1. Normalized counts are then calculated as a ratio of observed count to library size factor.
+Normalisation is applied in STx data for the same reason as any other RNA-seq technique - the differences observed in the count data can arise from a range of systematic factors, not just a physiologically-relevant change in expression. The primary systematic effect is that of library size (or in the case of STx, counts/UMIs per spot). `scater` corrects for library size by scaling the sizes across all spots such that the mean library size is 1. Normalized counts are then calculated as a ratio of observed count to library size factor.
 
 Secondly, a log-transformation is applied to the scaled counts - this transformation is commonly applied as it stabilises the variance across the range of transcriptomics data (otherwise the variance is dominated by highly expressed genes) and it facilitates comparisons of expression by rendering positive and negative changes symmetrical and found by subtraction rather than division. Since $log2(0)$ is undefined, a *pseudocount* is added to each observed count to avoid this error - a pseudocount of 1 is typically applied, as $log2(0+1) = 0$.
 
@@ -442,6 +456,8 @@ Here we will be using methods from the `scater` [@McCarthy2017Apr] and `scran` [
 
 1.  Spots can contain multiple cells of different cell-types.
 2.  Datasets can include multiple tissue samples which will lead to different clusterings.
+
+The `STExplorer`'s functions `computeLibSizeFactors` and `normaliseCounts` are wrappers of the `computeLibraryFactors` and `logNormCounts` functions from the `scate` package that enable them to be used with an `SpatialFeatureExperiment` object.
 
 ### Log-tranformation of counts
 
@@ -461,10 +477,10 @@ The log-transformation that takes place is a log2-transformation and in order to
 
 ```{r 03_LogNorm_sfe3}
 ## Calculate logcounts using library size factors
-m_sfe <- normaliseCounts(m_sfe = m_sfe)
+msfe <- normaliseCounts(msfe)
 
 ## Check that a new assay has been added
-SummarizedExperiment::assayNames(m_sfe@sfe_data[["JBO022"]])
+SummarizedExperiment::assayNames(msfe@sfe_data[["JBO022"]])
 ```
 
 ## Gene-level Quality Control
@@ -473,7 +489,7 @@ SummarizedExperiment::assayNames(m_sfe@sfe_data[["JBO022"]])
 
 ```{r 03_GeneQC_sfe1}
 ## Calculate the mean of log counts over the number of locations a gene is present
-meta_sfe <- perGeneLogMean(meta_sfe)
+msfe <- perGeneLogMean(msfe)
 ```
 
 ### Set and apply filters

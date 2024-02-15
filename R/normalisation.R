@@ -174,6 +174,8 @@ computeLibSizeFactors.MetaSpatialFeatureExperiment <-
 #' # msfe <- # MetaSpatialFeatureExperiment object
 #' msfe <- normaliseCounts(msfe, method = "log", base = 2)
 #' }
+#'
+#' @export
 normaliseCounts <- function(m_sfe,
                             sample_id,
                             method = c("log"),

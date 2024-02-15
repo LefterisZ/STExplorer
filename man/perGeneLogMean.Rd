@@ -31,7 +31,6 @@ Additional arguments can be passed to the underlying calculation function.
 # msfe <- # A MetaSpatialFeatureExperiment object
 msfe <- perGeneLogMean(msfe)
 }
-
 }
 \author{
 Eleftherios (Lefteris) Zormpas

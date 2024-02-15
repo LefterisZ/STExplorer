@@ -737,7 +737,7 @@ plotQC_sizeFactors <- function(sfe,
   p <- ggplot(data = data,
          aes(x = data$aes_x)) +
     do.call(geom_histogram, c(list(...), hist_args,
-                              list(aes(y = after_stat(data$density))))) +
+                              list(aes(y = after_stat(density))))) +
     do.call(geom_density, c(list(...), dens_args)) +
     ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
     ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +

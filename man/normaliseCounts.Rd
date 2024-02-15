@@ -38,6 +38,7 @@ normalisation function.
 # msfe <- # MetaSpatialFeatureExperiment object
 msfe <- normaliseCounts(msfe, method = "log", base = 2)
 }
+
 }
 \author{
 Eleftherios (Lefteris) Zormpas

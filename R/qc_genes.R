@@ -27,7 +27,7 @@
 #' # msfe <- # A MetaSpatialFeatureExperiment object
 #' msfe <- perGeneLogMean(msfe)
 #' }
-#'
+#' @export
 perGeneLogMean <- function(msfe,
                            ...) {
   ## Check arguments
