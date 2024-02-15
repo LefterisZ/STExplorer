@@ -4,11 +4,14 @@
 \alias{perGeneLogMean}
 \title{Calculate Per-Gene Logarithmic Means in a Spatial Transcriptomics Experiment}
 \usage{
-perGeneLogMean(msfe, ...)
+perGeneLogMean(msfe, sample_id = TRUE, ...)
 }
 \arguments{
 \item{msfe}{A MetaSpatialFeatureExperiment object containing spatial
 transcriptomics experiment data.}
+
+\item{sample_id}{character string, TRUE or NULL specifying sample/image
+identifier(s); here, TRUE is equivalent to all samples/images.}
 
 \item{...}{Additional arguments. Not used currently}
 }

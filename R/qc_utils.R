@@ -364,8 +364,8 @@ add.spotHex <- function(sfe,
               centroids[select_cntds, ],
               join = st_contains,
               left = FALSE) %>% # Join the centroids with the POLYGONS
-      arrange(.data$Barcode) %>%
-      dplyr::select(.data$geometry)
+      arrange(Barcode) %>%
+      dplyr::select(geometry)
 
     ## Append it to a list
     dataList[[i]] <- polygons
@@ -922,20 +922,20 @@ spot.diameter <- function(sfe,
     name <- subsetListNames[i]
     if (which[subsetListNames[i]]) {
       dtList[[i]] <- as.data.frame(subsetList[[name]]) %>%
-        mutate(Barcode = paste0(.data$Barcode, ".perim"),
+        mutate(Barcode = paste0(Barcode, ".perim"),
                Section = 2)
 
       if (name %in% c("spC_Ymax", "spC_Ymax1", "spC_Ymin", "spC_Ymin1")) {
         if (name %in% c("spC_Ymax", "spC_Ymax1")) {
-          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y + (3 * .sp_diam)
+          dtList[[i]]$Image_X <- dtList[[i]]$Image_X - (3 * .sp_diam)
         } else {
-          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y - (3 * .sp_diam)
+          dtList[[i]]$Image_X <- dtList[[i]]$Image_X + (3 * .sp_diam)
         }
       } else {
         if (name %in% c("spC_Xmax", "spC_Xmax1")) {
-          dtList[[i]]$Image_X <- dtList[[i]]$Image_X + (1.8 * .sp_diam)
+          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y - (1.8 * .sp_diam)
         } else {
-          dtList[[i]]$Image_X <- dtList[[i]]$Image_X - (1.8 * .sp_diam)
+          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y + (1.8 * .sp_diam)
         }
       }
 

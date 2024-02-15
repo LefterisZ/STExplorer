@@ -5,11 +5,9 @@
 \title{Internal Function: Calculate Per-Gene Logarithmic Mean for a Specific Sample
 in a MetaSpatialFeatureExperiment object}
 \usage{
-.int_perGeneLogMean(id, sfe)
+.int_perGeneLogMean(sfe)
 }
 \arguments{
-\item{id}{The unique identifier of the sample.}
-
 \item{sfe}{The SpatialFeatureExperiment object for the specified sample.}
 }
 \value{

@@ -5,6 +5,9 @@
 #'
 #' @param msfe A MetaSpatialFeatureExperiment object containing spatial
 #' transcriptomics experiment data.
+#' @param sample_id character string, TRUE or NULL specifying sample/image
+#' identifier(s); here, TRUE is equivalent to all samples/images.
+#'
 #' @param ... Additional arguments. Not used currently
 #'
 #' @return An updated MetaSpatialFeatureExperiment with a column in rowData
@@ -29,26 +32,22 @@
 #' }
 #' @export
 perGeneLogMean <- function(msfe,
+                           sample_id = TRUE,
                            ...) {
-  ## Check arguments
-  ## When we will establish the metaSFE object remember to let it inherit the
-  ## SpatialFeatureExperiment class.
-  # stopifnot(is(msfe, "SpatialFeatureExperiment"))
-
-  ## Get the number of unique samples
-  ## - Kept here for legacy reasons.
-  ## - Will be removed once we transition to metaSFE from the start.
-  ids <- names(msfe)
-
-  ## Initialise list
-  msfe_int <- list()
+  ## Select samples
+  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Perform calculations
-  for (id in ids) {
-    msfe_int[[id]] <- .int_perGeneLogMean(id = id, sfe = msfe[[id]])
+  msfe_int <- lapply(msfe@sfe_data[ids], .int_perGeneLogMean)
+
+  ## If specific samples where modified replace in the metaSFE
+  if (is.character(sample_id)) {
+    msfe@sfe_data[names(msfe_int)] <- msfe_int
+  } else {
+    msfe@sfe_data <- msfe_int
   }
 
-  return(msfe_int)
+  return(msfe)
 }
 
 
@@ -58,7 +57,6 @@ perGeneLogMean <- function(msfe,
 #' This internal function calculates the per-gene logarithmic mean for a
 #' specific sample in a MetaSpatialFeatureExperiment object.
 #'
-#' @param id The unique identifier of the sample.
 #' @param sfe The SpatialFeatureExperiment object for the specified sample.
 #'
 #' @return The SpatialFeatureExperiment object with per-gene logarithmic means
@@ -71,6 +69,8 @@ perGeneLogMean <- function(msfe,
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
+#' @importFrom Matrix rowSums
+#'
 #' @keywords spatial transcriptomics experiment, per-gene log mean,
 #' internal function, SpatialFeatureExperiment
 #'
@@ -78,12 +78,14 @@ perGeneLogMean <- function(msfe,
 #'
 #' @aliases .int_perGeneLogMean
 #'
-.int_perGeneLogMean <- function(id, sfe) {
+.int_perGeneLogMean <- function(sfe) {
   ## Set column names to be used
+  id <- unique(sfe$sample_id)
+  message("Working on sample: ", id)
   colnameLogM <- "s_logMean"
   colnameNLoc <- paste0(id, ".nLocations")
-  ## Calculate rowSums only for specific sample
-  rowSum <- rowSums(assay(sfe, "logcounts"))
+  ## Calculate rowSums
+  rowSum <- Matrix::rowSums(SummarizedExperiment::assay(sfe, "logcounts"))
   ## Get number of locations
   nLocations <- rowData(sfe)[[colnameNLoc]]
   ## Calculate the mean of log counts over the locations a gene is expressed

@@ -45,7 +45,6 @@
 #' @export
 computeLibSizeFactors <- function(m_sfe,
                                   sample_id,
-                                  type = c("inter", "intra"),
                                   ...) {
   UseMethod("computeLibSizeFactors")
 }
@@ -54,51 +53,52 @@ computeLibSizeFactors <- function(m_sfe,
 #' @export
 computeLibSizeFactors.SpatialFeatureExperiment <-
   function(m_sfe,
-           sample_id,
-           type = c("inter", "intra"),
+           # sample_id,
            ...) {
 
-    ## Check valid type argument
-  if (missing(type)) {
-    in_sample <- TRUE
-  } else {
-    type <- match.arg(type)
-    if (type == "intra") {
-      in_sample <- TRUE
-    } else {
-      in_sample <- FALSE
-    }
-  }
+  #   ## Check valid type argument
+  # if (missing(type)) {
+  #   in_sample <- TRUE
+  # } else {
+  #   type <- match.arg(type)
+  #   if (type == "intra") {
+  #     in_sample <- TRUE
+  #   } else {
+  #     in_sample <- FALSE
+  #   }
+  # }
 
-  if (!in_sample) {
+  # if (!in_sample) {
+  #
     ## Calculate library size factors
     ## Take into account all samples together
     m_sfe <- scater::computeLibraryFactors(m_sfe, ...)
 
     ## Return the value
     return(m_sfe)
-  } else if (in_sample) {
-    ## Calculate library size factors
-    ## Take into account one sample at a time
-
-    ## Get sample IDs
-    ids <- .int_getSmplIDs(sfe = m_sfe, sample_id = TRUE)
-
-    ## Create a list of filtered SpatialFeatureExperiment objects
-    sfe_list <- lapply(ids, .int_sizeFactCalc, sfe = m_sfe, ...)
-
-    ## Merge the list of SpatialFeatureExperiment objects into one
-    sfeOut <- Reduce(function(x, y) cbind(x, y), sfe_list)
-
-    ## Clean up duplicate entries in the metadata slot
-    sfeOut <- .int_cleanMetaData(sfeOut = sfeOut)
-
-    ## Have a look at the size factors
-    print(.int_summarySizeFact(sfe = sfeOut, ids = ids))
-
-    ## Return the value
-    return(sfeOut)
-  }
+  #
+  # } else if (in_sample) {
+  #   ## Calculate library size factors
+  #   ## Take into account one sample at a time
+  #
+  #   ## Get sample IDs
+  #   ids <- .int_getSmplIDs(sfe = m_sfe, sample_id = TRUE)
+  #
+  #   ## Create a list of filtered SpatialFeatureExperiment objects
+  #   sfe_list <- lapply(ids, .int_sizeFactCalc, sfe = m_sfe, ...)
+  #
+  #   ## Merge the list of SpatialFeatureExperiment objects into one
+  #   sfeOut <- Reduce(function(x, y) cbind(x, y), sfe_list)
+  #
+  #   ## Clean up duplicate entries in the metadata slot
+  #   sfeOut <- .int_cleanMetaData(sfeOut = sfeOut)
+  #
+  #   ## Have a look at the size factors
+  #   print(.int_summarySizeFact(sfe = sfeOut, ids = ids))
+  #
+  #   ## Return the value
+  #   return(sfeOut)
+  # }
 }
 
 
@@ -106,20 +106,20 @@ computeLibSizeFactors.SpatialFeatureExperiment <-
 computeLibSizeFactors.MetaSpatialFeatureExperiment <-
   function(m_sfe,
            sample_id = TRUE,
-           type = NULL,
+           # type = NULL,
            ...) {
 
   ## Check valid type argument
-  if (is.null(type)) {
-    in_sample <- TRUE
-  } else {
-    type <- match.arg(type)
-    if (type == "intra") {
-      in_sample <- TRUE
-    } else {
-      in_sample <- FALSE
-    }
-  }
+  # if (is.null(type)) {
+  #   in_sample <- TRUE
+  # } else {
+  #   type <- match.arg(type)
+  #   if (type == "intra") {
+  #     in_sample <- TRUE
+  #   } else {
+  #     in_sample <- FALSE
+  #   }
+  # }
 
   if (sample_id) {
     ## Calculate library size factors

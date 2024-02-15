@@ -21,7 +21,7 @@ addSpatialNeighGraphs(
 )
 }
 \arguments{
-\item{msfe}{The metaSFE object. (A list of SFE objects)}
+\item{msfe}{The metaSFE object.}
 
 \item{sample_id}{character string, TRUE or NULL specifying sample/image
 identifier(s); here, TRUE is equivalent to all samples/images.}

@@ -11,7 +11,7 @@
 #' types of neighbour graph algorithms and distance models.
 #' The function wraps around `spdep`'s neighbour functions.
 #'
-#' @param msfe The metaSFE object. (A list of SFE objects)
+#' @param msfe The metaSFE object.
 #'
 #' @param sample_id character string, TRUE or NULL specifying sample/image
 #' identifier(s); here, TRUE is equivalent to all samples/images.

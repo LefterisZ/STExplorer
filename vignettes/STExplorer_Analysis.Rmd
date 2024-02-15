@@ -141,8 +141,8 @@ names(sampleDir) <- sampleNames
 ## The `addSFE` function is appending each sfe to a new slot inside the msfe.
 ## Do it one by one. I tried a for-loop but for a reason it overwrites the msfe instead of appending. 
 msfe <- addSFE(msfe,
-               read10xVisiumSFE(samples = sampleDir[2], 
-                      sample_id = sampleNames[2], 
+               read10xVisiumSFE(samples = sampleDir[1], 
+                      sample_id = sampleNames[1], 
                       type = "HDF5", 
                       data = "filtered", 
                       images = "lowres", 
@@ -209,27 +209,60 @@ At present, the dataset contains only on-tissue spots. However, datasets may hav
 
 ```{r 02_keep_on-tissue}
 ## Dataset dimensions before the filtering
-dim(msfe@sfe_data[["JBO022"]])
-
+for (id in sampleNames) {
+  message("Sample: ", id)
+  print(dim(msfe@sfe_data[[id]])) 
+}
 ```
 
 The next thing we need to do before we make decisions on how to quality *"trim"* the dataset is to calculate the percentage per spot of mitochodrial gene expression and store this information inside the `colData`. First of all, find the mitochrondrial genes - their gene names start with "MT-" or "mt-".
 
 Then find what proportion of reads in a spot's library are attributable to the expression of these genes. This uses a function, `addPerCellQC()` from `scater` (which in this instance is actually a wrapper around `scuttle`).
 
-```{r 03_QC_sfe1, message=FALSE, warning=FALSE}
-is_mito <- getSubset(msfe, sample_id = TRUE, subset = "(^MT-)|(^mt-)", set = "rowData", col_name = "symbol")
-msfe <- addPerLocQC(msfe, sample_id = "JBO022", gTruth = gTruth_list[["JBO022"]], assay = "counts", 2, subsets = list(mito = is_mito[["JBO022"]]))
-msfe <- addGeometries(msfe, samples = sampleDir["JBO022"], sample_id = "JBO022", res = "lowres")
-msfe <- addPerGeneQC(msfe, sample_id = "JBO022", assay = "counts", version = NULL, mirror = NULL)
+> **NOTE:** we suggest to place the below chunk inside a for-loop and let the 3 `add*` functions work on all samples within the `MSFE` object. Downstream, you will need the basic stats they introduce.
 
+```{r 03_QC_sfe1, message=TRUE, warning=FALSE}
+## Mark a subset of mitochondrial genes
+is_mito <- getSubset(msfe, 
+                     sample_id = TRUE, 
+                     subset = "(^MT-)|(^mt-)", 
+                     set = "rowData", 
+                     col_name = "symbol")
+
+for (id in sampleNames) {
+  message("Working on sample: ", id)
+  ## Add location-related statistics
+  msfe <- addPerLocQC(msfe, 
+                      sample_id = id, 
+                      gTruth = gTruth_list[[id]], 
+                      assay = "counts", 
+                      MARGIN = 2, 
+                      subsets = list(mito = is_mito[[id]]))
+  message("\tAdded location-related statistics")
+  
+  ## Add geometries
+  msfe <- addGeometries(msfe, 
+                        samples = sampleDir[id], 
+                        sample_id = id, 
+                        res = "fullres")
+  message("\tAdded geometries")
+  
+  ## Add gene/feature-related statistics
+  msfe <- addPerGeneQC(msfe, 
+                       sample_id = id, 
+                       assay = "counts", 
+                       version = NULL, 
+                       mirror = NULL)
+  message("\tAdded gene/feature-related statistics")
+}
 ## Keep in-tissue locations
 ## Use it only if you have loaded "raw" data and not "filtered"
 # sfe <- filterInTissue(sfe, sample_id = TRUE)
 
-colData(msfe@sfe_data[["JBO022"]])
-rowData(msfe@sfe_data[["JBO022"]])
-colGeometries(msfe@sfe_data[["JBO022"]])
+  
+head(colData(msfe@sfe_data[["JBO022"]]), 4)
+head(rowData(msfe@sfe_data[["JBO022"]]), 4)
+head(colGeometries(msfe@sfe_data[["JBO022"]]))
 ```
 
 After calculating a required metric, we need to apply a cut-off threshold for the metric to decide whether or not to keep each spot. It is important to consider an individual dataset on its own merits, as it might need slightly different cut-off values to be applied. As a result we cannot rely on identifying a single value to use every time and we need to rely on plotting these metrics and making a decision on a dataset-by-dataset basis.
@@ -262,25 +295,25 @@ ggsave(paste0("../data/graphics_out/", prfx, main, sfx, other, ".svg"),
 > We suggest you set one of the MetaSFE object's SFE obect and move on with the analysis like below. Alternatively you can replace the subsequent `sfe` instances with `msfe@sample_data[["YourSampleID"]]`
 
 ```{r}
-sfe <- getSFE(msfe, "JBO022")
+sfe <- getSFE(msfe, "JBO019")
 ```
 
 > **NOTE:** The below chunks contain multiple examples per function for illustrative purposes. It is intended to showcase all the possible combinations you can use. You don't have to run all of them each time.
 
-```{r 02_plot-maps-gTruth, fig.show = 'hold', out.width="50%", fig.height=5, fig.width=4}
+```{r 02_plot-maps-gTruth, fig.show = 'hold', out.width="50%", fig.height=5, fig.width=4, warning=FALSE}
 ## Plot spatial coordinates without annotations
 plotQC_spots(sfe, type = "spot", sample_id = NULL, in_tissue = TRUE)
 plotQC_spots(sfe, type = "hex", sample_id = "JBO022", in_tissue = TRUE)
 
 ## Plot spatial coordinates with annotations
-plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = "JBO022")
+plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = NULL)
 plotQC_spotsAnnotation(sfe = sfe, type = "hex", sample_id = "JBO022")
 ```
 
 ### Plot manual annotation with tissue image
 
 ```{r 03_QC_sfe2, message=FALSE, warning=FALSE}
-plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = "JBO022", annotate = TRUE, alpha = 0.3)
+plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = NULL, annotate = TRUE, alpha = 0.3)
 plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = "JBO022", annotate = TRUE, alpha = 0.3)
 
 
@@ -296,19 +329,20 @@ If the dataset we are analysing contains the number of cells that are present in
 
 The horizontal red line (argument `threshold` in the `plotQC` function) shows a first guess at a possible filtering threshold for library size based on the above histogram.
 
-```{r 03_QC_sfe3}
+```{r 03_QC_sfe3, warning=FALSE}
 # ----------------------------------------------- #
 ## Density and histogram of library sizes
 plotQC_hist(sfe, metric = "libsize")
-plotQC_hist(sfe, metric = "libsize", limits = c(500, 25000))
-plotQC_hist(sfe, metric = "libsize", limits = c(3000, 36500),
+plotQC_hist(sfe, metric = "libsize", limits = c(500, 35000))
+plotQC_hist(sfe, metric = "libsize", limits = c(2000, 36500),
             hist_args = list(bins = 100),
             dens_args = list(alpha = 0.5,
                              adjust = 0.5))
 
 ## Scatter plot library sizes vs number of cells
 ## Use this only if your dataset has information about the number of cells per spot
-plotQC_scat(sfe, metric = "libsize")
+
+# plotQC_scat(sfe, metric = "libsize")
 
 ## Select threshold
 sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 500, max_t = 25000)
@@ -335,7 +369,8 @@ plotQC_hist(sfe, metric = "detected", limits = c(250, NA))
 
 ## Scatter plot expressed genes vs number of cells
 ## Use this only if your dataset has information about the number of cells per spot
-plotQC_scat(sfe, metric = "detected")
+
+# plotQC_scat(sfe, metric = "detected")
 
 ## Select threshold
 sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 250, max_t = NA)
@@ -354,7 +389,7 @@ We calculated this data earlier on in this session, and can now investigate the 
 
 In this instance, a higher percentage of mitochondrial expression is the thing to avoid, so the threshold is an upper bound, rather than the lower bounds we have observed so far. Our suggestion this time is to cut-off at 15%. This suggestion comes after inspecting the distribution first.
 
-```{r 03_QC_sfe5}
+```{r 03_QC_sfe5, warning=FALSE}
 # ----------------------------------------------- #
 ## Density and histogram of percentage of mitochondrial expression
 plotQC_hist(sfe, metric = "mito")
@@ -362,7 +397,8 @@ plotQC_hist(sfe, metric = "mito", limits = c(NA, 15))
 
 ## Scatter plot % mito expression vs number of cells
 ## Use this only if your dataset has information about the number of cells per spot
-plotQC_scat(sfe, metric = "mito")
+
+# plotQC_scat(sfe, metric = "mito")
 
 ## Select threshold
 sfe <- setQCthresh_Mito(sfe, sample_id = TRUE, min_t = NA, max_t = 15)
@@ -387,7 +423,7 @@ plotQC_hist(sfe, metric = "cellCount")
 
 ```{r 02_cellsPerSpot-scatter, eval=FALSE, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
 ## plot number of expressed genes vs. number of cells per spot
-plotQC_scat(sfe, metric = "detected")
+# plotQC_scat(sfe, metric = "detected")
 ```
 
 If we see from both the histogram and the scatter plot there a tail of very high values, this could indicate problems for these spots. More specifically, if we see from the scatter plot that most of the spots with very high cell counts also tend to have lower numbers of expressed genes, this indicates problems with the experiment on these spots, and they should be removed.
@@ -431,7 +467,7 @@ Now that we finished setting our thresholds for each individual metric, we can c
 
 The `setQCtoDiscard_loc` includes the `filters` argument that allows you to select which filters will be taken into account for the final selection. If left to `TRUE` then all filters are used. If, for whatever reason, you want to use only part of the filters from earlier, then you can provide a character vector with the column names of the QC metrics to consider for filtering locations. QC metric columns begin with "qc_". You can always remind yourself of the column names by typing `colnames(colData(sfe))` in the console.
 
-```{r 03_QC_sfe6}
+```{r 03_QC_sfe6, warning=FALSE}
 # ----------------------------------------------- #
 ## Set the combined filtering threshold using the QC metrics
 sfe <- setQCtoDiscard_loc(sfe, sample_id = TRUE, filters = TRUE)
@@ -442,6 +478,13 @@ plotQC_filtered(sfe, metric = "discard", sample_id = TRUE)
 # ----------------------------------------------- #
 ## Remove combined set of low-quality spots
 sfe <- applyQCthresh_loc(sfe, sample_id = TRUE)
+
+dim(sfe)
+```
+As a good practise we suggest to add the quality-controlled `SFE` object back into the `MSFE` object.
+
+```{r update_MSFE}
+msfe <- addSFE(msfe, sfe)
 ```
 
 ## Normalisation of counts
@@ -459,14 +502,16 @@ Here we will be using methods from the `scater` [@McCarthy2017Apr] and `scran` [
 
 The `STExplorer`'s functions `computeLibSizeFactors` and `normaliseCounts` are wrappers of the `computeLibraryFactors` and `logNormCounts` functions from the `scate` package that enable them to be used with an `SpatialFeatureExperiment` object.
 
+> **NOTE:** this is a point of confusion. So far, we have exported a single `SFE` object from the `MSFE`, applied our filters to it and updated it in the `MSFE`. For the gene-level QC and counts normalisation, we suggest you do it using the msfe objects to save you time since it is slightly more standard. For the visualisations you can always select for which sample you want a plot providing `msfe@sfe-data[["sampleID"]]` instead of an `SFE` object.
+
+> **NOTE:** for future updates, we should change this and let the user run everything from within the `MSFE`. That way it creates less confussion.
+
 ### Log-tranformation of counts
 
 ```{r 03_LogNorm_sfe}
 ## Calculate library size factors
-sfe <- computeLibSizeFactors(sfe)
+msfe <- computeLibSizeFactors(msfe)
 ```
-
-As described above, the mean size factor is 1.0.
 
 ```{r 03_LogNorm_sfe2}
 ## Density and histogram of library sizes

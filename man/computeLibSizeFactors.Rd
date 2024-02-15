@@ -7,7 +7,7 @@
 \alias{.int_summarySizeFact}
 \title{Compute Library Size Factors in a SpatialFeatureExperiment}
 \usage{
-computeLibSizeFactors(m_sfe, sample_id, type = c("inter", "intra"), ...)
+computeLibSizeFactors(m_sfe, sample_id, ...)
 
 .int_sizeFactCalc(id, sfe, ...)
 
@@ -23,10 +23,6 @@ MetaSpatialFeatureExperiment.}
 one for each directory specified via samples. This parameter is ignored if
 the names of samples are not null (!is.null(names(samples))).}
 
-\item{type}{Character string, one of "inter" or "intra", indicating whether
-to calculate size factors within each sample ("intra") or across all samples
-("inter"). The default is "intra".}
-
 \item{...}{Additional arguments passed to \code{\link[scater]{computeLibraryFactors}}.}
 
 \item{id}{Character string, specifying the sample/image identifier.}
@@ -34,6 +30,10 @@ to calculate size factors within each sample ("intra") or across all samples
 \item{sfe}{A \code{SpatialFeatureExperiment} object.}
 
 \item{ids}{A character vector specifying sample/image identifiers.}
+
+\item{type}{Character string, one of "inter" or "intra", indicating whether
+to calculate size factors within each sample ("intra") or across all samples
+("inter"). The default is "intra".}
 }
 \value{
 A modified \code{SpatialFeatureExperiment} object with computed
