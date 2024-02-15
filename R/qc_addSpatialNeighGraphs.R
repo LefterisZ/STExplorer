@@ -124,7 +124,7 @@ addSpatialNeighGraphs <- function(msfe,
   ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Generate the graphs
-  msfe_int <- lapply(msfe[ids], .int_addSpNghGphs,
+  msfe_int <- lapply(msfe@sfe_data[ids], .int_addSpNghGphs,
                      # sample_id,
                      type = type,
                      style = style,
@@ -139,9 +139,9 @@ addSpatialNeighGraphs <- function(msfe,
 
   ## If specific samples where modified replace in the metaSFE list
   if (is.character(sample_id)) {
-    msfe[names(msfe_int)] <- msfe_int
+    msfe@sfe_data[names(msfe_int)] <- msfe_int
   } else {
-    msfe <- msfe_int
+    msfe@sfe_data <- msfe_int
   }
 
   return(msfe)

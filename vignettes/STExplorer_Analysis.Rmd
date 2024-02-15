@@ -141,8 +141,8 @@ names(sampleDir) <- sampleNames
 ## The `addSFE` function is appending each sfe to a new slot inside the msfe.
 ## Do it one by one. I tried a for-loop but for a reason it overwrites the msfe instead of appending. 
 msfe <- addSFE(msfe,
-               read10xVisiumSFE(samples = sampleDir[1], 
-                      sample_id = sampleNames[1], 
+               read10xVisiumSFE(samples = sampleDir[2], 
+                      sample_id = sampleNames[2], 
                       type = "HDF5", 
                       data = "filtered", 
                       images = "lowres", 
@@ -463,7 +463,7 @@ The `STExplorer`'s functions `computeLibSizeFactors` and `normaliseCounts` are w
 
 ```{r 03_LogNorm_sfe}
 ## Calculate library size factors
-msfe <- computeLibSizeFactors(msfe)
+sfe <- computeLibSizeFactors(sfe)
 ```
 
 As described above, the mean size factor is 1.0.
@@ -498,21 +498,21 @@ msfe <- perGeneLogMean(msfe)
 
 ```{r 03_GeneQC_sfe2}
 ## Zero expression genes
-meta_sfe <- setQCthresh_ZeroExpr(meta_sfe)
+msfe <- setQCthresh_ZeroExpr(msfe)
 
 ## Lowly expressed (noise?!) genes
-meta_sfe <- setQCthresh_LowLogMean(meta_sfe)
+msfe <- setQCthresh_LowLogMean(msfe)
 
 ## Remove mitochondrial and other genes
-meta_sfe <- setQCthresh_custom(meta_sfe, sample_id = TRUE, 1, qcMetric = is_mito)
+msfe <- setQCthresh_custom(msfe, sample_id = TRUE, 1, qcMetric = is_mito)
 
 ## QC discard Features
 ## Set the combined filtering threshold using the QC metrics
-meta_sfe <- setQCtoDiscard_feat(meta_sfe, filters = TRUE)
+msfe <- setQCtoDiscard_feat(msfe, filters = TRUE)
 
 ## FEATURE SELECTION
 ## Apply gene-level QC threshold
-meta_sfe <- applyQCthresh_feat(meta_sfe)
+msfe <- applyQCthresh_feat(msfe)
 ```
 
 In this dataset, the mitochondrial genes are too highly expressed and are not of major biological interest. As a result, if we are to identify true HVGs, we first need to remove the mitochondrial genes.
@@ -535,7 +535,7 @@ First we model the variance of the log-expression profiles for each gene, decomp
 
 ```{r 03_HVGs_sfe}
 ## Fit mean-variance relationship
-dec <- modelGeneVariance(meta_sfe, method = "Var")
+dec <- modelGeneVariance(msfe, method = "Var")
 
 ## Select top HVGs
 top_hvgs <- getTopHighVarGenes(dec,
@@ -606,12 +606,12 @@ In the below we choose one of the many possible ways of building a neighbour gra
 
 ```{r 03_spatial_weights_to_sfe}
 ## Add a neighbour graph using a weighted distance matrix
-meta_sfe <- addSpatialNeighGraphs(meta_sfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
+msfe <- addSpatialNeighGraphs(msfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
 
-colGraphs(meta_sfe[[1]])
+colGraphs(msfe[[1]])
 
 ## Calculate a simple distance matrix
-meta_sfe <- addDistMat(meta_sfe, p = 2)
+msfe <- addDistMat(msfe, p = 2)
 
 ```
 
@@ -619,11 +619,11 @@ We can use a `geom` from the `tidyterra` package (commonly used for map visualis
 
 ```{r 03_visualise_neighbours}
 ## Plot the neighbours graph
-plotNeighbourGraph(meta_sfe, sample_id = TRUE,
+plotNeighbourGraph(msfe, sample_id = TRUE,
                    res = "lowres", plotImage = TRUE)
-plotNeighbourGraph(meta_sfe, sample_id = "JBO019",
+plotNeighbourGraph(msfe, sample_id = "JBO019",
                    res = "lowres", plotImage = TRUE)
-plotNeighbourGraph(meta_sfe, sample_id = "JBO019",
+plotNeighbourGraph(msfe, sample_id = "JBO019",
                    res = "lowres", plotImage = FALSE)
 ```
 
@@ -645,7 +645,7 @@ Some other parameterisation is neccessary and these required parameters (as we h
 
 ```{r 04_set_parameters, eval=FALSE}
 ## Select the sample you would like to perform a GWPCA analysis
-sfe <- getSFE(meta_sfe, "JBO019")
+sfe <- getSFE(msfe, "JBO019")
 ## Get the gene names that are going to be evaluated
 vars = top_hvgs
 ## Set a fixed bandwidth
@@ -796,7 +796,7 @@ plotGWPCA_discr(pcagw, type = "map")
 
 ```{r 04_discrep3}
 ## Get location data for the discrepancies
-discrepancy_loc_dt <- getDiscrepancyLocData(m_sfe = meta_sfe, 
+discrepancy_loc_dt <- getDiscrepancyLocData(m_sfe = msfe, 
                                             gwpca = pcagw, 
                                             sample_id = "JBO019")
 ```
@@ -809,7 +809,7 @@ focus <- discrepancy_loc_dt$barcodes[1:2]
 bw = 3*sfe@metadata[["spotDiameter"]][["JBO019"]][["spot_diameter_fullres"]]
 
 # Plot the heatmap to visualise the genes that make this location an outlier
-plotGWPCA_discrHeatmap(m_sfe = meta_sfe,
+plotGWPCA_discrHeatmap(m_sfe = msfe,
                        assay = "logcounts",
                        vars = NULL,
                        focus = focus,
@@ -825,7 +825,7 @@ plotGWPCA_discrHeatmap(m_sfe = meta_sfe,
 ```
 
 ```{r 04_discrep5, message=FALSE}
-discrepancy_gene_dt <- getDiscrepancyGeneData(m_sfe = meta_sfe,
+discrepancy_gene_dt <- getDiscrepancyGeneData(m_sfe = msfe,
                                               assay = "logcounts",
                                               vars = NULL,
                                               focus = focus[2],

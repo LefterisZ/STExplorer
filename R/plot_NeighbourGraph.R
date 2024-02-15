@@ -41,20 +41,19 @@ plotNeighbourGraph <- function(msfe,
                                plotImage = TRUE,
                                ...) {
   ## Check arguments
-  # stopifnot(is(sfe, "SpatialFeatureExperiment"))
   res <- match.arg(res)
 
   ## Select samples
   ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Prepare neighbour graph data
-  nb_data_list <-  lapply(msfe[ids], .int_getNBdata)
+  nb_data_list <-  lapply(msfe@sfe_data[ids], .int_getNBdata)
   ## Fetch image data and transform to raster
   if (plotImage) {
-    image_list <- lapply(msfe[ids], .int_getImgDtMSFE, image_id = res)
+    image_list <- lapply(msfe@sfe_data[ids], .int_getImgDtMSFE, image_id = res)
   }
   ## Get capture area limits
-  limits_list <- lapply(msfe[ids], .int_getImgLims)
+  limits_list <- lapply(msfe@sfe_data[ids], .int_getImgLims)
 
   ## Plot
   plots <- lapply(ids,

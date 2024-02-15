@@ -196,7 +196,7 @@ normaliseCounts.SpatialFeatureExperiment <- function(m_sfe,
   }
 
   if (method == "log") {
-    m_sfe <- lapply(m_sfe, scater::logNormCounts, ...)
+    m_sfe <- scater::logNormCounts(m_sfe, ...)
   }
 
   return(m_sfe)
