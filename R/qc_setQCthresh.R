@@ -457,10 +457,20 @@ setQCtoDiscard_loc <- function(sfe, sample_id = TRUE, filters = TRUE) {
 #'
 #' @export
 setQCthresh_ZeroExpr <- function(msfe, sample_id = TRUE) {
-  ## Find genes without expression in each sample
-  msfe_int <- lapply(msfe, .int_isZero)
+  ## Select samples
+  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
-  return(msfe_int)
+  ## Find genes without expression in each sample
+  msfe_int <- lapply(msfe@sfe_data[ids], .int_isZero)
+
+  ## If specific samples where modified replace in the metaSFE list
+  if (is.character(sample_id)) {
+    msfe@sfe_data[names(msfe_int)] <- msfe_int
+  } else {
+    msfe@sfe_data <- msfe_int
+  }
+
+  return(msfe)
 }
 
 
@@ -508,19 +518,22 @@ setQCthresh_ZeroExpr <- function(msfe, sample_id = TRUE) {
 setQCthresh_LowLogMean <- function(msfe,
                                    threshold = 1,
                                    sample_id = TRUE) {
-  ## Get sample IDs
-  ids <- names(msfe)
-
-  ## Initialise list
-  msfe_int <- list()
+  ## Select samples
+  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Perform calculations
-  for (id in ids) {
-    msfe_int[[id]] <- .int_logLowMean(sfe = msfe[[id]],
-                                      threshold = threshold)
+  msfe_int <- lapply(msfe@sfe_data[ids],
+                     .int_logLowMean,
+                     threshold = threshold)
+
+  ## If specific samples where modified replace in the metaSFE list
+  if (is.character(sample_id)) {
+    msfe@sfe_data[names(msfe_int)] <- msfe_int
+  } else {
+    msfe@sfe_data <- msfe_int
   }
 
-  return(msfe_int)
+  return(msfe)
 }
 
 
@@ -539,17 +552,19 @@ setQCthresh_LowLogMean <- function(msfe,
 #' genes and the flagged genes are stored in a column in rowData. If columns is
 #' selected then the filters are applied to locations and the flagged locations
 #' are stored in a column in colData.
-#' @param qcMetric A vector of TRUE and FALSE for genes or locations that are
-#' going to be discarded. You need to have prepared this vector in advance. The
-#' vector needs to be of length equal to nrow(rowData(sfe)) if MARGIN == 1, or
-#' equal to nrow(colData(sfe)) if MARGIN == 2.
+#' @param qcMetric A list with vectors of TRUE and FALSE for genes or locations
+#' that are going to be discarded. You need to have prepared this vector in
+#' advance. The vector needs to be of length equal to nrow(rowData(sfe)) if
+#' MARGIN == 1, or equal to nrow(colData(sfe)) if MARGIN == 2. It is important
+#' that the list has as names the sample names. Even if You have one sample,
+#' please add it in a list.
 #'
 #' @return A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
 #' object with added columns indicating whether each gene or location passes
 #' the specified QC thresholds using custom metrics.
 #'
 #' @details The function sets QC thresholds for gene expression data using
-#' custom metrics provided in the `qcMetric` vector. The user can specify
+#' custom metrics provided in the `qcMetric` list vectors. The user can specify
 #' whether to apply the custom metric along rows (genes) or columns (samples)
 #' using the `MARGIN` argument. Genes or locations failing to meet the
 #' thresholds are flagged.
@@ -577,29 +592,28 @@ setQCthresh_LowLogMean <- function(msfe,
 #'                            qcMetric)
 #'
 #' @export
-setQCthresh_custom <- function(msfe, sample_id = TRUE, MARGIN, qcMetric) {
+setQCthresh_custom <- function(msfe,
+                               sample_id = TRUE,
+                               MARGIN,
+                               qcMetric) {
   ## Select samples
-  if (isTRUE(sample_id)) {
-    ids <- names(msfe)
-  } else if (is.character(sample_id)) {
-    ids <- sample_id
-  }
+  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Get QC name
   qc_name <- paste0("qc_", deparse(substitute(qcMetric)))
 
   ## Add QC metric
   if (MARGIN == 1) {
-    msfe_int <- lapply(msfe[ids], .int_custom_1, qcMetric, qc_name)
+    msfe_int <- lapply(msfe@sfe_data[ids], .int_custom_1, qcMetric, qc_name)
   } else if (MARGIN == 2) {
-    msfe_int <- lapply(msfe[ids], .int_custom_2, qcMetric, qc_name)
+    msfe_int <- lapply(msfe@sfe_data[ids], .int_custom_2, qcMetric, qc_name)
   }
 
   ## If specific samples where modified replace in the metaSFE list
   if (is.character(sample_id)) {
-    msfe[names(msfe_int)] <- msfe_int
+    msfe@sfe_data[names(msfe_int)] <- msfe_int
   } else {
-    msfe <- msfe_int
+    msfe@sfe_data <- msfe_int
   }
 
   return(msfe)
@@ -611,7 +625,10 @@ setQCthresh_custom <- function(msfe, sample_id = TRUE, MARGIN, qcMetric) {
 #' This function marks the features (genes) flagged for discarding based on
 #' specified QC metrics.
 #'
-#' @param msfe A SpatialFeatureExoeriment or a MetaSpatialFeatureExoeriment.
+#' @param msfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.
+#' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
+#' sample/image identifier(s). If \code{TRUE}, all samples/images are
+#' considered. If \code{NULL}, the first available entry is considered.
 #' @param filters Either TRUE to select all calculated QC metrics or a
 #' character vector with the column names of the QC metrics to consider for
 #' filtering features. QC metric columns begin with "qc_".
@@ -646,9 +663,14 @@ setQCthresh_custom <- function(msfe, sample_id = TRUE, MARGIN, qcMetric) {
 #' msfe <- setQCtoDiscard_feat(msfe, filters = TRUE)
 #'
 #' @export
-setQCtoDiscard_feat <- function(msfe, filters = TRUE) {
+setQCtoDiscard_feat <- function(msfe,
+                                sample_id = TRUE,
+                                filters = TRUE) {
+  ## Select samples
+  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
+
   ## Mark features to discard
-  msfe_int <- lapply(msfe, .int_featToDiscard, filters = filters)
+  msfe_int <- lapply(msfe@sfe_data[ids], .int_featToDiscard, filters = filters)
 
   ## Get a summary table
   tbl_list <- lapply(msfe_int, .int_summaryTable, filters = filters)
@@ -657,7 +679,14 @@ setQCtoDiscard_feat <- function(msfe, filters = TRUE) {
   cat("Number of locations filtered out:\n")
   print(rlist::list.rbind(tbl_list))
 
-  return(msfe_int)
+  ## If specific samples where modified replace in the metaSFE list
+  if (is.character(sample_id)) {
+    msfe@sfe_data[names(msfe_int)] <- msfe_int
+  } else {
+    msfe@sfe_data <- msfe_int
+  }
+
+  return(msfe)
 }
 
 
@@ -895,6 +924,10 @@ setQCtoDiscard_feat <- function(msfe, filters = TRUE) {
 #' @rdname dot-int_custom_1
 #'
 .int_custom_1 <- function(sfe, qcMetric, qc_name) {
+  id <- unique(sfe$sample_id)
+
+  qcMetric <- qcMetric[[id]]
+
   rowData(sfe)[[qc_name]] <- qcMetric
 
   return(sfe)
@@ -928,6 +961,10 @@ setQCtoDiscard_feat <- function(msfe, filters = TRUE) {
 #' @rdname dot-int_custom_2
 #'
 .int_custom_2 <- function(sfe, qcMetric, qc_name) {
+  id <- unique(sfe$sample_id)
+
+  qcMetric <- qcMetric[[id]]
+
   colData(sfe)[[qc_name]] <- qcMetric
 
   return(sfe)

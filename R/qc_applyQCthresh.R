@@ -65,7 +65,11 @@ applyQCthresh_loc <- function(sfe, sample_id = TRUE) {
 #' creating a new \code{MetaSpatialFeatureExperiment} with the filtered
 #' features.
 #'
-#' @param msfe A \code{MetaSpatialFeatureExperiment} object.
+#' @param msfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.
+#'
+#' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
+#' sample/image identifier(s). If \code{TRUE}, all samples/images are
+#' considered. If \code{NULL}, the first available entry is considered.
 #'
 #' @return A new \code{MetaSpatialFeatureExperiment} object with features that
 #' pass the QC thresholds.
@@ -91,16 +95,22 @@ applyQCthresh_loc <- function(sfe, sample_id = TRUE) {
 #' }
 #'
 #' @export
-applyQCthresh_feat <- function(msfe) {
-  ## Check arguments
-  ## When we will establish the metaSFE object remember to let it inherit the
-  ## SpatialFeatureExperiment class.
-  # stopifnot(is(msfe, "SpatialFeatureExperiment"))
+applyQCthresh_feat <- function(msfe,
+                               sample_id = TRUE) {
+  ## Select samples
+  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Filter genes
-  msfe_int <- lapply(msfe, .int_discardFeat)
+  msfe_int <- lapply(msfe@sfe_data[ids], .int_discardFeat)
 
-  return(msfe_int)
+  ## If specific samples where modified replace in the metaSFE list
+  if (is.character(sample_id)) {
+    msfe@sfe_data[names(msfe_int)] <- msfe_int
+  } else {
+    msfe@sfe_data <- msfe_int
+  }
+
+  return(msfe)
 }
 
 

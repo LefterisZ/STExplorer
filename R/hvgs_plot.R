@@ -45,7 +45,7 @@ plotGeneVariance <- function(dec, hvgs, sample_id = TRUE, ...) {
   # stopifnot(is(msfe, "SpatialFeatureExperiment"))
 
   ## Select samples
-  ids <- .int_getMSFEsmplID(msfe = dec, sample_id = sample_id)
+  ids <- .int_getListSmplIDs(list = dec, sample_id = sample_id)
 
   ## Get the curve fit and prepare the data frame
   fit_list <- lapply(ids, .int_getFit, dec = dec, hvgs = hvgs)
@@ -53,9 +53,9 @@ plotGeneVariance <- function(dec, hvgs, sample_id = TRUE, ...) {
 
   ## Plot the visualisation
   ggplot(data = fit_df,
-         aes(x = data$mean, y = data$var, colour = data$topHVGs)) +
+         aes(x = mean, y = var, colour = topHVGs)) +
     geom_point() +
-    geom_line(aes(y = data$trend), colour = "dodgerblue", linewidth = 1.5) +
+    geom_line(aes(y = trend), colour = "dodgerblue", linewidth = 1.5) +
     scale_colour_manual(values = c("black", "red")) +
     facet_wrap(~ sID) +
     labs(x = "Mean of log-expression",

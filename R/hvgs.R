@@ -66,11 +66,16 @@ modelGeneVariance <- function(msfe,
 
   ## Model Gene Variance
   var_int <- switch(method,
-                    Var = lapply(msfe[ids], scran::modelGeneVar, ...),
-                    VarPoisson = lapply(msfe[ids], scran::modelGeneVarByPoisson, ...),
-                    VarSpikes = lapply(msfe[ids], scran::modelGeneVarWithSpikes, ...),
-                    CV2 = lapply(msfe[ids], scran::modelGeneCV2, ...),
-                    CV2Spikes = lapply(msfe[ids], scran::modelGeneCV2WithSpikes, ...)
+                    Var = lapply(msfe@sfe_data[ids],
+                                 scran::modelGeneVar, ...),
+                    VarPoisson = lapply(msfe@sfe_data[ids],
+                                        scran::modelGeneVarByPoisson, ...),
+                    VarSpikes = lapply(msfe@sfe_data[ids],
+                                       scran::modelGeneVarWithSpikes, ...),
+                    CV2 = lapply(msfe@sfe_data[ids],
+                                 scran::modelGeneCV2, ...),
+                    CV2Spikes = lapply(msfe@sfe_data[ids],
+                                       scran::modelGeneCV2WithSpikes, ...)
   )
 
   return(var_int)
@@ -90,7 +95,8 @@ modelGeneVariance <- function(msfe,
 #' row per gene. Alternatively, a SpatialFeatureExperiment object, in which
 #' case it is supplied to modelGeneVar to generate the required DataFrame.
 #' @param sample_id TRUE selects all samples. Alternatively, provide a
-#' character vector with the sample IDs for filtering.
+#' character vector with the sample IDs for filtering or NULL to select the
+#' first available sample.
 #' @param ... Additional arguments to be passed to
 #' \code{\link[scran]{getTopHVGs}}.
 #'
@@ -120,11 +126,10 @@ modelGeneVariance <- function(msfe,
 #' @export
 getTopHighVarGenes <- function(stats, sample_id = TRUE, ...) {
   ## Check arguments
-  # stopifnot(is(msfe, "SpatialFeatureExperiment"))
   stopifnot(is.list(stats))
 
   ## Select samples
-  ids <- .int_getMSFEsmplID(msfe = stats, sample_id = sample_id)
+  ids <- .int_getListSmplIDs(list = stats, sample_id = sample_id)
 
   ## Get top high variable genes
   hvgs_int <- lapply(stats[ids], scran::getTopHVGs, ...)
@@ -132,3 +137,31 @@ getTopHighVarGenes <- function(stats, sample_id = TRUE, ...) {
   return(hvgs_int)
 }
 
+
+#' INTERNAL: Get Sample IDs from a named List
+#'
+#' This internal function extracts sample IDs from a list, based on the
+#' provided sample ID specification.
+#'
+#' @param list A list object containing sample information.
+#' @param sample_id Either a logical vector indicating the samples to include
+#' (if TRUE, all samples are included), or a character vector specifying the
+#' sample IDs to include. It is suggested to use a character vector to specify
+#' a specific sample, or NULL to select the first available sample.
+#'
+#' @return A character vector containing the selected sample IDs.
+#'
+#' @keywords internal
+#'
+#' @rdname dot-int_getListSmplIDs
+.int_getListSmplIDs <- function(list, sample_id) {
+  if (is.null(sample_id)) {
+    ids <- names(list)[1]
+  } else if (is.character(sample_id)) {
+    ids <- sample_id
+  } else if (sample_id) {
+    ids <- names(list)
+  }
+
+  return(ids)
+}

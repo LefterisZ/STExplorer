@@ -139,15 +139,20 @@ names(sampleDir) <- sampleNames
 
 ## Load sfe objects inside the msfe
 ## The `addSFE` function is appending each sfe to a new slot inside the msfe.
-## Do it one by one. I tried a for-loop but for a reason it overwrites the msfe instead of appending. 
-msfe <- addSFE(msfe,
-               read10xVisiumSFE(samples = sampleDir[1], 
-                      sample_id = sampleNames[1], 
+## For unknown reasons, the for-loop overwrites the msfe instead of appending. 
+## Please check the resulting msfe after running the for-loop. If you are missing 
+## samples, please add them one by one.
+for (i in seq_along(sampleNames)) {
+  msfe <- addSFE(msfe,
+               read10xVisiumSFE(samples = sampleDir[i], 
+                      sample_id = sampleNames[i], 
                       type = "HDF5", 
                       data = "filtered", 
                       images = "lowres", 
                       style = "W", 
                       zero.policy = TRUE))
+}
+
 
 ## BEWARE: There is a chance that you get the below error if you run this chunk within RMarkdown:
 ## Error in names(xyz) <- names(sfs) <- sids : 
@@ -295,7 +300,7 @@ ggsave(paste0("../data/graphics_out/", prfx, main, sfx, other, ".svg"),
 > We suggest you set one of the MetaSFE object's SFE obect and move on with the analysis like below. Alternatively you can replace the subsequent `sfe` instances with `msfe@sample_data[["YourSampleID"]]`
 
 ```{r}
-sfe <- getSFE(msfe, "JBO019")
+sfe <- getSFE(msfe, "JBO022")
 ```
 
 > **NOTE:** The below chunks contain multiple examples per function for illustrative purposes. It is intended to showcase all the possible combinations you can use. You don't have to run all of them each time.
@@ -345,7 +350,7 @@ plotQC_hist(sfe, metric = "libsize", limits = c(2000, 36500),
 # plotQC_scat(sfe, metric = "libsize")
 
 ## Select threshold
-sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 500, max_t = 25000)
+sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 500, max_t = 32000)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
@@ -365,7 +370,7 @@ Finally, again as before, we apply the chosen threshold to flag spots with (in t
 # ----------------------------------------------- #
 ## Density and histogram of expressed genes
 plotQC_hist(sfe, metric = "detected")
-plotQC_hist(sfe, metric = "detected", limits = c(250, NA))
+plotQC_hist(sfe, metric = "detected", limits = c(500, NA))
 
 ## Scatter plot expressed genes vs number of cells
 ## Use this only if your dataset has information about the number of cells per spot
@@ -373,7 +378,7 @@ plotQC_hist(sfe, metric = "detected", limits = c(250, NA))
 # plotQC_scat(sfe, metric = "detected")
 
 ## Select threshold
-sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 250, max_t = NA)
+sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 500, max_t = NA)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "detected", sample_id = TRUE)
@@ -487,6 +492,8 @@ As a good practise we suggest to add the quality-controlled `SFE` object back in
 msfe <- addSFE(msfe, sfe)
 ```
 
+> At this point, we suggest you run the preprocess steps for all other samples before you move on.
+
 ## Normalisation of counts
 
 ### Background
@@ -516,6 +523,9 @@ msfe <- computeLibSizeFactors(msfe)
 ```{r 03_LogNorm_sfe2}
 ## Density and histogram of library sizes
 plotQC_sizeFactors(msfe@sfe_data[["JBO022"]])
+plotQC_sizeFactors(msfe@sfe_data[["JBO019"]])
+
+## NOTE for developer: need to give option to plot size factor distribution for all samples at once too.
 ```
 
 The log-transformation that takes place is a log2-transformation and in order to avoid *- Infinity* values we add a pseudo value of 1. Both the log2- transformation and the pseudocount of 1 are defaults in this method.
@@ -535,11 +545,16 @@ SummarizedExperiment::assayNames(msfe@sfe_data[["JBO022"]])
 ```{r 03_GeneQC_sfe1}
 ## Calculate the mean of log counts over the number of locations a gene is present
 msfe <- perGeneLogMean(msfe)
+
+## Look for the `s_logMean` column in the `rowData`
+colnames(rowData(msfe@sfe_data[["JBO022"]]))
 ```
 
 ### Set and apply filters
 
 **NOTE** - Feature selection is a complicated process with significant impacts on the chosen downstream analysis.
+
+> **NOTE:** in the below code chunk we use `sample_id = TRUE` to apply the thresholds over all `SFE` samples within the `MSFE` object.
 
 ```{r 03_GeneQC_sfe2}
 ## Zero expression genes
@@ -549,7 +564,8 @@ msfe <- setQCthresh_ZeroExpr(msfe)
 msfe <- setQCthresh_LowLogMean(msfe)
 
 ## Remove mitochondrial and other genes
-msfe <- setQCthresh_custom(msfe, sample_id = TRUE, 1, qcMetric = is_mito)
+##    Use it only if you feel it is right for your dataset
+msfe <- setQCthresh_custom(msfe, MARGIN = 1, qcMetric = is_mito)
 
 ## QC discard Features
 ## Set the combined filtering threshold using the QC metrics
@@ -580,7 +596,7 @@ First we model the variance of the log-expression profiles for each gene, decomp
 
 ```{r 03_HVGs_sfe}
 ## Fit mean-variance relationship
-dec <- modelGeneVariance(msfe, method = "Var")
+dec <- modelGeneVariance(msfe, sample_id = TRUE, method = "Var")
 
 ## Select top HVGs
 top_hvgs <- getTopHighVarGenes(dec,
@@ -653,7 +669,7 @@ In the below we choose one of the many possible ways of building a neighbour gra
 ## Add a neighbour graph using a weighted distance matrix
 msfe <- addSpatialNeighGraphs(msfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
 
-colGraphs(msfe[[1]])
+colGraphs(msfe@sfe_data[["JBO022"]])
 
 ## Calculate a simple distance matrix
 msfe <- addDistMat(msfe, p = 2)
@@ -666,7 +682,7 @@ We can use a `geom` from the `tidyterra` package (commonly used for map visualis
 ## Plot the neighbours graph
 plotNeighbourGraph(msfe, sample_id = TRUE,
                    res = "lowres", plotImage = TRUE)
-plotNeighbourGraph(msfe, sample_id = "JBO019",
+plotNeighbourGraph(msfe, sample_id = "JBO022",
                    res = "lowres", plotImage = TRUE)
 plotNeighbourGraph(msfe, sample_id = "JBO019",
                    res = "lowres", plotImage = FALSE)
@@ -690,7 +706,7 @@ Some other parameterisation is neccessary and these required parameters (as we h
 
 ```{r 04_set_parameters, eval=FALSE}
 ## Select the sample you would like to perform a GWPCA analysis
-sfe <- getSFE(msfe, "JBO019")
+sfe <- getSFE(msfe, "JBO022")
 ## Get the gene names that are going to be evaluated
 vars = top_hvgs
 ## Set a fixed bandwidth

@@ -81,7 +81,7 @@ addPerGeneQC <- function(m_sfe,
   samples = unique(colData(sfe)$sample_id)
 
   for (s in samples) {
-    message(paste0("calculating stats for sample: ", s))
+    # message(paste0("calculating stats for sample: ", s))
     ## Add locational sparsity
     sfe <- get.QC.Sparsity(sfe, assay = assay, MARGIN = 1,
                            sampleNo = length(samples), .sample_id = s)
