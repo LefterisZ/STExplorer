@@ -76,7 +76,7 @@ library(readr)
 # library(parallel)
 # library(cols4all)
 # library(pheatmap)
-# library(RColorBrewer)
+library(RColorBrewer)
 ```
 
 The STExplorer package utilises methods from Geography's spatial data analysis techniques and packages to perform a spatially-aware and spatially-weighted analysis of spatial transcriptomics data. Below is a series of packages from the field of Geography that STExplorer depends on in one way or another.
@@ -708,9 +708,9 @@ Some other parameterisation is neccessary and these required parameters (as we h
 ## Select the sample you would like to perform a GWPCA analysis
 sfe <- getSFE(msfe, "JBO022")
 ## Get the gene names that are going to be evaluated
-vars = top_hvgs
+vars = top_hvgs[["JBO022"]]
 ## Set a fixed bandwidth
-bw = 6*sfe@metadata[["spotDiameter"]][["JBO019"]][["spot_diameter_fullres"]]
+bw = 6*sfe@metadata[["spotDiameter"]][["JBO022"]][["spot_diameter_fullres"]]
 ## Set the number of components to be retained
 k = 20
 ## Set the kernel to be used
@@ -727,6 +727,14 @@ scores = FALSE
 robust = FALSE
 ## Make a cluster for parallel computing (otherwise GWPCA is slow!)
 my.cl <- makeClusterGWPCA(type = "FORK")
+
+## If you are a Windows user then, you need to generate a cluster using
+## the default PSOCK style:
+## 
+##    my.cl <- makeClusterGWPCA(spec = 7, type = "PSOCK")
+##
+## 'spec' is the number of clusters. Make sure you leave enough cores for your
+## computer to keep running all other essential utilities.
 ```
 
 The bandwidth defines a radius around each spot - every spot that falls inside this radius is considered a neighbour. We can set bandwidth as a fixed value (as here) or we can select the bandwidth automatically. Without going into detail here, this is achieved by a form of cross validation, where each observation is omitted, and it is attempted to reconstruct the values on the basis of principal components, derived from the other observations. The bandwidth achieving the optimal results is the one selected. For a complete explanation, see @Harris2011Oct. The function `bw.gwpca` from `GWmodel` can be used to computes this.
@@ -859,7 +867,7 @@ plotGWPCA_discr(pcagw, type = "map")
 ## Get location data for the discrepancies
 discrepancy_loc_dt <- getDiscrepancyLocData(m_sfe = msfe, 
                                             gwpca = pcagw, 
-                                            sample_id = "JBO019")
+                                            sample_id = "JBO022")
 ```
 
 Another possibility to understand the nature of the outlier is a parallel coordinates heatmap. Here, each observation neighbouring the location that has been found to be an outlier is shown as a column with the genes in rows. Since here we are investigating local outliers, one particular observation is highlighted in red - the outlier - and the remaining ones in grey, but with the intensity of the grey fading according to their distance from the red observation. This enables you to see what characteristic the red observation has that means it as outlying from its neighbours. The plot can be created using `STExplorerDev::plotGWPCA_discrHeatmap`:
@@ -867,7 +875,7 @@ Another possibility to understand the nature of the outlier is a parallel coordi
 ```{r 04_discrep4, message=FALSE, fig.show='hold', fig.height=15, fig.width=9}
 head(discrepancy_loc_dt)
 focus <- discrepancy_loc_dt$barcodes[1:2]
-bw = 3*sfe@metadata[["spotDiameter"]][["JBO019"]][["spot_diameter_fullres"]]
+bw = 3*sfe@metadata[["spotDiameter"]][["JBO022"]][["spot_diameter_fullres"]]
 
 # Plot the heatmap to visualise the genes that make this location an outlier
 plotGWPCA_discrHeatmap(m_sfe = msfe,
@@ -876,7 +884,7 @@ plotGWPCA_discrHeatmap(m_sfe = msfe,
                        focus = focus,
                        dMetric = "euclidean", 
                        sample_id = "JBO019",
-                       bw = bw, 
+                       diam = bw, 
                        mean.diff = 1, 
                        show.vars = "top", 
                        scale = "row", 
@@ -891,8 +899,8 @@ discrepancy_gene_dt <- getDiscrepancyGeneData(m_sfe = msfe,
                                               vars = NULL,
                                               focus = focus[2],
                                               dMetric = "euclidean", 
-                                              sample_id = "JBO019",
-                                              bw = bw, 
+                                              sample_id = "JBO022",
+                                              diam = bw, 
                                               mean.diff = 1, 
                                               show.vars = "top",
                                               exportExpression = TRUE)
@@ -915,7 +923,7 @@ If the MSigDB is used, it is advisable to check the different classes and sub-cl
 ```{r functional_clust2, message=FALSE}
 viewCollections()
 
-```
+  ```
 
 The next step is to generate the term-to-gene, 2-column data frame. Again here, a user may skip this step if they already have a term-to-gene 2-column data frame.
 
@@ -927,6 +935,14 @@ t2g <- getTerm2Gene(msig_data = msigdb, cat = "C2", subcat = "CP")
 Now that we have a term-to-gene data frame, we can perform functional clustering
 
 ```{r functional_clust4, message=FALSE}
+## If you are a Windows user then, you need to generate a cluster using
+## the default PSOCK style:
+## 
+##    my.cl <- makeClusterGWPCA(spec = 7, type = "PSOCK")
+##
+## 'spec' is the number of clusters. Make sure you leave enough cores for your
+## computer to keep running all other essential utilities.
+
 gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
                                        pc = 1,
                                        genes_no = 1,
@@ -937,7 +953,7 @@ gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
                                        pAdjustMethod = "fdr",
                                        scoreType = "std",
                                        nPermSimple = 10000,
-                                       mc.cores = 4)
+                                       mc.cores = 1)
 
 ```
 
@@ -1011,7 +1027,7 @@ If you do not define a certain parameter, the parameter will be set to its defau
 ### Reduce dimensions using NMF
 
 ```{r fgwc_nmf}
-sfe_nmf <- fgwc_nmf(sfe, sample_id = "JBO019", top_hvgs = top_hvgs)
+sfe_nmf <- fgwc_nmf(sfe, sample_id = "JBO022", top_hvgs = top_hvgs[["JBO022"]])
 
 ```
 
@@ -1025,14 +1041,14 @@ fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
 ### Run FGWC
 
 ```{r fgwc}
-fgwc <- fgwcSTE(sfe, "JBO019", data = sfe_nmf, dMetric = "euclidean", fgwc_param = fgwc_param)
+fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", fgwc_param = fgwc_param)
 
 ```
 
 ### Plot the highest membership clusters
 
 ```{r fgwc_plot-single}
-plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019")
+plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
@@ -1047,7 +1063,7 @@ knitr::include_graphics("./images/tissue_annotation_gtruth.png")
 Nevertheless, this is not an accurate depiction of the clustering results. A more accurate representation is the one shown below. There, we show maps of percentages from all clusters side-by-side, and we can investigate the ecotones that might exist between clusters.
 
 ```{r fgwc_plot-multi}
-plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019")
+plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
@@ -1077,7 +1093,7 @@ If no subtype exists, add an empty character string using: `""`
 markers <- data(markers)
 
 ## Plot the heatmap
-heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO019", markers = markers, cluster_no = 3)
+heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 3)
 
 ```
 
@@ -1185,7 +1201,7 @@ Moran’s correlation coefficient, known as Moran’s I, is a univariate measure
 ### Moran's I
 
 ```{r moran-global}
-sfe <- moranGlobalIPerm(sfe, sample_id = "JBO019", genes = TRUE, mc.cores = 1)
+sfe <- moranGlobalIPerm(sfe, sample_id = "JBO022", genes = TRUE, mc.cores = 1)
 
 head(rowData(sfe))
 
