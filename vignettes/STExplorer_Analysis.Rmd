@@ -143,6 +143,7 @@ names(sampleDir) <- sampleNames
 ## Please check the resulting msfe after running the for-loop. If you are missing 
 ## samples, please add them one by one.
 for (i in seq_along(sampleNames)) {
+  message("Adding sample: ", sampleNames[i])
   msfe <- addSFE(msfe,
                read10xVisiumSFE(samples = sampleDir[i], 
                       sample_id = sampleNames[i], 
@@ -923,7 +924,7 @@ If the MSigDB is used, it is advisable to check the different classes and sub-cl
 ```{r functional_clust2, message=FALSE}
 viewCollections()
 
-  ```
+```
 
 The next step is to generate the term-to-gene, 2-column data frame. Again here, a user may skip this step if they already have a term-to-gene 2-column data frame.
 
@@ -953,7 +954,7 @@ gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
                                        pAdjustMethod = "fdr",
                                        scoreType = "std",
                                        nPermSimple = 10000,
-                                       mc.cores = 1)
+                                       mc.cores = 7)
 
 ```
 
