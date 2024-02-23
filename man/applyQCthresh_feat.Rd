@@ -4,10 +4,14 @@
 \alias{applyQCthresh_feat}
 \title{Apply Quality Control Thresholds to MetaSpatialFeatureExperiment}
 \usage{
-applyQCthresh_feat(msfe)
+applyQCthresh_feat(msfe, sample_id = TRUE)
 }
 \arguments{
-\item{msfe}{A \code{MetaSpatialFeatureExperiment} object.}
+\item{msfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.}
+
+\item{sample_id}{A character string, \code{TRUE}, or \code{NULL} specifying
+sample/image identifier(s). If \code{TRUE}, all samples/images are
+considered. If \code{NULL}, the first available entry is considered.}
 }
 \value{
 A new \code{MetaSpatialFeatureExperiment} object with features that

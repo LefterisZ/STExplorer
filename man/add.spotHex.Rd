@@ -4,7 +4,13 @@
 \alias{add.spotHex}
 \title{Add Hexagonal geometries}
 \usage{
-add.spotHex(sfe, samples, sample_id, res = c("lowres", "hires", "fullres"))
+add.spotHex(
+  sfe,
+  samples,
+  sample_id,
+  res = c("lowres", "hires", "fullres"),
+  flipped
+)
 }
 \arguments{
 \item{sfe}{The \code{SpatialFeaturesExperiment} object.}

@@ -12,7 +12,8 @@ row per gene. Alternatively, a SpatialFeatureExperiment object, in which
 case it is supplied to modelGeneVar to generate the required DataFrame.}
 
 \item{sample_id}{TRUE selects all samples. Alternatively, provide a
-character vector with the sample IDs for filtering.}
+character vector with the sample IDs for filtering or NULL to select the
+first available sample.}
 
 \item{...}{Additional arguments to be passed to
 \code{\link[scran]{getTopHVGs}}.}

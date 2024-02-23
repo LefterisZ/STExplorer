@@ -5,7 +5,7 @@
 \alias{.int_spotHex_gen}
 \title{Internal: generate perimeter spots}
 \usage{
-.int_spotHex_gen(subsetList, .sp_diam)
+.int_spotHex_gen(subsetList, sp_diam, flipped)
 }
 \arguments{
 \item{subsetList}{A list containing subsets of spot data frames.}

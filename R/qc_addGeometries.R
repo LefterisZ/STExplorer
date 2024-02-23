@@ -20,11 +20,22 @@
 #' @param res The desired resolution. Can take one of "lowres", "hires",
 #' or "fullres".
 #'
+#' @param flipped Default is FALSE. This argument is important for 10X Visium
+#' data. See details below.
+#'
 #' @details
 #' This function adds centroid and hexagon geometries to the
 #' \code{colGeometries} slot of the SpatialFeatureExperiment object. It
 #' calculates the spot diameter and adds spot centroids and hexagon geometries
 #' accordingly.
+#' About the `flipped` argument. Leave it as is and change it only if you see an
+#' error like the one discussed in the vignette at the preprocessing step. 10X
+#' Visium data sometimes are flipped. This means that the array layout and the
+#' image pixel array are not on a same coordinate space but, most of the times,
+#' the image is Y-flipped or rotated. If setting the flipped to `TRUE` doesn't
+#' solve the occurring error, the please submit an issue at the GitHub repo of
+#' STExplorer: https://github.com/LefterisZ/STExplorer/issues. The developers
+#' will try to solve it for you.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -52,7 +63,8 @@
 addGeometries <- function(m_sfe,
                           samples,
                           sample_id,
-                          res = c("lowres", "hires", "fullres")) {
+                          res = c("lowres", "hires", "fullres"),
+                          flipped = FALSE) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
@@ -73,7 +85,8 @@ addGeometries <- function(m_sfe,
   sfe <- add.spotHex(sfe = sfe,
                      samples = samples,
                      sample_id = sample_id,
-                     res = res)
+                     res = res,
+                     flipped = flipped)
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)

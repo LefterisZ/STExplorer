@@ -20,10 +20,12 @@ genes and the flagged genes are stored in a column in rowData. If columns is
 selected then the filters are applied to locations and the flagged locations
 are stored in a column in colData.}
 
-\item{qcMetric}{A vector of TRUE and FALSE for genes or locations that are
-going to be discarded. You need to have prepared this vector in advance. The
-vector needs to be of length equal to nrow(rowData(sfe)) if MARGIN == 1, or
-equal to nrow(colData(sfe)) if MARGIN == 2.}
+\item{qcMetric}{A list with vectors of TRUE and FALSE for genes or locations
+that are going to be discarded. You need to have prepared this vector in
+advance. The vector needs to be of length equal to nrow(rowData(sfe)) if
+MARGIN == 1, or equal to nrow(colData(sfe)) if MARGIN == 2. It is important
+that the list has as names the sample names. Even if You have one sample,
+please add it in a list.}
 }
 \value{
 A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
@@ -36,7 +38,7 @@ gene expression data or for location data.
 }
 \details{
 The function sets QC thresholds for gene expression data using
-custom metrics provided in the \code{qcMetric} vector. The user can specify
+custom metrics provided in the \code{qcMetric} list vectors. The user can specify
 whether to apply the custom metric along rows (genes) or columns (samples)
 using the \code{MARGIN} argument. Genes or locations failing to meet the
 thresholds are flagged.

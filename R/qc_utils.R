@@ -289,7 +289,8 @@ add.spotCntd <- function(sfe, sample_id) {
 add.spotHex <- function(sfe,
                         samples,
                         sample_id,
-                        res = c("lowres", "hires", "fullres")) {
+                        res = c("lowres", "hires", "fullres"),
+                        flipped) {
   ## Prepare required data
   res <- match.arg(res)
   res <- .int_resSwitch(res)
@@ -299,7 +300,7 @@ add.spotHex <- function(sfe,
 
   for (i in seq_along(sample_id)) {
     ## Get spot diameter
-    .sp_diam <- metadata(sfe)$spotDiameter[[sample_id[i]]][[res]]
+    sp_diam <- metadata(sfe)$spotDiameter[[sample_id[i]]][[res]]
     data <- read.csv(file.path(samples[i], "outs/spatial",
                                "tissue_positions_list.csv"),
                      stringsAsFactors = FALSE, header = FALSE)
@@ -334,7 +335,9 @@ add.spotHex <- function(sfe,
     int_list_subset <- .int_spotHex_subset(int_list_minMax, cData_sub, data)
 
     ## Generate the perimeter spots
-    int_df_perim <- .int_spotHex_gen(int_list_subset, .sp_diam)
+    int_df_perim <- .int_spotHex_gen(int_list_subset,
+                                     sp_diam,
+                                     flipped = flipped)
 
     ## Add them to the rest of the data
     dtPerim <- rbind(int_df_perim,
@@ -911,7 +914,7 @@ spot.diameter <- function(sfe,
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 ## Generate the perimeter spots only where they are needed
-.int_spotHex_gen <- function(subsetList, .sp_diam) {
+.int_spotHex_gen <- function(subsetList, sp_diam, flipped) {
   which <- !unlist(lapply(subsetList, isEmpty))
 
   subsetListNames <- names(subsetList)
@@ -920,22 +923,42 @@ spot.diameter <- function(sfe,
 
   for (i in seq_along(subsetListNames)) {
     name <- subsetListNames[i]
-    if (which[subsetListNames[i]]) {
+    if (flipped) {
       dtList[[i]] <- as.data.frame(subsetList[[name]]) %>%
         mutate(Barcode = paste0(Barcode, ".perim"),
                Section = 2)
 
       if (name %in% c("spC_Ymax", "spC_Ymax1", "spC_Ymin", "spC_Ymin1")) {
         if (name %in% c("spC_Ymax", "spC_Ymax1")) {
-          dtList[[i]]$Image_X <- dtList[[i]]$Image_X - (3 * .sp_diam)
+          dtList[[i]]$Image_X <- dtList[[i]]$Image_X - (3 * sp_diam)
         } else {
-          dtList[[i]]$Image_X <- dtList[[i]]$Image_X + (3 * .sp_diam)
+          dtList[[i]]$Image_X <- dtList[[i]]$Image_X + (3 * sp_diam)
         }
       } else {
         if (name %in% c("spC_Xmax", "spC_Xmax1")) {
-          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y - (1.8 * .sp_diam)
+          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y - (1.8 * sp_diam)
         } else {
-          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y + (1.8 * .sp_diam)
+          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y + (1.8 * sp_diam)
+        }
+      }
+      modifiedDFs[[name]] <- dtList[[i]]
+
+    } else if (which[subsetListNames[i]]) {
+      dtList[[i]] <- as.data.frame(subsetList[[name]]) %>%
+        mutate(Barcode = paste0(Barcode, ".perim"),
+               Section = 2)
+
+      if (name %in% c("spC_Ymax", "spC_Ymax1", "spC_Ymin", "spC_Ymin1")) {
+        if (name %in% c("spC_Ymax", "spC_Ymax1")) {
+          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y + (3 * sp_diam)
+        } else {
+          dtList[[i]]$Image_Y <- dtList[[i]]$Image_Y - (3 * sp_diam)
+        }
+      } else {
+        if (name %in% c("spC_Xmax", "spC_Xmax1")) {
+          dtList[[i]]$Image_X <- dtList[[i]]$Image_X + (1.8 * sp_diam)
+        } else {
+          dtList[[i]]$Image_X <- dtList[[i]]$Image_X - (1.8 * sp_diam)
         }
       }
 

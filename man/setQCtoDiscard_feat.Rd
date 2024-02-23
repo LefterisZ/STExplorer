@@ -4,10 +4,14 @@
 \alias{setQCtoDiscard_feat}
 \title{Set QC Thresholds for Discarding Features}
 \usage{
-setQCtoDiscard_feat(msfe, filters = TRUE)
+setQCtoDiscard_feat(msfe, sample_id = TRUE, filters = TRUE)
 }
 \arguments{
-\item{msfe}{A SpatialFeatureExoeriment or a MetaSpatialFeatureExoeriment.}
+\item{msfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.}
+
+\item{sample_id}{A character string, \code{TRUE}, or \code{NULL} specifying
+sample/image identifier(s). If \code{TRUE}, all samples/images are
+considered. If \code{NULL}, the first available entry is considered.}
 
 \item{filters}{Either TRUE to select all calculated QC metrics or a
 character vector with the column names of the QC metrics to consider for

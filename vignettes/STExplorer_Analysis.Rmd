@@ -250,7 +250,8 @@ for (id in sampleNames) {
   msfe <- addGeometries(msfe, 
                         samples = sampleDir[id], 
                         sample_id = id, 
-                        res = "fullres")
+                        res = "fullres",
+                        flipped = FALSE)
   message("\tAdded geometries")
   
   ## Add gene/feature-related statistics
@@ -269,6 +270,18 @@ for (id in sampleNames) {
 head(colData(msfe@sfe_data[["JBO022"]]), 4)
 head(rowData(msfe@sfe_data[["JBO022"]]), 4)
 head(colGeometries(msfe@sfe_data[["JBO022"]]))
+
+## If you get the below error when running the `addGeometries`:
+##
+##    Error in `.rowNamesDF<-`(x, value = value) : invalid 'row.names' length
+##
+## Try changing the `flipped` argument from the default FALSE to TRUE. If this 
+## doesn't solve the problem, then please submit an issue on GitHub:
+##
+##    https://github.com/LefterisZ/STExplorer/issues
+##
+## also provide via email the `tissue_positions_list.csv` file for the sample 
+## in question. We will try and solve the issue.
 ```
 
 After calculating a required metric, we need to apply a cut-off threshold for the metric to decide whether or not to keep each spot. It is important to consider an individual dataset on its own merits, as it might need slightly different cut-off values to be applied. As a result we cannot rely on identifying a single value to use every time and we need to rely on plotting these metrics and making a decision on a dataset-by-dataset basis.

@@ -4,7 +4,13 @@
 \alias{addGeometries}
 \title{#' Add centroid and hexagon geometries to SpatialFeatureExperiment object}
 \usage{
-addGeometries(m_sfe, samples, sample_id, res = c("lowres", "hires", "fullres"))
+addGeometries(
+  m_sfe,
+  samples,
+  sample_id,
+  res = c("lowres", "hires", "fullres"),
+  flipped = FALSE
+)
 }
 \arguments{
 \item{m_sfe}{An object of class SpatialFeatureExperiment or
@@ -20,6 +26,9 @@ the names of samples are not null (!is.null(names(samples))).}
 
 \item{res}{The desired resolution. Can take one of "lowres", "hires",
 or "fullres".}
+
+\item{flipped}{Default is FALSE. This argument is important for 10X Visium
+data. See details below.}
 }
 \description{
 A function to add centroid and hexagon geometries in the \code{colGeometries}
@@ -30,6 +39,14 @@ This function adds centroid and hexagon geometries to the
 \code{colGeometries} slot of the SpatialFeatureExperiment object. It
 calculates the spot diameter and adds spot centroids and hexagon geometries
 accordingly.
+About the \code{flipped} argument. Leave it as is and change it only if you see an
+error like the one discussed in the vignette at the preprocessing step. 10X
+Visium data sometimes are flipped. This means that the array layout and the
+image pixel array are not on a same coordinate space but, most of the times,
+the image is Y-flipped or rotated. If setting the flipped to \code{TRUE} doesn't
+solve the occurring error, the please submit an issue at the GitHub repo of
+STExplorer: https://github.com/LefterisZ/STExplorer/issues. The developers
+will try to solve it for you.
 }
 \examples{
 \dontrun{
