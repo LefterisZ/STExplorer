@@ -310,7 +310,6 @@ ggsave(paste0("../data/graphics_out/", prfx, main, sfx, other, ".svg"),
 
 ```
 
-
 > We suggest you set one of the MetaSFE object's SFE obect and move on with the analysis like below. Alternatively you can replace the subsequent `sfe` instances with `msfe@sample_data[["YourSampleID"]]`
 
 ```{r}
@@ -368,6 +367,13 @@ sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 500, max_t = 32000)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
+
+## An idea to automate the thresholding by Antonis Giakountis
+##
+# msfe@sfe_data[[i]] <- setQCthresh_LibSize(msfe@sfe_data[[i]], 
+#                                           sample_id = TRUE, 
+#                                           min_t = quantile(msfe@sfe_data[[i]]@colData$sum, probs = c(.005)), 
+#                                           max_t = quantile(msfe@sfe_data[[i]]@colData$sum, probs = c(.99)))
 ```
 
 We need to keep in mind here that the threshold is, to an extent, arbitrary. It is therefore important to look at the number of spots that are left out of the dataset by this choice of cut-off value, and also have a look at their putative spatial patterns. If we filtered out spots with biological relevance, then we should observe some patterns on the tissue map that correlate with some of the known biological structures of the tissue. If we do observe such a phenomenon, we have probably set our threshold too high (i.e. not permissive enough).
@@ -454,10 +460,10 @@ sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, min_t = NA, max_t = 25)
 plotQC_filtered(sfe, metric = "cellCount", sample_id = TRUE)
 
 ```
+
 We still need to check if there is a spatial pattern to the discarded spots. If it does not appear to be correlated with the known biological features then it is safe to remove them. The discarded spots are typically at the edges of the tissue. It seems plausible that something has gone wrong with the cell segmentation on the edges of the images, so it makes sense to remove these spots.
 
 > **NOTE:** aslo remember that a tissue slice can be accidentaly folded on the edges while placed on the slide. This is another reason to look out for low quality on the tissue edges.
-
 
 ### Remove low-quality spots
 
@@ -481,10 +487,9 @@ We can also check once more that the combined set of discarded spots does not co
 plotQC_filtered(sfe, metric = "NAs", sample_id = TRUE)
 ```
 
-
 Now that we finished setting our thresholds for each individual metric, we can combine them to mark the spots/locations we need to remove. Of course, we need to check that our thresholds combined don't remove any obvious biology. If we are satisfied with our QC, then we can apply our thresholds. This final step, will remove any spots/locations selected for their low quality.
 
-The `setQCtoDiscard_loc` includes the `filters` argument that allows you to select which filters will be taken into account for the final selection. If left to `TRUE` then all filters are used. If, for whatever reason, you want to use only part of the filters from earlier, then you can provide a character vector with the column names of the QC metrics to consider for filtering locations. QC metric columns begin with "qc_". You can always remind yourself of the column names by typing `colnames(colData(sfe))` in the console.
+The `setQCtoDiscard_loc` includes the `filters` argument that allows you to select which filters will be taken into account for the final selection. If left to `TRUE` then all filters are used. If, for whatever reason, you want to use only part of the filters from earlier, then you can provide a character vector with the column names of the QC metrics to consider for filtering locations. QC metric columns begin with "qc\_". You can always remind yourself of the column names by typing `colnames(colData(sfe))` in the console.
 
 ```{r 03_QC_sfe6, warning=FALSE}
 # ----------------------------------------------- #
@@ -500,6 +505,7 @@ sfe <- applyQCthresh_loc(sfe, sample_id = TRUE)
 
 dim(sfe)
 ```
+
 As a good practise we suggest to add the quality-controlled `SFE` object back into the `MSFE` object.
 
 ```{r update_MSFE}
@@ -1180,7 +1186,48 @@ Yang X (2009). "Firefly Algorithms for Multimodal Optimization." In Stochastic A
 
 ## Geographically Weighted Regression
 
+> This chapter is based on material from this source: <https://bookdown.org/lexcomber/GEOG5917/modelling-with-regression-and-gwr.html>. Many thanks to Professor of Geography Lex Comber for letting us use it.
+
+Regression of some kind underpins many statistical models. However often they make one massive assumption: that the relationships between the xk’s and y are the same everywhere. Regression models (and most other models) are aspatial and because they consider all of the data in the study area in one universal model, they are referred to as Global models. For example, in the models seen in this session so far the assumption is that the contributions made by the different variables in predicting the target variable are the same across the study area. In reality this assumption of spatial invariance is violated in many instances when geographic phenomena are considered.
+
+For these reasons, as geographers of the cell micro-cosmos….
+
+-   We do not expect things to be the **same** everywhere
+-   We expect to find **clusters**, **hotspots** etc
+-   We are interested in **how** and **where** processes, **relationships, and other phenomena** vary spatially\*\*
+
+In statistical terminology… We are interested in **spatial non-stationarity** in relationships and process **spatial heterogeneity**.
+
+What this means is that instead of just one general relationship for, for example, the association between changes in GeneA and GeneB in global model, we might expect that relationship (as described in the coefficient estimate for βk) to be different in different places. This is a core concept for geographical data analysis.
+
+This idea informs the technique known as Geographically Weighted Regression or GWR [@Brunsdon1996Oct]. If the relationships between the $x_{k}$’s and $y$ vary spatially, one might at least expect that the relationship between nearby sets of observations should be consistent.
+
+Recall that the equation for an Ordinary Least Squares (OLS) regression is: $$y_i = \beta_{0} + \sum_{m}^{k=1}\beta_{k}x_{ik} + \epsilon_i$$
+
+Suppose we assign a value of each regression coefficient to a location $(u,v)$ in space (e.g. $u$ is $x$ and $v$ is $y$ in cartesian space), so that we denote it $β_{k}(u,v)$. Thus we could estimate each $β_{k}(u,v)$ by calibrating a weighted regression model where $w_{i}$ was 1 if an observation was within some radius $h$ of $(u,v)$ and 0 otherwise.
+
+In this way, an entire surface of coefficients could be estimated. It may be imagined as being generated by a moving circular window, scanning across a map of the locations of the observations. However, 0/1 weighting is quite crude, and one might expect data from the periphery of the circular window to have less spatial influence than data near the middle.
+
+This is a *Geographically weighted* regression that examines how that relationships between $y$ and $x$ **vary spatially**: $$y = \beta_{0_(u_i, v_i)} + \sum_{m}^{k=1}\beta_{k}x_{ik_{(u_i, v_i)}} + \epsilon_{(u_i, v_i)}$$
+
+Thus, critical to the operation of GW models is a moving window or **kernel**, that downweights peripheral observations. The kernel moves through the study area and at each location computes a local model. It uses data under the kernel to construct a (local) model at that location with data points further away from the kernel centre weighted to that they contribute less to the solution. Hence the weighted element in the GW framework. Thus, the kernel defines the data and weights that are used to calibrate the model at each location. The weight, $w_{i}$, associated with each location $(u_{i},v_{i})$ is a decreasing function of $d_{i}$, the distance from the centre of the kernel to $(u_{i},v_{i})$:
+
+A typical kernel function for example is the bisquare kernel. For a given size or **bandwidth** $h$, this is defined by
+
+$$f(d) = \left\{ \begin{array}{cl}\left(1 - \left( \frac{d}{h} \right)^2 \right)^2 & \mbox{ if $d < h$}; \\ & \\ 0 & \mbox{ otherwise.} \end{array} \right.$$
+
+Here $h$ may be defined as a fixed value, or in an adaptive way. Gollini et al. [@Gollini2015Feb] provide a description of common kernels shape used in GW models. Generally larger values of $h$ result in a greater degree of spatial smoothing - having a larger window around $u$ in which cross tabulations have non-zero weighting. As $h→∞$ the coefficients converge to the global OLS model.
+
 ### GWR
+
+Here we will essentially use a wrapper of the GWR functionalities from the `GWmodel` package to undertake a GWR of the liver data, replicating the OLS model, but this time allowing the coefficient estimates to vary over space.
+
+There are 2 basic steps to any GW approach:
+
+1.  Determine the optimal kernel bandwidth $h$ (i.e. how many data points - or which size window - to include in each local model). Here an AIC approach is used.
+2.  Fit the GWR model.
+
+
 
 ## Spatial Autocorrelation
 
