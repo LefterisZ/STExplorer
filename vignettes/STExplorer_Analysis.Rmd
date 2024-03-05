@@ -694,6 +694,9 @@ colGraphs(msfe@sfe_data[["JBO022"]])
 ## Calculate a simple distance matrix
 msfe <- addDistMat(msfe, p = 2)
 
+## Check distance matrix was successfully added
+msfe@sfe_data[["JBO022"]]@metadata[["dMat"]][["euclidean"]][1:10,1:5]
+
 ```
 
 We can use a `geom` from the `tidyterra` package (commonly used for map visualisations) to plot the neighbour graph we generated in the previous step.

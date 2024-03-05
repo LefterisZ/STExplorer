@@ -40,7 +40,10 @@ gwrSTE <- function(gwr_method) {
 #' Euclidean distance.
 #'
 #' @param dMat A pre-specified distance matrix, it can be calculated by the
-#' function \code{\link{gw.dist}}.
+#' function \code{\link{addDistMat}}. If `NULL`, it fetches the first
+#' distance matrix from the SFE's metadata slot. If you have multiple distance
+#' matrices then you can use one of the `"euclidean"`, `"manhattan"`, or
+#' `"minkowski"`. Defaults to `NULL`.
 #'
 #' @param family a description of the error distribution and link function to
 #' be used in the model, which can be specified by “poisson” or “binomial”
@@ -147,11 +150,33 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Select dMat if not provided
+  # # Call internal function to select and obtain the distance matrix
+  # dMat <- .int_checkDMat(dMat, sfe)
+  if (is.matrix(dMat)) {
+    dMat <- dMat
+  }
+  if (is.null(dMat)) {
+    if (!is.null(metadata(sfe)[["dMat"]])) {
+      dMat <- metadata(sfe)[["dMat"]][[1]]
+    } else {
+      stop("dMat argument is left to NULL and no dMat is present in the ",
+           "SFE's metadata slot. Please use the `addDistMat` function to add ",
+           "a distance matrix into the SFE objects.")
+    }
+  } else if (dMat == "euclidean") {
+    dMat <- metadata(sfe)[["dMat"]][["euclidean"]]
+  } else if (dMat == "manhattan") {
+    dMat <- metadata(sfe)[["dMat"]][["manhattan"]]
+  } else if (dMat == "minkowski") {
+    mwski <- grep("minkowski", names(metadata(sfe)[["dMat"]]), value = TRUE)
+    dMat <- metadata(sfe)[["dMat"]][[mwski]]
+  }
 
   ## Prepare data for GWR
 
   ## Run GWR
   if (method == "basic") {
+    ## Bandwidth selection for basic GWR
     return(GWmodel::bw.gwr(formula = formula,
                            data = data,
                            approach = approach,
@@ -183,6 +208,7 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
                             verbose = verbose))
 
   } else if (method == "gwr-lcr") {
+    ## Bandwidth selection for locally compensated ridge GWR (GWR-LCR)
     return(GWmodel::bw.gwr.lcr(formula = formula,
                                data = data,
                                kernel = kernel,
@@ -215,4 +241,101 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
   }
 }
 
+
+# ---------------------------------------------------------------------------- #
+#  ################# INTERNAL FUNCTIONS ASSOCIATED WITH GWR #################
+# ---------------------------------------------------------------------------- #
+#' Get the provided distance matrix
+#'
+#' This function checks if a distance matrix (\code{dMat}) is provided. If
+#' provided, it returns the distance matrix; otherwise, it returns \code{NULL}.
+#'
+#' @param dMat A matrix representing the distance matrix.
+#' @return A distance matrix if provided, otherwise \code{NULL}.
+#' @keywords internal
+.getProvidedDMat <- function(dMat) {
+  if (is.matrix(dMat)) {
+    return(dMat)
+  }
+  NULL  # Return NULL if dMat is not provided
+}
+
+#' Get the distance matrix from spatial feature object's metadata
+#'
+#' This function attempts to obtain the distance matrix from the metadata of a
+#' spatial feature object (\code{sfe}). If found, it returns the distance
+#' matrix; otherwise, it returns \code{NULL}.
+#'
+#' @param sfe The spatial feature object.
+#' @return A distance matrix if found in metadata, otherwise \code{NULL}.
+#' @keywords internal
+.getMetadataDMat <- function(sfe) {
+  if (!is.null(metadata(sfe)[["dMat"]])) {
+    return(metadata(sfe)[["dMat"]][[1]])
+  }
+  NULL  # Return NULL if dMat is not present in metadata
+}
+
+#' Get the distance matrix based on the specified type
+#'
+#' This function attempts to obtain the distance matrix from the metadata of a
+#' spatial feature object (\code{sfe}) based on the specified type. If found,
+#' it returns the distance matrix; otherwise, it returns \code{NULL}.
+#'
+#' @param sfe The spatial feature object.
+#' @param type The type of distance matrix ('euclidean', 'manhattan', or
+#' 'minkowski').
+#' @return A distance matrix if found based on the specified type, otherwise
+#' \code{NULL}.
+#' @keywords internal
+.getTypedDMat <- function(sfe, type) {
+  if (type %in% c("euclidean", "manhattan", "minkowski")) {
+    return(metadata(sfe)[["dMat"]][[type]])
+  }
+  NULL  # Return NULL if type is not recognized
+}
+
+#' Internal function to select and obtain the distance matrix
+#'
+#' This function selects and obtains the distance matrix (\code{dMat}) to be
+#' used. It first checks if dMat is provided, then tries to obtain it from the
+#' metadata of a spatial feature object (\code{sfe}), and finally attempts to
+#' obtain it based on the specified type. If all attempts fail, it raises an
+#' error asking the user to add a distance matrix using the \code{addDistMat}
+#' function.
+#'
+#' @param dMat A matrix representing the distance matrix, or a string
+#' indicating the type of distance matrix ('euclidean', 'manhattan', or
+#' 'minkowski').
+#' @param sfe The spatial feature object from which to obtain the distance
+#' matrix if not provided explicitly.
+#' @return A distance matrix.
+#' @keywords internal
+.int_checkDMat <- function(dMat, sfe) {
+  # Check if dMat is provided
+  dMat <- .getProvidedDMat(dMat)
+  if (!is.null(dMat)) {
+    return(dMat)
+  }
+
+  # Try obtaining from metadata
+  dMat <- .getMetadataDMat(sfe)
+  if (!is.null(dMat)) {
+    return(dMat)
+  }
+
+  # Try obtaining based on type
+  types <- c("euclidean", "manhattan", "minkowski")
+  for (type in types) {
+    dMat <- .getTypedDMat(sfe, type)
+    if (!is.null(dMat)) {
+      return(dMat)
+    }
+  }
+
+  # If all fails, raise an error
+  stop("dMat argument is left to NULL and no dMat is present in the ",
+       "SFE's metadata slot. Please use the `addDistMat` function to add ",
+       "a distance matrix into the SFE objects.")
+}
 
