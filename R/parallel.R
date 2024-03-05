@@ -32,9 +32,9 @@
 #' cluster <- makeClusterGWPCA(spec = 4, type = "PSOCK")
 #'
 #' @export
-makeClusterGWPCA <- function(spec, type = "FORK", ...) {
+makeClusterGWPCA <- function(spec = NULL, type = "FORK", ...) {
   ## Get number of clusters
-  if (isEmpty(spec) && type == "FORK") {
+  if (is.null(spec) && type == "FORK") {
     spec <- parallelly::availableCores() - 1
   }
 
