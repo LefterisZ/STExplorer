@@ -131,7 +131,7 @@ gwpcaSTE <- function(sfe,
           "whether you asked PCA scores to be calculated (scores = TRUE), \n",
           "the number ofcores you provided and the future plan you selected.\n",
           "---> Having these in mind, the E.T.A. estimate might be way off,\n",
-          "     by overestimating the time needed!")
+          "     by overestimating (or underestimating) the time needed!")
   message("Sit back and relax!! :)")
   ## fetch start time
   s <- Sys.time()

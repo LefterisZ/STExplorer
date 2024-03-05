@@ -122,8 +122,8 @@ getTerm2Gene <- function(user_data = NULL,
 #' @param gwpca A GWPCA object containing the results of the spatial
 #' transcriptomics analysis.
 #' @param pc The principal component (PC) index to be used for GSEA.
-#' @param genes_no The minimum number of genes in a gene set to be considered
-#' for enrichment.
+#' @param genes_no The minimum number of genes from the gwpca results that has
+#' to be present in a gene set to be considered for enrichment.
 #' @param NES The minimum Normalized Enrichment Score (NES) for considering a
 #' gene set as enriched.
 #' @param minGSSize The minimum gene set size to be considered in GSEA.
@@ -199,11 +199,14 @@ gwpca_FunctionalClustering <- function(gwpca,
   ## Make the dataframe
   gsea <- bind_rows(list)
 
+  genesNo <- genes_no
+  NES_thresh <- NES
+
   gsea <-  gsea %>%
     dplyr::mutate(genes_no = str_count(.data$core_enrichment,"ENSG")) %>%
     dplyr::group_by(.data$Location) %>%
-    dplyr::filter(genes_no > genes_no) %>%
-    dplyr::filter(abs(NES) > NES, .by_group = TRUE) %>%
+    dplyr::filter(genes_no > genesNo) %>%
+    dplyr::filter(abs(NES) > NES_thresh, .by_group = TRUE) %>%
     # dplyr::filter(qvalue < 0.3, .by_group = TRUE) %>%
     # dplyr::arrange(rank, .by_group = TRUE) %>%
     # dplyr::slice_min(rank, n = 1, with_ties = FALSE) %>%

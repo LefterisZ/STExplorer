@@ -26,8 +26,8 @@ transcriptomics analysis.}
 
 \item{pc}{The principal component (PC) index to be used for GSEA.}
 
-\item{genes_no}{The minimum number of genes in a gene set to be considered
-for enrichment.}
+\item{genes_no}{The minimum number of genes from the gwpca results that has
+to be present in a gene set to be considered for enrichment.}
 
 \item{NES}{The minimum Normalized Enrichment Score (NES) for considering a
 gene set as enriched.}

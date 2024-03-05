@@ -44,26 +44,43 @@ gwrSTE <- function(gwr_method) {
 #'
 #' @param family a description of the error distribution and link function to
 #' be used in the model, which can be specified by “poisson” or “binomial”
-#' description. Used only for the `gwr_method`: gwr-generalised
+#' description. Used only for the `gwr_method`: `"gwr-generalised"`
+#' \code{\link[GWmodel]{bw.ggwr}}
 #'
 #' @param obs.tv a vector of time tags for each observation, which could be
-#' numeric or of POSIXlt class. Used only for the `gwr_method`: gtwr
+#' numeric or of POSIXlt class. Used only for the `gwr_method`: `"gtwr"`
+#' \code{\link[GWmodel]{bw.gtwr}}
 #'
 #' @param lamda an parameter between 0 and 1 for calculating spatio-temporal
-#' distance. Used only for the `gwr_method`: gtwr
+#' distance. Used only for the `gwr_method`: `"gtwr"`
+#' \code{\link[GWmodel]{bw.gtwr}}
+#' @param lambda_lcr option for a globally-defined (constant) ridge parameter.
+#' Default is lambda=0, which gives a basic GWR fit. Used only for
+#' the `gwr_method`: `"gwr-lcr"` \code{\link[GWmodel]{bw.gtwr}}
+#'
+#' @param lambda.adjust a locally-varying ridge parameter. Default FALSE,
+#' refers to: (i) a basic GWR without a local ridge adjustment (i.e. lambda=0,
+#' everywhere); or (ii) a penalised GWR with a global ridge adjustment (i.e.
+#' lambda is user-specified as some constant, other than 0 everywhere); if
+#' TRUE, use cn.tresh to set the maximum condition number. For locations with a
+#' condition number (for its local design matrix), above this user-specified
+#' threshold, a local ridge parameter is found
+#'
+#' @param cn.thresh maximum value for condition number, commonly set between
+#' 20 and 30
 #'
 #' @param t.units character string to define time unit. Used only for the
-#' `gwr_method`: gtwr
+#' `gwr_method`: `"gtwr"`
 #'
 #' @param ksi a parameter between 0 and PI for calculating spatio-temporal
 #' distance, see details in Wu et al. (2014). Used only for the
-#' `gwr_method`: gtwr
+#' `gwr_method`: `"gtwr"`
 #'
 #' @param st.dMat a pre-specified spatio-temporal distance matrix. Used only
-#' for the `gwr_method`: gtwr
+#' for the `gwr_method`: `"gtwr"`
 #'
 #' @param verbose logical variable to define whether show the selection
-#' procedure. Used only for the `gwr_method`: gtwr
+#' procedure. Used only for the `gwr_method`: `"gtwr"`
 #'
 #' @param parallel.method FALSE as default, and the calibration will be
 #' conducted traditionally via the serial technique, "omp": multi-thread
@@ -93,14 +110,14 @@ gwrSTE <- function(gwr_method) {
 #'
 #' @return Returns the adaptive or fixed distance bandwidth.
 #'
-#' @importFrom GWmodel bw.basic bw.ggwr bw.gtwr bw.gwr.lcr bw.gwr1
+#' @importFrom GWmodel bw.ggwr bw.gtwr bw.gwr.lcr bw.gwr1
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @export
 
-gwr_bwSTE <- function(gwr_method = c("basic", "gtwr", "gwr-lcr",
-                                     "gwr-minkovski", "gwr-generalised"),
+gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
+                                     "gwr-lcr", "gwr-generalised"),
                       formula,
                       m_sfe,
                       sample_id,
@@ -117,7 +134,11 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr", "gwr-lcr",
                       t.units = "auto",
                       ksi = 0,
                       st.dMat = NULL,
-                      verbose = T) {
+                      obs.tv = NULL,
+                      verbose = TRUE,
+                      lambda_lcr = 0,
+                      lambda.adjust = FALSE,
+                      cn.thresh = NA) {
 
   ## Check arguments
   method <- match.arg(gwr_method)
@@ -131,80 +152,66 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr", "gwr-lcr",
 
   ## Run GWR
   if (method == "basic") {
-    return(bw.basic(formula = formula,
-                    data = data,
-                    approach = approach,
-                    kernel = kernel,
-                    adaptive = adaptive,
-                    p = p,
-                    theta = 0,
-                    longlat = FALSE,
-                    dMat = dMat,
-                    parallel.method = parallel.method,
-                    parallel.arg = parallel.arg))
+    return(GWmodel::bw.gwr(formula = formula,
+                           data = data,
+                           approach = approach,
+                           kernel = kernel,
+                           adaptive = adaptive,
+                           p = p,
+                           theta = 0,
+                           longlat = FALSE,
+                           dMat = dMat,
+                           parallel.method = parallel.method,
+                           parallel.arg = parallel.arg))
 
   } else if (method == "gtwr") {
     ## Automatic bandwidth selection to calibrate a GTWR model
     ## GTWR: Geographically and Temporally Weighted Regression
-    return(bw.gtwr(formula,
-                   data,
-                   obs.tv = obs.tv,
-                   approach,
-                   kernel,
-                   adaptive,
-                   p,
-                   theta = 0,
-                   longlat = FALSE,
-                   lamda = lamda,
-                   t.units = t.units,
-                   ksi = ksi,
-                   st.dMat = st.dMat,
-                   verbose = verbose))
+    return(GWmodel::bw.gtwr(formula = formula,
+                            data = data,
+                            obs.tv = obs.tv,
+                            approach = approach,
+                            kernel = kernel,
+                            adaptive = adaptive,
+                            p = p,
+                            theta = 0,
+                            longlat = FALSE,
+                            lamda = lamda,
+                            t.units = t.units,
+                            ksi = ksi,
+                            st.dMat = st.dMat,
+                            verbose = verbose))
 
   } else if (method == "gwr-lcr") {
-    return(bw.gwr.lcr(formula,
-                      data,
-                      approach,
-                      kernel,
-                      adaptive,
-                      p,
-                      theta = 0,
-                      longlat = FALSE,
-                      dMat,
-                      parallel.method,
-                      parallel.arg,
-                      ...))
-
-  } else if (method == "gwr-minkovski") {
-    return(bw.gwr1(formula,
-                   data,
-                   approach,
-                   kernel,
-                   adaptive,
-                   p,
-                   theta = 0,
-                   longlat = FALSE,
-                   dMat,
-                   parallel.method,
-                   parallel.arg,
-                   ...))
+    return(GWmodel::bw.gwr.lcr(formula = formula,
+                               data = data,
+                               kernel = kernel,
+                               lambda = lambda_lcr,
+                               lambda.adjust = lambda.adjust,
+                               cn.thresh = cn.thresh,
+                               adaptive = adaptive,
+                               p = p,
+                               theta = 0,
+                               longlat = FALSE,
+                               dMat = dMat))
 
   } else if (method == "gwr-generalised") {
     ## Automatic bandwidth selection to calibrate a generalised GWR model
-    return(bw.ggwr(formula,
-                   data,
-                   approach,
-                   kernel,
-                   family = family,
-                   adaptive,
-                   p,
-                   theta = 0,
-                   longlat = FALSE,
-                   dMat))
+    return(GWmodel::bw.ggwr(formula = formula,
+                            data = data,
+                            family = family,
+                            approach = approach,
+                            kernel = kernel,
+                            adaptive = adaptive,
+                            family = family,
+                            p = p,
+                            theta = 0,
+                            longlat = FALSE,
+                            dMat = dMat))
 
   } else {
     stop("Invalid value for 'gwr_method'. Choose one of 'basic', 'gtwr',",
-         " 'gwr-lcr', 'gwr-minkowski', or 'gwr-generalised'.")
+         " 'gwr-lcr', or 'gwr-generalised'.")
   }
 }
 
