@@ -621,7 +621,7 @@ dec <- modelGeneVariance(msfe, sample_id = TRUE, method = "Var")
 ## Select top HVGs
 top_hvgs <- getTopHighVarGenes(dec,
                                var.field = "bio",
-                               prop = 0.5,
+                               prop = 0.4,
                                var.threshold = 0,
                                fdr.threshold = 0.1)
 
@@ -693,6 +693,9 @@ colGraphs(msfe@sfe_data[["JBO022"]])
 
 ## Calculate a simple distance matrix
 msfe <- addDistMat(msfe, p = 2)
+
+## Check distance matrix was successfully added
+msfe@sfe_data[["JBO022"]]@metadata[["dMat"]][["euclidean"]][1:10,1:5]
 
 ```
 
@@ -965,15 +968,15 @@ Now that we have a term-to-gene data frame, we can perform functional clustering
 
 gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
                                        pc = 1,
-                                       genes_no = 1,
-                                       NES = 1.5,
+                                       genes_no = 2,
+                                       NES = 1.4,
                                        minGSSize = 5,
                                        pvalueCutoff = 0.25,
                                        TERM2GENE = t2g,
                                        pAdjustMethod = "fdr",
                                        scoreType = "std",
                                        nPermSimple = 10000,
-                                       mc.cores = 7)
+                                       mc.cores = 8)
 
 ```
 
@@ -981,7 +984,7 @@ Let's have a look at the individual arguments of the `gwpca_FunctionalClustering
 
 1.  `gwpca`: A GWPCA object containing the results of the spatial transcriptomics analysis.\
 2.  `pc`: The principal component (PC) index to be used for GSEA. This indicates the PC to be used to extract information out of GWPCA to perform GSEA.\
-3.  `genes_no`: The minimum number of genes in a gene set to be considered for enrichment.\
+3.  `genes_no`: The minimum number of genes from the gwpca results that has to be present in a gene set to be considered for enrichment..\
 4.  `NES`: The minimum Normalized Enrichment Score (NES) for considering a gene set as enriched.\
 5.  `minGSSize`: The minimum gene set size to be considered in GSEA.\
 6.  `pvalueCutoff`: The p-value cutoff for identifying significant gene sets in GSEA.\
@@ -1340,19 +1343,19 @@ sfe <- gearyGlobalCPerm(sfe, sample_id = "JBO019", genes = TRUE, mc.cores = 8)
 head(rowData(sfe))
 ```
 
-```{r moran-select}
+```{r geary-select}
 gs <- getSAGlobalGenes()
 
 ```
 
-```{r moran-local}
+```{r geary-local}
 sfe <- moranLocalIPerm(m_sfe = sfe,
                        sample_id = "JBO019",
                        genes = gs,
                        mc.cores = 8)
 ```
 
-```{r moran-plot}
+```{r geary-plot}
 for (g in gs) {
   p <- plotSA_local(m_sfe = sfe, 
              sample_id = "JBO019",

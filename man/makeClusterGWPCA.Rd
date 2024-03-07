@@ -4,7 +4,7 @@
 \alias{makeClusterGWPCA}
 \title{Create a Parallel Cluster for GWPCA Computation}
 \usage{
-makeClusterGWPCA(spec, type = "FORK", ...)
+makeClusterGWPCA(spec = NULL, type = "FORK", ...)
 }
 \arguments{
 \item{spec}{The number of clusters to be created. If not provided and type

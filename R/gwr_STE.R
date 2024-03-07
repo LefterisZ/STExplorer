@@ -40,30 +40,50 @@ gwrSTE <- function(gwr_method) {
 #' Euclidean distance.
 #'
 #' @param dMat A pre-specified distance matrix, it can be calculated by the
-#' function \code{\link{gw.dist}}.
+#' function \code{\link{addDistMat}}. If `NULL`, it fetches the first
+#' distance matrix from the SFE's metadata slot. If you have multiple distance
+#' matrices then you can use one of the `"euclidean"`, `"manhattan"`, or
+#' `"minkowski"`. Defaults to `NULL`.
 #'
 #' @param family a description of the error distribution and link function to
 #' be used in the model, which can be specified by “poisson” or “binomial”
-#' description. Used only for the `gwr_method`: gwr-generalised
+#' description. Used only for the `gwr_method`: `"gwr-generalised"`
+#' \code{\link[GWmodel]{bw.ggwr}}
 #'
 #' @param obs.tv a vector of time tags for each observation, which could be
-#' numeric or of POSIXlt class. Used only for the `gwr_method`: gtwr
+#' numeric or of POSIXlt class. Used only for the `gwr_method`: `"gtwr"`
+#' \code{\link[GWmodel]{bw.gtwr}}
 #'
 #' @param lamda an parameter between 0 and 1 for calculating spatio-temporal
-#' distance. Used only for the `gwr_method`: gtwr
+#' distance. Used only for the `gwr_method`: `"gtwr"`
+#' \code{\link[GWmodel]{bw.gtwr}}
+#' @param lambda_lcr option for a globally-defined (constant) ridge parameter.
+#' Default is lambda=0, which gives a basic GWR fit. Used only for
+#' the `gwr_method`: `"gwr-lcr"` \code{\link[GWmodel]{bw.gtwr}}
+#'
+#' @param lambda.adjust a locally-varying ridge parameter. Default FALSE,
+#' refers to: (i) a basic GWR without a local ridge adjustment (i.e. lambda=0,
+#' everywhere); or (ii) a penalised GWR with a global ridge adjustment (i.e.
+#' lambda is user-specified as some constant, other than 0 everywhere); if
+#' TRUE, use cn.tresh to set the maximum condition number. For locations with a
+#' condition number (for its local design matrix), above this user-specified
+#' threshold, a local ridge parameter is found
+#'
+#' @param cn.thresh maximum value for condition number, commonly set between
+#' 20 and 30
 #'
 #' @param t.units character string to define time unit. Used only for the
-#' `gwr_method`: gtwr
+#' `gwr_method`: `"gtwr"`
 #'
 #' @param ksi a parameter between 0 and PI for calculating spatio-temporal
 #' distance, see details in Wu et al. (2014). Used only for the
-#' `gwr_method`: gtwr
+#' `gwr_method`: `"gtwr"`
 #'
 #' @param st.dMat a pre-specified spatio-temporal distance matrix. Used only
-#' for the `gwr_method`: gtwr
+#' for the `gwr_method`: `"gtwr"`
 #'
 #' @param verbose logical variable to define whether show the selection
-#' procedure. Used only for the `gwr_method`: gtwr
+#' procedure. Used only for the `gwr_method`: `"gtwr"`
 #'
 #' @param parallel.method FALSE as default, and the calibration will be
 #' conducted traditionally via the serial technique, "omp": multi-thread
@@ -93,14 +113,14 @@ gwrSTE <- function(gwr_method) {
 #'
 #' @return Returns the adaptive or fixed distance bandwidth.
 #'
-#' @importFrom GWmodel bw.basic bw.ggwr bw.gtwr bw.gwr.lcr bw.gwr1
+#' @importFrom GWmodel bw.ggwr bw.gtwr bw.gwr.lcr bw.gwr1
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @export
 
-gwr_bwSTE <- function(gwr_method = c("basic", "gtwr", "gwr-lcr",
-                                     "gwr-minkovski", "gwr-generalised"),
+gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
+                                     "gwr-lcr", "gwr-generalised"),
                       formula,
                       m_sfe,
                       sample_id,
@@ -117,7 +137,11 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr", "gwr-lcr",
                       t.units = "auto",
                       ksi = 0,
                       st.dMat = NULL,
-                      verbose = T) {
+                      obs.tv = NULL,
+                      verbose = TRUE,
+                      lambda_lcr = 0,
+                      lambda.adjust = FALSE,
+                      cn.thresh = NA) {
 
   ## Check arguments
   method <- match.arg(gwr_method)
@@ -126,86 +150,192 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr", "gwr-lcr",
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Select dMat if not provided
+  # # Call internal function to select and obtain the distance matrix
+  # dMat <- .int_checkDMat(dMat, sfe)
+  if (is.matrix(dMat)) {
+    dMat <- dMat
+  }
+  if (is.null(dMat)) {
+    if (!is.null(metadata(sfe)[["dMat"]])) {
+      dMat <- metadata(sfe)[["dMat"]][[1]]
+    } else {
+      stop("dMat argument is left to NULL and no dMat is present in the ",
+           "SFE's metadata slot. Please use the `addDistMat` function to add ",
+           "a distance matrix into the SFE objects.")
+    }
+  } else if (dMat == "euclidean") {
+    dMat <- metadata(sfe)[["dMat"]][["euclidean"]]
+  } else if (dMat == "manhattan") {
+    dMat <- metadata(sfe)[["dMat"]][["manhattan"]]
+  } else if (dMat == "minkowski") {
+    mwski <- grep("minkowski", names(metadata(sfe)[["dMat"]]), value = TRUE)
+    dMat <- metadata(sfe)[["dMat"]][[mwski]]
+  }
 
   ## Prepare data for GWR
 
   ## Run GWR
   if (method == "basic") {
-    return(bw.basic(formula = formula,
-                    data = data,
-                    approach = approach,
-                    kernel = kernel,
-                    adaptive = adaptive,
-                    p = p,
-                    theta = 0,
-                    longlat = FALSE,
-                    dMat = dMat,
-                    parallel.method = parallel.method,
-                    parallel.arg = parallel.arg))
+    ## Bandwidth selection for basic GWR
+    return(GWmodel::bw.gwr(formula = formula,
+                           data = data,
+                           approach = approach,
+                           kernel = kernel,
+                           adaptive = adaptive,
+                           p = p,
+                           theta = 0,
+                           longlat = FALSE,
+                           dMat = dMat,
+                           parallel.method = parallel.method,
+                           parallel.arg = parallel.arg))
 
   } else if (method == "gtwr") {
     ## Automatic bandwidth selection to calibrate a GTWR model
     ## GTWR: Geographically and Temporally Weighted Regression
-    return(bw.gtwr(formula,
-                   data,
-                   obs.tv = obs.tv,
-                   approach,
-                   kernel,
-                   adaptive,
-                   p,
-                   theta = 0,
-                   longlat = FALSE,
-                   lamda = lamda,
-                   t.units = t.units,
-                   ksi = ksi,
-                   st.dMat = st.dMat,
-                   verbose = verbose))
+    return(GWmodel::bw.gtwr(formula = formula,
+                            data = data,
+                            obs.tv = obs.tv,
+                            approach = approach,
+                            kernel = kernel,
+                            adaptive = adaptive,
+                            p = p,
+                            theta = 0,
+                            longlat = FALSE,
+                            lamda = lamda,
+                            t.units = t.units,
+                            ksi = ksi,
+                            st.dMat = st.dMat,
+                            verbose = verbose))
 
   } else if (method == "gwr-lcr") {
-    return(bw.gwr.lcr(formula,
-                      data,
-                      approach,
-                      kernel,
-                      adaptive,
-                      p,
-                      theta = 0,
-                      longlat = FALSE,
-                      dMat,
-                      parallel.method,
-                      parallel.arg,
-                      ...))
-
-  } else if (method == "gwr-minkovski") {
-    return(bw.gwr1(formula,
-                   data,
-                   approach,
-                   kernel,
-                   adaptive,
-                   p,
-                   theta = 0,
-                   longlat = FALSE,
-                   dMat,
-                   parallel.method,
-                   parallel.arg,
-                   ...))
+    ## Bandwidth selection for locally compensated ridge GWR (GWR-LCR)
+    return(GWmodel::bw.gwr.lcr(formula = formula,
+                               data = data,
+                               kernel = kernel,
+                               lambda = lambda_lcr,
+                               lambda.adjust = lambda.adjust,
+                               cn.thresh = cn.thresh,
+                               adaptive = adaptive,
+                               p = p,
+                               theta = 0,
+                               longlat = FALSE,
+                               dMat = dMat))
 
   } else if (method == "gwr-generalised") {
     ## Automatic bandwidth selection to calibrate a generalised GWR model
-    return(bw.ggwr(formula,
-                   data,
-                   approach,
-                   kernel,
-                   family = family,
-                   adaptive,
-                   p,
-                   theta = 0,
-                   longlat = FALSE,
-                   dMat))
+    return(GWmodel::bw.ggwr(formula = formula,
+                            data = data,
+                            family = family,
+                            approach = approach,
+                            kernel = kernel,
+                            adaptive = adaptive,
+                            family = family,
+                            p = p,
+                            theta = 0,
+                            longlat = FALSE,
+                            dMat = dMat))
 
   } else {
     stop("Invalid value for 'gwr_method'. Choose one of 'basic', 'gtwr',",
-         " 'gwr-lcr', 'gwr-minkowski', or 'gwr-generalised'.")
+         " 'gwr-lcr', or 'gwr-generalised'.")
   }
 }
 
+
+# ---------------------------------------------------------------------------- #
+#  ################# INTERNAL FUNCTIONS ASSOCIATED WITH GWR #################
+# ---------------------------------------------------------------------------- #
+#' Get the provided distance matrix
+#'
+#' This function checks if a distance matrix (\code{dMat}) is provided. If
+#' provided, it returns the distance matrix; otherwise, it returns \code{NULL}.
+#'
+#' @param dMat A matrix representing the distance matrix.
+#' @return A distance matrix if provided, otherwise \code{NULL}.
+#' @keywords internal
+.getProvidedDMat <- function(dMat) {
+  if (is.matrix(dMat)) {
+    return(dMat)
+  }
+  NULL  # Return NULL if dMat is not provided
+}
+
+#' Get the distance matrix from spatial feature object's metadata
+#'
+#' This function attempts to obtain the distance matrix from the metadata of a
+#' spatial feature object (\code{sfe}). If found, it returns the distance
+#' matrix; otherwise, it returns \code{NULL}.
+#'
+#' @param sfe The spatial feature object.
+#' @return A distance matrix if found in metadata, otherwise \code{NULL}.
+#' @keywords internal
+.getMetadataDMat <- function(sfe) {
+  if (!is.null(metadata(sfe)[["dMat"]])) {
+    return(metadata(sfe)[["dMat"]][[1]])
+  }
+  NULL  # Return NULL if dMat is not present in metadata
+}
+
+#' Get the distance matrix based on the specified type
+#'
+#' This function attempts to obtain the distance matrix from the metadata of a
+#' spatial feature object (\code{sfe}) based on the specified type. If found,
+#' it returns the distance matrix; otherwise, it returns \code{NULL}.
+#'
+#' @param sfe The spatial feature object.
+#' @param type The type of distance matrix ('euclidean', 'manhattan', or
+#' 'minkowski').
+#' @return A distance matrix if found based on the specified type, otherwise
+#' \code{NULL}.
+#' @keywords internal
+.getTypedDMat <- function(sfe, type) {
+  if (type %in% c("euclidean", "manhattan", "minkowski")) {
+    return(metadata(sfe)[["dMat"]][[type]])
+  }
+  NULL  # Return NULL if type is not recognized
+}
+
+#' Internal function to select and obtain the distance matrix
+#'
+#' This function selects and obtains the distance matrix (\code{dMat}) to be
+#' used. It first checks if dMat is provided, then tries to obtain it from the
+#' metadata of a spatial feature object (\code{sfe}), and finally attempts to
+#' obtain it based on the specified type. If all attempts fail, it raises an
+#' error asking the user to add a distance matrix using the \code{addDistMat}
+#' function.
+#'
+#' @param dMat A matrix representing the distance matrix, or a string
+#' indicating the type of distance matrix ('euclidean', 'manhattan', or
+#' 'minkowski').
+#' @param sfe The spatial feature object from which to obtain the distance
+#' matrix if not provided explicitly.
+#' @return A distance matrix.
+#' @keywords internal
+.int_checkDMat <- function(dMat, sfe) {
+  # Check if dMat is provided
+  dMat <- .getProvidedDMat(dMat)
+  if (!is.null(dMat)) {
+    return(dMat)
+  }
+
+  # Try obtaining from metadata
+  dMat <- .getMetadataDMat(sfe)
+  if (!is.null(dMat)) {
+    return(dMat)
+  }
+
+  # Try obtaining based on type
+  types <- c("euclidean", "manhattan", "minkowski")
+  for (type in types) {
+    dMat <- .getTypedDMat(sfe, type)
+    if (!is.null(dMat)) {
+      return(dMat)
+    }
+  }
+
+  # If all fails, raise an error
+  stop("dMat argument is left to NULL and no dMat is present in the ",
+       "SFE's metadata slot. Please use the `addDistMat` function to add ",
+       "a distance matrix into the SFE objects.")
+}
 
