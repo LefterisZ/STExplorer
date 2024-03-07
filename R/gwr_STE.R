@@ -39,11 +39,14 @@ gwrSTE <- function(gwr_method) {
 #' @param p The power of the Minkowski distance, default is 2, i.e., the
 #' Euclidean distance.
 #'
-#' @param dMat A pre-specified distance matrix, it can be calculated by the
-#' function \code{\link{addDistMat}}. If `NULL`, it fetches the first
-#' distance matrix from the SFE's metadata slot. If you have multiple distance
-#' matrices then you can use one of the `"euclidean"`, `"manhattan"`, or
-#' `"minkowski"`. Defaults to `NULL`.
+#' @param dMat A pre-specified distance matrix, it can be calculated and added
+#' to the SFE object by the \code{\link{addDistMat}} function. If `NULL`, it
+#' fetches the first (or only) distance matrix from the SFE's metadata slot.
+#' If you have multiple distance matrices then you can use one of the
+#' `"euclidean"`, `"manhattan"`, or `"minkowski"` to select the one you prefer.
+#' Defaults to `NULL`. If you want to calculate a different distance matrix,
+#' you can do so by using the \code{\link[GWmodel]{gw.dist}} function. Then,
+#' provide the matrix as a value to this argument.
 #'
 #' @param family a description of the error distribution and link function to
 #' be used in the model, which can be specified by “poisson” or “binomial”
@@ -150,27 +153,8 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Select dMat if not provided
-  # # Call internal function to select and obtain the distance matrix
-  # dMat <- .int_checkDMat(dMat, sfe)
-  if (is.matrix(dMat)) {
-    dMat <- dMat
-  }
-  if (is.null(dMat)) {
-    if (!is.null(metadata(sfe)[["dMat"]])) {
-      dMat <- metadata(sfe)[["dMat"]][[1]]
-    } else {
-      stop("dMat argument is left to NULL and no dMat is present in the ",
-           "SFE's metadata slot. Please use the `addDistMat` function to add ",
-           "a distance matrix into the SFE objects.")
-    }
-  } else if (dMat == "euclidean") {
-    dMat <- metadata(sfe)[["dMat"]][["euclidean"]]
-  } else if (dMat == "manhattan") {
-    dMat <- metadata(sfe)[["dMat"]][["manhattan"]]
-  } else if (dMat == "minkowski") {
-    mwski <- grep("minkowski", names(metadata(sfe)[["dMat"]]), value = TRUE)
-    dMat <- metadata(sfe)[["dMat"]][[mwski]]
-  }
+  ## Call internal function to select and obtain the distance matrix
+  dMat <- .int_checkDMat(dMat, sfe)
 
   ## Prepare data for GWR
 
@@ -245,7 +229,7 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
 # ---------------------------------------------------------------------------- #
 #  ################# INTERNAL FUNCTIONS ASSOCIATED WITH GWR #################
 # ---------------------------------------------------------------------------- #
-#' Get the provided distance matrix
+#' Internal: Get the provided distance matrix
 #'
 #' This function checks if a distance matrix (\code{dMat}) is provided. If
 #' provided, it returns the distance matrix; otherwise, it returns \code{NULL}.
@@ -260,42 +244,47 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
   NULL  # Return NULL if dMat is not provided
 }
 
-#' Get the distance matrix from spatial feature object's metadata
+#' Internal: Get the distance matrix from spatial feature object's metadata
 #'
 #' This function attempts to obtain the distance matrix from the metadata of a
-#' spatial feature object (\code{sfe}). If found, it returns the distance
-#' matrix; otherwise, it returns \code{NULL}.
+#' spatial feature experiment object (\code{sfe}) when the dMat argument
+#' provided in the exported function is left to NULL. If so, it returns the
+#' first distance matrix; otherwise, it returns \code{NULL}.
 #'
-#' @param sfe The spatial feature object.
+#' @param sfe The spatial feature experiment object.
+#' @param dMat expected to be NULL
 #' @return A distance matrix if found in metadata, otherwise \code{NULL}.
 #' @keywords internal
-.getMetadataDMat <- function(sfe) {
-  if (!is.null(metadata(sfe)[["dMat"]])) {
+.getMetadataDMat <- function(dMat, sfe) {
+  if (is.null(dMat)) {
     return(metadata(sfe)[["dMat"]][[1]])
   }
   NULL  # Return NULL if dMat is not present in metadata
 }
 
-#' Get the distance matrix based on the specified type
+#' Internal: Get the distance matrix based on the specified type
 #'
 #' This function attempts to obtain the distance matrix from the metadata of a
 #' spatial feature object (\code{sfe}) based on the specified type. If found,
 #' it returns the distance matrix; otherwise, it returns \code{NULL}.
 #'
-#' @param sfe The spatial feature object.
+#' @param sfe The spatial feature experiment object.
 #' @param type The type of distance matrix ('euclidean', 'manhattan', or
 #' 'minkowski').
 #' @return A distance matrix if found based on the specified type, otherwise
 #' \code{NULL}.
 #' @keywords internal
 .getTypedDMat <- function(sfe, type) {
-  if (type %in% c("euclidean", "manhattan", "minkowski")) {
+  if (type %in% c("euclidean", "manhattan")) {
     return(metadata(sfe)[["dMat"]][[type]])
+  } else if (type == "minkowski") {
+    mwski <- grep("minkowski", names(metadata(sfe)[["dMat"]]), value = TRUE)
+    return(metadata(sfe)[["dMat"]][[mwski]])
   }
   NULL  # Return NULL if type is not recognized
 }
 
-#' Internal function to select and obtain the distance matrix
+#' Internal: select and obtain the distance matrix
 #'
 #' This function selects and obtains the distance matrix (\code{dMat}) to be
 #' used. It first checks if dMat is provided, then tries to obtain it from the
@@ -307,30 +296,27 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
 #' @param dMat A matrix representing the distance matrix, or a string
 #' indicating the type of distance matrix ('euclidean', 'manhattan', or
 #' 'minkowski').
-#' @param sfe The spatial feature object from which to obtain the distance
-#' matrix if not provided explicitly.
+#' @param sfe The spatial feature experiment object from which to obtain the
+#' distance matrix if not provided explicitly.
 #' @return A distance matrix.
 #' @keywords internal
 .int_checkDMat <- function(dMat, sfe) {
   # Check if dMat is provided
-  dMat <- .getProvidedDMat(dMat)
-  if (!is.null(dMat)) {
-    return(dMat)
+  dMatrix <- .getProvidedDMat(dMat)
+  if (!is.null(dMatrix)) {
+    return(dMatrix)
   }
 
   # Try obtaining from metadata
-  dMat <- .getMetadataDMat(sfe)
-  if (!is.null(dMat)) {
-    return(dMat)
+  dMatrix <- .getMetadataDMat(sfe)
+  if (!is.null(dMatrix)) {
+    return(dMatrix)
   }
 
   # Try obtaining based on type
-  types <- c("euclidean", "manhattan", "minkowski")
-  for (type in types) {
-    dMat <- .getTypedDMat(sfe, type)
-    if (!is.null(dMat)) {
-      return(dMat)
-    }
+  dMatrix <- .getTypedDMat(sfe, type = dMat)
+  if (!is.null(dMatrix)) {
+    return(dMatrix)
   }
 
   # If all fails, raise an error
