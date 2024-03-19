@@ -568,11 +568,11 @@ plotFGWC_subHeatmap <- function(heatmap,
     ## Join with annotations
     dplyr::left_join(.,
                      markers[,c("gene.name", "ensg.ID")],
-                     by = dplyr::join_by(.data$ensg.ID)) %>%
+                     by = dplyr::join_by("ensg.ID")) %>%
     ## Remove ENSG.IDs
-    dplyr::select(-.data$ensg.ID) %>%
+    dplyr::select(-"ensg.ID") %>%
     ## Bring gene names column to the front
-    dplyr::relocate(.data$gene.name) %>%
+    dplyr::relocate("gene.name") %>%
     ## Populate rownames with gene names
     tibble::column_to_rownames("gene.name") %>%
     ## Transpose to make it observation x variable

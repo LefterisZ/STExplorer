@@ -970,15 +970,41 @@ plotQC_sizeFactors <- function(sfe,
 
 
   ## Add geometries according to requested type
-  if (type == "spot") {
-    data$geometry <- colGeometries(sfe)$spotPoly$geometry
-  } else if (type == "hex") {
-    data$geometry <- colGeometries(sfe)$spotHex$geometry
-  }
+  data$geometry <- .int_selectGeom(sfe, type = type)
   data <- data[data$in_tissue, ] %>% # in case raw feature matrix was imputed
     dplyr::filter(.data$sample_id %in% ids)
 
   return(data)
+}
+
+
+#' Internal: Select geometry
+#'
+#' An internal function to select geometries from a SpatialFeatureExperiment
+#' object based on the specified type.
+#'
+#' @author Eleftherios Zormpas
+#' @param sfe An object of class SpatialFeatureExperiment.
+#' @param type A character string specifying the type of geometry to select.
+#' Options are "spot" (spot geometry), "hex" (hexagon geometry), or "centroid"
+#' (centroid geometry). Default is "spot".
+#'
+#' @return A geometry object representing the selected geometry type.
+#'
+#' @details This function retrieves the specified type of geometry from a
+#' SpatialFeatureExperiment object. The available options for the type
+#' parameter are "spot" (spot geometry), "hex" (hexagon geometry), and
+#' "centroid" (centroid geometry).
+#'
+.int_selectGeom <- function(sfe, type = c("spot", "hex", "centroid")) {
+  ## Add geometries according to requested type
+  if (type == "spot") {
+    return(colGeometries(sfe)$spotPoly$geometry)
+  } else if (type == "hex") {
+    return(colGeometries(sfe)$spotHex$geometry)
+  } else if (type == "centroid") {
+    return(colGeometries(sfe)$spotCntd$geometry)
+  }
 }
 
 

@@ -902,8 +902,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[1]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = data$geometry,
-                fill = data$cluster),
+            aes(geometry = geometry,
+                fill = cluster),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_manual(values = colour_values,
@@ -916,8 +916,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[2]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = data$geometry,
-                fill = data$NES),
+            aes(geometry = geometry,
+                fill = NES),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_gradient2(high = "#B2182B",
@@ -932,8 +932,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[3]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = data$geometry,
-                fill = data$p.adjust),
+            aes(geometry = geometry,
+                fill = p.adjust),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_c(option = "magma",
@@ -944,8 +944,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[4]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = data$geometry,
-                fill = data$rank),
+            aes(geometry = geometry,
+                fill = rank),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_c(option = "magma",
@@ -956,8 +956,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[5]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = data$geometry,
-                fill = as.factor(data$genes_no)),
+            aes(geometry = geometry,
+                fill = as.factor(genes_no)),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_d(option = "magma",
@@ -969,8 +969,8 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
 
   gsea_plots[[6]] <- ggplot() +
     geom_sf(data = gsea_map,
-            aes(geometry = data$geometry,
-                fill = as.factor(data$setSize)),
+            aes(geometry = geometry,
+                fill = as.factor(setSize)),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_d(option = "magma",
@@ -979,7 +979,6 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
          fill = "Gene set\nSize") +
     theme_void() +
     ggplot2::guides(fill = ggplot2::guide_legend(ncol = n_cols2, byrow = TRUE))
-
 
   ## Arrange plots
   gridExtra::grid.arrange(grobs = gsea_plots, nrow = 2, ncol = 3)
