@@ -1,5 +1,234 @@
-gwrSTE <- function(gwr_method) {
+#' Geographically Weighted Regression (GWR)
+#'
+#' A function to perform Geographically Weighted Regression (GWR) using different
+#' methods specified by the user.
+#'
+#' @param gwr_method Character vector specifying the GWR method to use. Possible
+#'   values are: "basic" for basic GWR, "gtwr" for Geographically and Temporally
+#'   Weighted Regression, "gwr-lcr" for Locally Compensated Ridge GWR (GWR-LCR),
+#'   and "gwr-generalised" for Generalised GWR modeλ.
+#'
+#' @param formula Regression model formula of a \code{\link{formula}} object.
+#'
+#' @param m_sfe An object of class SpatialFeatureExperiment or
+#'   MetaSpatialFeatureExperiment.
+#'
+#' @param sample_id Character string, TRUE, or NULL specifying sample/image
+#'   identifier(s); here, TRUE is equivalent to all samples/images.
+#'
+#' @param bw Bandwidth for the GWR.
+#'
+#' @param kernel Function chosen as follows:
+#'   \itemize{
+#'     \item{gaussian}{wgt = exp(-.5*(vdist/bw)^2);}
+#'     \item{exponential}{wgt = exp(-vdist/bw);}
+#'     \item{bisquare}{wgt = (1-(vdist/bw)^2)^2 if vdist < bw,
+#'       wgt=0 otherwise;}
+#'     \item{tricube}{wgt = (1-(vdist/bw)^3)^3 if vdist < bw,
+#'       wgt=0 otherwise;}
+#'     \item{boxcar}{wgt=1 if dist < bw, wgt=0 otherwise.}
+#'   }
+#'
+#' @param adaptive If \code{TRUE}, calculate an adaptive kernel where the
+#'   bandwidth (\code{bw}) corresponds to the number of nearest neighbours
+#'   (i.e., adaptive distance); default is \code{FALSE}, where a fixed kernel
+#'   is found (bandwidth is a fixed distance).
+#'
+#' @param p The power of the Minkowski distance, default is 2, i.e., the
+#'   Euclidean distance.
+#'
+#' @param dMat A pre-specified distance matrix, it can be calculated and added
+#'   to the SFE object by the \code{\link{addDistMat}} function. If `NULL`, it
+#'   fetches the first (or only) distance matrix from the SFE's metadata slot.
+#'   If you have multiple distance matrices then you can use one of the
+#'   `"euclidean"`, `"manhattan"`, or `"minkowski"` to select the one you
+#'   prefer. Defaults to `NULL`. If you want to calculate a different distance
+#'   matrix, you can do so by using the \code{\link[GWmodel]{gw.dist}} function.
+#'   Then, provide the matrix as a value to this argument.
+#'
+#' @param F123.test If TRUE, conduct three separate F-tests according to
+#'   Leung et al. (2000).
+#'
+#' @param cv If TRUE, cross-validation data will be calculated and returned in
+#'   the output Spatial*DataFrame.
+#'
+#' @param W.vect Default NULL, if given it will be used to weight the distance
+#'   weighting matrix.
+#'
+#' @param parallel.method FALSE as default, and the calibration will be
+#'   conducted traditionally via the serial technique, "omp": multi-thread
+#'   technique with the OpenMP API, "cluster": multi-process technique with
+#'   the \pkg{parallel} package, "cuda": parallel computing technique with CUDA.
+#'
+#' @param parallel.arg If \code{parallel.method} is not FALSE, then set the
+#'   argument as follows: if \code{parallel.method} is "omp",
+#'   \code{parallel.arg} refers to the number of threads used, and its default
+#'   value is the number of cores - 1; if \code{parallel.method} is "cluster",
+#'   \code{parallel.arg} refers to the number of R sessions used, and its
+#'   default value is the number of cores - 1; if \code{parallel.method} is
+#'   "cuda", \code{parallel.arg} refers to the number of calibrations included
+#'   in each group, but note a too large value may cause the overflow of GPU
+#'   memory.
+#'
+#' @param lamda A parameter between 0 and 1 for calculating spatio-temporal
+#'   distance. Used only for the `gwr_method`: `"gtwr"`.
+#'
+#' @param t.units Character string to define time unit. Used only for the
+#'   `gwr_method`: `"gtwr"`.
+#'
+#' @param ksi A parameter between 0 and PI for calculating spatio-temporal
+#'   distance, see details in Wu et al. (2014). Used only for the
+#'   `gwr_method`: `"gtwr"`.
+#'
+#' @param st.dMat A pre-specified spatio-temporal distance matrix. Used only
+#'   for the `gwr_method`: `"gtwr"`.
+#'
+#' @param obs.tv A vector of time tags for each observation, which could be
+#'   numeric or of POSIXlt class. Used only for the `gwr_method`: `"gtwr"`.
+#'
+#' @param lambda_lcr Option for a globally-defined (constant) ridge parameter.
+#'   Default is lambda=0, which gives a basic GWR fit. Used only for
+#'   the `gwr_method`: `"gwr-lcr"`.
+#'
+#' @param lambda.adjust A locally-varying ridge parameter. Default FALSE,
+#'   refers to: (i) a basic GWR without a local ridge adjustment (i.e. lambda=0,
+#'   everywhere); or (ii) a penalised GWR with a global ridge adjustment (i.e.
+#'   lambda is user-specified as some constant, other than 0 everywhere); if
+#'   TRUE, use cn.tresh to set the maximum condition number. For locations with
+#'   a condition number (for its local design matrix), above this
+#'   user-specified threshold, a local ridge parameter is found.
+#'
+#' @param cn.thresh Maximum value for condition number, commonly set between
+#'   20 and 30.
+#'
+#' @return Returns the GWR model object.
+#' @author Eleftherios Zormpas
+#'
+#' @examples
+#' \dontrun{
+#' # Example usage:
+#' gwrSTE(gwr_method = "basic",
+#'        formula = Y ~ X1 + X2,
+#'        m_sfe = sfe_object,
+#'        sample_id = TRUE,
+#'        bw = 100,
+#'        kernel = "gaussian",
+#'        adaptive = FALSE,
+#'        p = 2,
+#'        F123.test = FALSE,
+#'        cv = TRUE)
+#' }
+#' @export
+gwrSTE <- function(gwr_method = c("basic", "gtwr",
+                                  "gwr-lcr", "gwr-generalised"),
+                   formula,
+                   m_sfe,
+                   sample_id,
+                   bw,
+                   kernel = c("bisquare", "gaussian", "exponential",
+                              "tricube", "boxcar"),
+                   adaptive = FALSE,
+                   p = 2,
+                   dMat = NULL,
+                   F123.test = FALSE,
+                   cv = TRUE,
+                   W.vect = NULL,
+                   parallel.method = FALSE,
+                   parallel.arg = NULL,
+                   lamda = 0.05,
+                   t.units = "auto",
+                   ksi = 0,
+                   st.dMat = NULL,
+                   obs.tv = NULL,
+                   lambda_lcr = 0,
+                   lambda.adjust = FALSE,
+                   cn.thresh = NA) {
+  ## Check arguments
+  method <- match.arg(gwr_method)
 
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Select dMat if not provided
+  ## Call internal function to select and obtain the distance matrix
+  dMat <- .int_checkDMat(dMat, sfe)
+
+  ## Prepare data for GWR
+  data <- .int_getGWRdata(sfe, type = "hex")
+
+  ## Run GWR
+  if (method == "basic") {
+    ## basic GWR
+    return(GWmodel::gwr.basic(formula = formula,
+                              data = data,
+                              # regression.points,
+                              bw = bw,
+                              kernel = kernel,
+                              adaptive = adaptive,
+                              p = p,
+                              theta = 0,
+                              longlat = FALSE,
+                              dMat = dMat,
+                              F123.test = F123.test,
+                              cv = cv,
+                              W.vect = W.vect,
+                              parallel.method = parallel.method,
+                              parallel.arg = parallel.arg))
+
+  } else if (method == "gtwr") {
+    ## GTWR: Geographically and Temporally Weighted Regression
+    return(GWmodel::gtwr(formula = formula,
+                         data = data,
+                         # regression.points,
+                         obs.tv = obs.tv,
+                         # reg.tv,
+                         st.bw = bw,
+                         kernel = kernel,
+                         adaptive = adaptive,
+                         p = p,
+                         theta = 0,
+                         longlat = FALSE,
+                         lamda = lamda,
+                         t.units = t.units,
+                         ksi = ksi,
+                         st.dMat = st.dMat))
+
+  } else if (method == "gwr-lcr") {
+    ## Locally compensated ridge GWR (GWR-LCR)
+    return(GWmodel::gwr.lcr(formula = formula,
+                            data = data,
+                            # regression.points,
+                            bw = bw,
+                            kernel = kernel,
+                            lambda = lambda_lcr,
+                            lambda.adjust = lambda.adjust,
+                            cn.thresh = cn.thresh,
+                            adaptive = adaptive,
+                            p = p,
+                            theta = 0,
+                            longlat = FALSE,
+                            cv = cv,
+                            dMat = dMat))
+
+  } else if (method == "gwr-generalised") {
+    ## Generalised GWR model
+    return(GWmodel::ggwr.basic(formula = formula,
+                               data = data,
+                               family = family,
+                               # regression.points,
+                               bw = bw,
+                               kernel = kernel,
+                               adaptive = adaptive,
+                               cv = cv,
+                               tol = tol,
+                               maxiter = maxiter,
+                               p = p,
+                               theta = 0,
+                               longlat = FALSE,
+                               dMat = dMat,
+                               dMat1 = NULL))
+
+  }
 }
 
 
@@ -130,12 +359,12 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
                       approach = c("CV", "AIC"),
                       kernel = c("bisquare", "gaussian", "exponential",
                                  "tricube", "boxcar"),
-                      family = c("poisson", "binomial"),
                       adaptive = FALSE,
                       p = 2,
                       dMat = NULL,
                       parallel.method = FALSE,
                       parallel.arg = NULL,
+                      family = c("poisson", "binomial"),
                       lamda = 0.05,
                       t.units = "auto",
                       ksi = 0,
@@ -157,8 +386,9 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
   dMat <- .int_checkDMat(dMat, sfe)
 
   ## Prepare data for GWR
+  data <- .int_getGWRdata(sfe, type = "hex")
 
-  ## Run GWR
+  ## Run GWR badnwidth selection
   if (method == "basic") {
     ## Bandwidth selection for basic GWR
     return(GWmodel::bw.gwr(formula = formula,
@@ -213,16 +443,33 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
                             approach = approach,
                             kernel = kernel,
                             adaptive = adaptive,
-                            family = family,
                             p = p,
                             theta = 0,
                             longlat = FALSE,
                             dMat = dMat))
 
-  } else {
-    stop("Invalid value for 'gwr_method'. Choose one of 'basic', 'gtwr',",
-         " 'gwr-lcr', or 'gwr-generalised'.")
   }
+}
+
+
+#' GWR summary table
+#'
+#' This function generates a summary table for a Geographically Weighted
+#' Regression (GWR) object.
+#'
+#' @param gwr A GWR object as created by `gwrSTE`.
+#'
+#' @return A summary table containing descriptive statistics for the GWR object.
+#'
+#' @rdname gwr_stats
+#' @author Eleftherios Zormpas
+#' @export
+gwr_stats <- function(gwr) {
+  n <- .int_countElements(gwr$lm$terms[[3]])
+  gwr.tab <- apply(gwr$SDF@data[, 1:(5 + n)], 2, summary)
+  gwr.tab <- round(gwr.tab, 1)
+  gwr.tab <- t(gwr.tab[,1:(1 + n)])
+  return(gwr.tab)
 }
 
 
@@ -237,7 +484,7 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
 #' @param dMat A matrix representing the distance matrix.
 #' @return A distance matrix if provided, otherwise \code{NULL}.
 #' @keywords internal
-.getProvidedDMat <- function(dMat) {
+.int_getProvidedDMat <- function(dMat) {
   if (is.matrix(dMat)) {
     return(dMat)
   }
@@ -255,7 +502,7 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
 #' @param dMat expected to be NULL
 #' @return A distance matrix if found in metadata, otherwise \code{NULL}.
 #' @keywords internal
-.getMetadataDMat <- function(dMat, sfe) {
+.int_getMetadataDMat <- function(dMat, sfe) {
   if (is.null(dMat)) {
     return(metadata(sfe)[["dMat"]][[1]])
   }
@@ -274,7 +521,7 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
 #' @return A distance matrix if found based on the specified type, otherwise
 #' \code{NULL}.
 #' @keywords internal
-.getTypedDMat <- function(sfe, type) {
+.int_getTypedDMat <- function(sfe, type) {
   if (type %in% c("euclidean", "manhattan")) {
     return(metadata(sfe)[["dMat"]][[type]])
   } else if (type == "minkowski") {
@@ -301,27 +548,87 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
 #' @return A distance matrix.
 #' @keywords internal
 .int_checkDMat <- function(dMat, sfe) {
-  # Check if dMat is provided
-  dMatrix <- .getProvidedDMat(dMat)
+  ## Check if dMat is provided
+  dMatrix <- .int_getProvidedDMat(dMat = dMat)
   if (!is.null(dMatrix)) {
     return(dMatrix)
   }
 
-  # Try obtaining from metadata
-  dMatrix <- .getMetadataDMat(sfe)
+  ## Try obtaining from metadata
+  dMatrix <- .int_getMetadataDMat(dMat = dMat, sfe = sfe)
   if (!is.null(dMatrix)) {
     return(dMatrix)
   }
 
-  # Try obtaining based on type
-  dMatrix <- .getTypedDMat(sfe, type = dMat)
+  ## Try obtaining based on type
+  dMatrix <- .int_getTypedDMat(sfe = sfe, type = dMat)
   if (!is.null(dMatrix)) {
     return(dMatrix)
   }
 
-  # If all fails, raise an error
+  ## If all fails, raise an error
   stop("dMat argument is left to NULL and no dMat is present in the ",
        "SFE's metadata slot. Please use the `addDistMat` function to add ",
        "a distance matrix into the SFE objects.")
 }
 
+
+#' Internal: Prepare Data for Geographically Weighted Regression (GWR)
+#'
+#' An internal function to prepare data for Geographically Weighted Regression
+#' (GWR) by retrieving geometries and converting data to the appropriate format.
+#'
+#' @param sfe An object of class SpatialFeatureExperiment.
+#' @param type A character string specifying the type of geometry to use for GWR.
+#' Options are "spot" (spot geometry), "hex" (hexagon geometry), or "centroid"
+#' (centroid geometry).
+#'
+#' @return A SpatialPointsDataFrame or SpatialPolygonsDataFrame object
+#' containing the prepared data for GWR.
+#'
+#' @details This function prepares the data for Geographically Weighted Regression
+#' (GWR) by retrieving the specified type of geometry from a SpatialFeatureExperiment
+#' object and converting the data to the appropriate format. The available options
+#' for the type parameter are "spot" (spot geometry), "hex" (hexagon geometry),
+#' and "centroid" (centroid geometry).
+#'
+#' @author Eleftherios Zormpas
+#' @rdname dot-int_getGWRdata
+#' @importFrom sf st_as_sf
+#' @importFrom dplyr left_join
+#'
+.int_getGWRdata <- function(sfe, type) {
+  ## Get geometries
+  polygons <- data.frame(geometry = .int_selectGeom(sfe = sfe, type = type),
+                         Barcode = rownames(colGeometries(sfe)$spotHex))
+
+  ## Add geometries and convert to sp format
+  dt <- assay(sfe, "logcounts") %>%
+    t() %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column(var = "Barcode") %>%            # barcodes from row names to column
+    dplyr::left_join(polygons, by = "Barcode") %>% # merge with geometries
+    tibble::column_to_rownames(var = "Barcode") %>%            # barcodes back to row names
+    sf::st_as_sf(., sf_column_name = "geometry") %>%       # data frame to sf
+    as(., "Spatial")                                   # sf to sp - GWmodel still works with sp objects
+
+  return(dt)
+}
+
+
+#' Internal: Function to count elements in each string
+#'
+#' This internal function splits a character string by the "+" symbol and counts
+#' the number of elements in the resulting list.
+#'
+#' @param string A character string containing elements separated by "+".
+#'
+#' @return The number of elements in the string.
+#'
+#' @rdname dot-int_countElements
+#' @author Eleftherios Zormpas
+.int_countElements <- function(string) {
+  ## Split by "+" and remove whitespace
+  elements <- strsplit(string, "\\s*\\+\\s*")[[1]]
+  return(length(elements))
+}

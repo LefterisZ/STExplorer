@@ -754,6 +754,7 @@ plotQC_sizeFactors <- function(sfe,
 }
 
 
+
 # ---------------------------------------------------------------------------- #
 #' Internal Function: .int_plotSpot
 #'

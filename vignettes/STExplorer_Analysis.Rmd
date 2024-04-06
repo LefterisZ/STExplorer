@@ -251,7 +251,7 @@ for (id in sampleNames) {
                         samples = sampleDir[id], 
                         sample_id = id, 
                         res = "fullres",
-                        flipped = FALSE)
+                        flipped = TRUE)
   message("\tAdded geometries")
   
   ## Add gene/feature-related statistics
@@ -527,7 +527,7 @@ Here we will be using methods from the `scater` [@McCarthy2017Apr] and `scran` [
 1.  Spots can contain multiple cells of different cell-types.
 2.  Datasets can include multiple tissue samples which will lead to different clusterings.
 
-The `STExplorer`'s functions `computeLibSizeFactors` and `normaliseCounts` are wrappers of the `computeLibraryFactors` and `logNormCounts` functions from the `scate` package that enable them to be used with an `SpatialFeatureExperiment` object.
+The `STExplorer`'s functions `computeLibSizeFactors` and `normaliseCounts` are wrappers of the `computeLibraryFactors` and `logNormCounts` functions from the `scater` package that enable them to be used with an `SpatialFeatureExperiment` object.
 
 > **NOTE:** this is a point of confusion. So far, we have exported a single `SFE` object from the `MSFE`, applied our filters to it and updated it in the `MSFE`. For the gene-level QC and counts normalisation, we suggest you do it using the msfe objects to save you time since it is slightly more standard. For the visualisations you can always select for which sample you want a plot providing `msfe@sfe-data[["sampleID"]]` instead of an `SFE` object.
 
@@ -581,7 +581,7 @@ colnames(rowData(msfe@sfe_data[["JBO022"]]))
 msfe <- setQCthresh_ZeroExpr(msfe)
 
 ## Lowly expressed (noise?!) genes
-msfe <- setQCthresh_LowLogMean(msfe)
+msfe <- setQCthresh_LowLogMean(msfe, threshold = 1)
 
 ## Remove mitochondrial and other genes
 ##    Use it only if you feel it is right for your dataset
@@ -733,6 +733,10 @@ sfe <- getSFE(msfe, "JBO022")
 ## Get the gene names that are going to be evaluated
 vars = top_hvgs[["JBO022"]]
 ## Set a fixed bandwidth
+## bw is an important parameter as it defines the neighbourhood for which the 
+##  PCA will be calculated. The distance is measured in ultra-high resolution 
+##  image pixels. The default is 6x the diameter of the Visium spot. Make sure 
+##  to adjust it if it is too large or too small for your setting.
 bw = 6*sfe@metadata[["spotDiameter"]][["JBO022"]][["spot_diameter_fullres"]]
 ## Set the number of components to be retained
 k = 20
@@ -977,7 +981,6 @@ gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
                                        scoreType = "std",
                                        nPermSimple = 10000,
                                        mc.cores = 8)
-
 ```
 
 Let's have a look at the individual arguments of the `gwpca_FunctionalClustering()` function:
@@ -1064,7 +1067,7 @@ fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
 ### Run FGWC
 
 ```{r fgwc}
-fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", fgwc_param = fgwc_param)
+fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", fgwc_param = fgwc_param)
 
 ```
 
@@ -1107,16 +1110,16 @@ For this plot to be generated, it required from the user to provide a data frame
 3.  **"Type"**: Cell type (e.g., Hepatocytes)\
 4.  **"Subtype"**: Cell subtype (e.g., Stellate cells)\
 
-If no subtype exists, add an empty character string using: `""`
+If no subtype exists, add an empty character string using: `""`.
 
-**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them.
+**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. **NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype`  marker genes data frame: `marker_genes$Subtype <- ""`
 
 ```{r fgwc_plot-heatmap}
 ## Load the liver markers example dataset
-markers <- data(markers)
+# markers <- data(markers)
 
 ## Plot the heatmap
-heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 3)
+heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 2, cutree_cols = 5)
 
 ```
 
@@ -1127,7 +1130,7 @@ In cases where the unit of measurement is an area encompassing more than one cel
 This approach generates a blurred clustering of the data points and provides us with a way to see inside the spots. Utilising established cell-type markers, specific to the liver tissue, we can examine the intra-cluster cell-type heterogeneity that the ecotone suggested, by subdividing each cluster into subclusters according to their cell-type mixture.
 
 ```{r  fgwc_plot-subClust}
-plotFGWC_subClust(heatmap = heatmap, k = 5, clust = 3, m_sfe = sfe, sample_id = "JBO019")
+plotFGWC_subClust(heatmap = heatmap, k = 5, clust = 3, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
@@ -1229,8 +1232,6 @@ There are 2 basic steps to any GW approach:
 
 1.  Determine the optimal kernel bandwidth $h$ (i.e. how many data points - or which size window - to include in each local model). Here an AIC approach is used.
 2.  Fit the GWR model.
-
-
 
 ## Spatial Autocorrelation
 
