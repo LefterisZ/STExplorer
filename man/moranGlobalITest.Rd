@@ -6,7 +6,7 @@
 \usage{
 moranGlobalITest(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   zero.policy = NULL,
   randomisation = TRUE,

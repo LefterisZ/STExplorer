@@ -66,7 +66,7 @@
 #'
 #' @export
 gearyGlobalC <- function(m_sfe,
-                         sample_id,
+                         sample_id = NULL,
                          genes = TRUE,
                          n = NULL,
                          n1 = NULL,
@@ -203,7 +203,7 @@ gearyGlobalC <- function(m_sfe,
 #'
 #' @export
 gearyGlobalCPerm <- function(m_sfe,
-                             sample_id,
+                             sample_id = NULL,
                              genes = TRUE,
                              nsim,
                              zero.policy = NULL,
@@ -347,7 +347,7 @@ gearyGlobalCPerm <- function(m_sfe,
 #'
 #' @export
 gearyGlobalCTest <- function(m_sfe,
-                             sample_id,
+                             sample_id = NULL,
                              genes = TRUE,
                              randomisation=TRUE,
                              zero.policy = NULL,
@@ -499,7 +499,7 @@ gearyGlobalCTest <- function(m_sfe,
 #'
 #' @export
 gearyLocalC <- function(m_sfe,
-                        sample_id,
+                        sample_id = NULL,
                         genes = TRUE,
                         ...,
                         zero.policy = NULL,
@@ -560,7 +560,7 @@ gearyLocalC <- function(m_sfe,
 #' }
 #' @export
 gearyLocalCPerm <- function(m_sfe,
-                            sample_id,
+                            sample_id = NULL,
                             genes = TRUE,
                             nsim = 999,
                             alternative = "two.sided",

@@ -5,7 +5,8 @@
 \title{Get Spatial Autocorrelation Global Genes}
 \usage{
 getSAGlobalGenes(
-  m_sfe = sfe,
+  m_sfe,
+  sample_id = NULL,
   statistic = c("moran", "geary", "getis"),
   test = c("z-score", "permutation"),
   pVal = 0.05,
@@ -15,6 +16,10 @@ getSAGlobalGenes(
 \arguments{
 \item{m_sfe}{An object of class 'SpatialFeatureExperiment' or
 'MultiSpatialFeatureExperiment' containing spatial data.}
+
+\item{sample_id}{A character vector specifying the sample ID to include
+(only relevant if a MetaSpatialFeatureExperiment has been provided in the
+\code{m_sfe} argument).}
 
 \item{statistic}{A character string specifying the type of spatial
 autocorrelation results ("moran", "geary", "getis") to look

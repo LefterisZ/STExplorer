@@ -6,7 +6,7 @@
 \usage{
 moranGlobalIPerm(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   nsim = 999,
   zero.policy = NULL,

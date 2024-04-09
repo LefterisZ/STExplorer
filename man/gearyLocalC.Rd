@@ -7,7 +7,7 @@
 \usage{
 gearyLocalC(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   ...,
   zero.policy = NULL,
@@ -16,7 +16,7 @@ gearyLocalC(
 
 gearyLocalCPerm(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   nsim = 999,
   alternative = "two.sided",

@@ -65,7 +65,7 @@
 #'
 #' @export
 plotSA_local <- function(m_sfe,
-                         sample_id,
+                         sample_id = NULL,
                          feature,
                          statistic = c("moran", "geary", "getis"),
                          test = c("z-score", "permutation"),
@@ -204,7 +204,7 @@ plotSA_local <- function(m_sfe,
 #' @export
 
 plotSA_localClust <- function(m_sfe,
-                              sample_id,
+                              sample_id = NULL,
                               feature,
                               statistic = c("moran", "geary", "getis"),
                               test = c("z-score", "permutation"),

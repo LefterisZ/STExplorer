@@ -6,7 +6,7 @@
 \usage{
 plotSA_localClust(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   feature,
   statistic = c("moran", "geary", "getis"),
   test = c("z-score", "permutation"),

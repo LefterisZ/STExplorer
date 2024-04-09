@@ -85,7 +85,7 @@
 #'
 #' @export
 getisGlobalGTest <- function(m_sfe,
-                             sample_id,
+                             sample_id = NULL,
                              genes = TRUE,
                              zero.policy = NULL,
                              alternative = "greater",
@@ -259,7 +259,7 @@ getisGlobalGTest <- function(m_sfe,
 #'
 #' @export
 getisLocalG <- function(m_sfe,
-                        sample_id,
+                        sample_id = NULL,
                         genes = TRUE,
                         zero.policy = NULL,
                         spChk = NULL,
@@ -328,7 +328,7 @@ getisLocalG <- function(m_sfe,
 #'
 #' @export
 getisLocalGPerm <- function(m_sfe,
-                            sample_id,
+                            sample_id = NULL,
                             genes = TRUE,
                             nsim = 999,
                             zero.policy = NULL,

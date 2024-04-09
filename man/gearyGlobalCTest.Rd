@@ -6,7 +6,7 @@
 \usage{
 gearyGlobalCTest(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   randomisation = TRUE,
   zero.policy = NULL,

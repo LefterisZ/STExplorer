@@ -7,7 +7,7 @@
 \usage{
 moranLocalI(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   zero.policy = NULL,
   na.action = na.fail,
@@ -21,7 +21,7 @@ moranLocalI(
 
 moranLocalIPerm(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   nsim = 999,
   zero.policy = NULL,

@@ -1112,7 +1112,7 @@ For this plot to be generated, it required from the user to provide a data frame
 
 If no subtype exists, add an empty character string using: `""`.
 
-**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. **NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype`  marker genes data frame: `marker_genes$Subtype <- ""`
+**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. **NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype` marker genes data frame: `marker_genes$Subtype <- ""`
 
 ```{r fgwc_plot-heatmap}
 ## Load the liver markers example dataset
@@ -1257,22 +1257,46 @@ Several established tests for spatial autocorrelation exist for measurements in 
 
 ### Global and local measures
 
+When analysing spatial data, it's essential to understand both global and local spatial autocorrelation measures. These statistics help us quantify the degree to which a variable exhibits spatial clustering or dispersion across the entire dataset (global) and at each location compared to its neighbours (local).
+
 > "**Global spatial autocorrelation measures**: statistics assessing the degree of spatial autocorrelation for a variable in the whole dataset."
 
 > "**Local spatial autocorrelation measures**: statistics assessing the degree of spatial autocorrelation for a variable in every location compared to its neighbours."
 
-Moran’s correlation coefficient, known as Moran’s I, is a univariate measure of spatial autocorrelation. It is the most well-recognized and widely used spatial autocorrelation statistic. I can take values between −1 and +1, where values near +1 indicate strong positive spatial autocorrelation, values near −1 indicate strong negative spatial autocorrelation (i.e., perfect dispersion), and values near zero suggest a randomly dispersed variable [@Zormpas2023Cell].
+Moran’s correlation coefficient, known as Moran’s *I*, is the most well-recognized and widely used spatial autocorrelation statistic. It quantifies the degree of similarity between values of a variable at different locations within a spatial dataset.
 
-### Moran's I
+Moran’s I ranges from -1 to +1, where:
+
+-   **Values close to +1** indicate strong positive spatial autocorrelation, suggesting that similar values tend to cluster together.
+-   **Values close to -1** indicate strong negative spatial autocorrelation, implying that dissimilar values cluster together (perfect dispersion).
+-   **Values near zero** suggest a random spatial pattern, with no significant spatial clustering or dispersion [@Zormpas2023Cell].
+
+This measure provides insights into the extent to which spatial patterns influence the variable of interest within the study area.
+
+### Moran's *I* {#morans-i}
+
+To compute the Global Moran's *I* statistic for a spatial transcriptomics dataset, we use the `moranGlobalIPerm` function. This function calculates the global Moran's I value and generates a pseudo p-value through permutation testing.
+
+Inference for Moran’s *I* relies on a null hypothesis of spatial randomness. The distribution of the statistic under the null can be obtained using either an assumption of normality (independent normal random variates), or so-called randomisation (i.e., each value is equally likely to occur at any location). While analytical derivations offer interpretable expressions for the mean and variance, inference based on them approximates a standard normal distribution, which may be inappropriate when assumptions are unmet.
+
+An alternative computational approach involves permutation. This method computes a reference distribution for the statistic by randomly shuffling observed values across locations. Each reshuffled dataset generates a statistic, forming the reference distribution. While less sensitive to underlying assumption violations, this approach is limited to the actual sample.
+
+From the reference distribution, a *pseudo p-value* is calculated using the formula 
+
+$$p = (R + 1) / (M + 1)$$
+
+where R is the number of times the computed Moran’s *I* from permuted datasets equals or exceeds the observed statistic, and M is the number of permutations (usually 99, 999, etc.).
+
+The pseudo p-value summarises the reference distribution results but is not an analytical p-value. Importantly, significance depends partly on the number of permutations. For instance, a p-value of 0.01 with 99 permutations is not necessarily more significant than a p-value of 0.001 with 999 permutations.
 
 ```{r moran-global}
-sfe <- moranGlobalIPerm(sfe, sample_id = "JBO022", genes = TRUE, mc.cores = 1)
+sfe <- moranGlobalIPerm(sfe, genes = TRUE, mc.cores = 1)
 
 head(rowData(sfe))
 
 ```
 
-Once we calculate the Global Moran's I we can use the pseudo-pvalue generated by permutation and select only the genes that are most likely to be affected by spatial autocorrelation.
+Once we calculate the Global Moran's *I* we can use the pseudo-pvalue generated by permutation and select only the genes that are most likely to be affected by spatial autocorrelation.
 
 The below chunk of code allows the user to create a named vector of the genes that pass the selection provided filters:
 
@@ -1280,34 +1304,35 @@ The below chunk of code allows the user to create a named vector of the genes th
 
 2.  `stat_thresh` : is the global statistic threshold that will allow only genes with a global statistic greater than the threshold to pass.
 
-At the end, both filters need to be `TRUE` for a gene to be present in the final named vector. The same logic will be applied for Geary's C and Getis & Ord's G in the next chapters.
+At the end, both filters need to be `TRUE` for a gene to be present in the final named vector. The same logic will be applied for Geary's *C* and Getis & Ord's *G* in the next chapters.
 
 ```{r moran-select}
-gs <- getSAGlobalGenes()
+gs <- getSAGlobalGenes(m_sfe = sfe, 
+                       statistic = "moran", 
+                       test = "permutation",
+                       pVal = 0.05,
+                       stat_thresh = 0.5)
 
 ```
 
-Now that we selected the genes that exhibit putatively interesting patterns in space, we can calculate the local measure of SA (*here local Moran's I*) and visualise the results on a map of the tissue section.
+After selecting genes of interest based on the Global Moran's I values, we can calculate the Local Moran's *I* statistic for each gene. This statistic evaluates the spatial autocorrelation at each location within the dataset, providing insights into local clustering patterns.
 
 ```{r moran-local}
 sfe <- moranLocalIPerm(m_sfe = sfe,
-                       sample_id = "JBO019",
                        genes = gs,
                        mc.cores = 8)
 ```
 
-When mapping the local statistics you can present it in two ways:
+We can visualise the results of the Local Moran's *I* analysis by plotting the spatial distribution of significant local autocorrelation values for each selected gene. Two visualisation options are available:
 
-1.  All measurements and significant ones highlighted with a grey-white line.
+-   **All Measurements:** Displays all local Moran's *I* measurements, with significant values highlighted using a grey-white line.
+-   **Significant Measurements Only:** Shows only the significant local Moran's *I* values, with the rest of the tissue greyed-out.
 
-2.  Only the significant measurements with the rest of the tissue greyed-out.
-
-This is selected by providing to the `locations` argument either `"all"` (for option 1) or `"significant"` (for option 2).
+The choice between these options can be specified using the `locations` argument in the plotting functions.
 
 ```{r moran-plot}
 for (g in gs) {
-  p <- plotSA_local(m_sfe = sfe, 
-             sample_id = "JBO019",
+  p <- plotSA_local(m_sfe = sfe,
              feature = g,
              statistic = "moran",
              test = "permutation",
@@ -1321,7 +1346,6 @@ for (g in gs) {
 
 for (g in gs) {
   p <- plotSA_localClust(m_sfe = sfe, 
-             sample_id = "JBO019",
              feature = g,
              statistic = "moran",
              test = "permutation",
@@ -1334,34 +1358,54 @@ for (g in gs) {
 }
 ```
 
-### Geary's C
+This comprehensive approach to analysing global and local spatial autocorrelation provides valuable insights into the spatial distribution of gene expression patterns in spatial transcriptomics data.
+
+#### Limitations of Moran's *I*
+While Moran's *I* is a widely used measure of spatial autocorrelation, it has limitations. One limitation is its sensitivity to the choice of spatial weights matrix, which defines the relationship between spatial units. Different weight specifications can yield different Moran's *I* values and affect the interpretation of spatial patterns. Additionally, Moran's *I* may not capture all aspects of spatial dependence, particularly when spatial relationships are non-linear or complex.
+
+#### Considerations for Interpretation 
+When interpreting Moran's *I* results in spatial transcriptomics studies, it's important to consider tissue architecture, cellular composition, and experimental design. Spatial patterns may reflect underlying tissue structures, such as gradients or compartments, as well as cellular interactions and spatially regulated biological processes. Understanding the biological context is crucial for distinguishing genuine spatial patterns from artefacts or confounding factors. Additionally, incorporating spatial visualisation techniques, such as spatial heatmaps or spatially explicit plots, can aid in interpreting Moran's *I* results and identifying biologically relevant spatial patterns.
+
+### Geary's *C*
 
 Alternative measures to Moran’s I include Geary’s C and Getis and Ord’s G statistic. Geary’s C takes only positive values, where C = 1 means that there is a lack of spatial autocorrelation. Values of C approaching 0 show increasing positive spatial autocorrelation, and C ≫ 1 is indicative of negative spatial autocorrelation which suggests large differences between a location and its neighbours. Thus, Geary’s C is inversely related to Moran’s I, though as the measures are calculated differently, they are not directly related. Due to these differences in calculation, Moran’s I is more a global measure and more sensitive to extreme values while Geary’s C is sensitive to differences between values in neighbouring areas [@Zormpas2023Cell].
 
+Firstly, we can calculate the Global Geary's *C*.
+
 ```{r geary-global}
-sfe <- gearyGlobalCPerm(sfe, sample_id = "JBO019", genes = TRUE, mc.cores = 8)
+sfe <- gearyGlobalCPerm(sfe, genes = TRUE, mc.cores = 8)
 
 head(rowData(sfe))
 ```
 
+Once we calculate the Global Geary's *C* we can use the pseudo-pvalue generated by permutation and select only the genes that are most likely to be affected by spatial autocorrelation.
+
+The below chunk of code allows the user to create a named vector of the genes that pass the selection provided filters of `pVal` and `stat_thresh` ([see Moran's I for more info](#morans-i)).
+
 ```{r geary-select}
-gs <- getSAGlobalGenes()
+gs <- getSAGlobalGenes(m_sfe = sfe, 
+                       statistic = "geary", 
+                       test = "permutation",
+                       pVal = 0.05,
+                       stat_thresh = 0.5)
 
 ```
 
+Now that we selected the genes that exhibit putatively interesting patterns in space, we can calculate the local measure of SA (*here local Geary's C*) and visualise the results on a map of the tissue section.
+
 ```{r geary-local}
-sfe <- moranLocalIPerm(m_sfe = sfe,
-                       sample_id = "JBO019",
+sfe <- gearyLocalCPerm(m_sfe = sfe,
                        genes = gs,
                        mc.cores = 8)
 ```
 
+Now we can map the local statistics ([see Moran's I for more info](#morans-i)).
+
 ```{r geary-plot}
 for (g in gs) {
   p <- plotSA_local(m_sfe = sfe, 
-             sample_id = "JBO019",
              feature = g,
-             statistic = "moran",
+             statistic = "geary",
              test = "permutation",
              pVal = 0.05,
              type = "hex",
@@ -1374,9 +1418,8 @@ for (g in gs) {
 
 for (g in gs) {
   p <- plotSA_localClust(m_sfe = sfe, 
-             sample_id = "JBO019",
              feature = g,
-             statistic = "moran",
+             statistic = "geary",
              test = "permutation",
              pVal = 0.05,
              type = "hex",
@@ -1387,12 +1430,68 @@ for (g in gs) {
 }
 ```
 
-### Getis & Ord's G
+### Getis & Ord's *G*
 
 The G statistic is ideal for checking whether similar values co-locate as it only provides a measure of positive spatial autocorrelation. It is more useful as a local model of spatial autocorrelation, as discussed in the next section [@Zormpas2023Cell].
 
-```{r getis}
+Firstly, we can calculate the Global Getis & Ord's *G*.
 
+```{r geary-global}
+sfe <- getisGlobalGTest(sfe, genes = TRUE, mc.cores = 8)
+
+head(rowData(sfe))
+```
+
+Once we calculate Getis & Ord's *G* we can use the pseudo-pvalue generated by permutation and select only the genes that are most likely to be affected by spatial autocorrelation.
+
+The below chunk of code allows the user to create a named vector of the genes that pass the selection provided filters of `pVal` and `stat_thresh` ([See Moran's I for more info](#morans-i)).
+
+```{r geary-select}
+gs <- getSAGlobalGenes(m_sfe = sfe, 
+                       statistic = "getis", 
+                       test = "permutation",
+                       pVal = 0.05,
+                       stat_thresh = 0.5)
+
+```
+
+Now that we selected the genes that exhibit putatively interesting patterns in space, we can calculate the local measure of SA (*here local Getis & Ord's G*) and visualise the results on a map of the tissue section.
+
+```{r geary-local}
+sfe <- getisLocalGPerm(m_sfe = sfe,
+                       genes = gs,
+                       mc.cores = 8)
+```
+
+Now we can map the local statistics ([see Moran's I for more info](#morans-i)).
+
+```{r getis-plot}
+for (g in gs) {
+  p <- plotSA_local(m_sfe = sfe, 
+             feature = g,
+             statistic = "getis",
+             test = "permutation",
+             pVal = 0.05,
+             type = "hex",
+             title = "name",
+             locations = "significant")
+  
+  print(p)
+}
+
+
+for (g in gs) {
+  p <- plotSA_localClust(m_sfe = sfe, 
+             feature = g,
+             statistic = "getis",
+             test = "permutation",
+             pVal = 0.05,
+             type = "hex",
+             title = "name",
+             clust_col = NULL)
+  
+  print(p)
+}
 ```
 
 ## Putting it all together

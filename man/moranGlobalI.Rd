@@ -6,7 +6,7 @@
 \usage{
 moranGlobalI(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   n = NULL,
   S0 = NULL,

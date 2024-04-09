@@ -83,7 +83,7 @@ plotNeighbourGraph <- function(msfe,
 #'              data.
 #' @param genes A vector of gene names or ENSG_IDs to be plotted.
 #' @param sample_id A character string specifying the sample ID for
-#'                  analysis.
+#'                  analysis. If NULL the first sample is selected.
 #' @param assay Character vector specifying the type of assay data
 #'              to plot. Options are "counts" for raw counts and
 #'              "logcounts" for log2-normalized counts. Default is
@@ -108,7 +108,7 @@ plotNeighbourGraph <- function(msfe,
 #' @param ... Additional arguments to be passed to the plotting
 #'            functions.
 #'
-#' @importFrom purr reduce
+#' @importFrom purrr reduce
 #' @importFrom tidyterra geom_spatraster_rgb
 #' @importFrom ggplot2 geom_sf labs coord_sf facet_wrap theme_void
 #'

@@ -7,7 +7,7 @@
 \usage{
 getisLocalG(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   zero.policy = NULL,
   spChk = NULL,
@@ -19,7 +19,7 @@ getisLocalG(
 
 getisLocalGPerm(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   nsim = 999,
   zero.policy = NULL,

@@ -6,7 +6,7 @@
 \usage{
 gearyGlobalC(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   n = NULL,
   n1 = NULL,

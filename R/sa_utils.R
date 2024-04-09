@@ -5,6 +5,9 @@
 #'
 #' @param m_sfe An object of class 'SpatialFeatureExperiment' or
 #'              'MultiSpatialFeatureExperiment' containing spatial data.
+#' @param sample_id A character vector specifying the sample ID to include
+#' (only relevant if a MetaSpatialFeatureExperiment has been provided in the
+#' `m_sfe` argument).
 #' @param statistic A character string specifying the type of spatial
 #'                  autocorrelation results ("moran", "geary", "getis") to look
 #'                  for in the m_sfe object for the specified sample.
@@ -33,11 +36,15 @@
 #' getSAGlobalGenes()
 #'
 #' @export
-getSAGlobalGenes <- function(m_sfe = sfe,
+getSAGlobalGenes <- function(m_sfe,
+                             sample_id = NULL,
                              statistic = c("moran", "geary", "getis"),
                              test = c("z-score", "permutation"),
                              pVal = 0.05,
                              stat_thresh = 0.5) {
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
   if (test == "permutation") {
     colPVal <- paste0(statistic, "Pval_perm")
   } else if (test == "permutation") {

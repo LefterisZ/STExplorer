@@ -6,7 +6,7 @@
 \usage{
 gearyGlobalCPerm(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   genes = TRUE,
   nsim,
   zero.policy = NULL,

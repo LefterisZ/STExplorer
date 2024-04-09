@@ -59,7 +59,7 @@
 #'
 #' @export
 moranGlobalI <- function(m_sfe,
-                         sample_id,
+                         sample_id = NULL,
                          genes = TRUE,
                          n = NULL,
                          S0 = NULL,
@@ -192,7 +192,7 @@ moranGlobalI <- function(m_sfe,
 #'
 #' @export
 moranGlobalIPerm <- function(m_sfe,
-                             sample_id,
+                             sample_id = NULL,
                              genes = TRUE,
                              nsim = 999,
                              zero.policy = NULL,
@@ -341,7 +341,7 @@ moranGlobalIPerm <- function(m_sfe,
 #'
 #' @export
 moranGlobalITest <- function(m_sfe,
-                             sample_id,
+                             sample_id = NULL,
                              genes = TRUE,
                              zero.policy = NULL,
                              randomisation = TRUE,
@@ -542,7 +542,7 @@ moranGlobalITest <- function(m_sfe,
 #'
 #' @export
 moranLocalI <- function(m_sfe,
-                        sample_id,
+                        sample_id = NULL,
                         genes = TRUE,
                         zero.policy = NULL,
                         na.action = na.fail,
@@ -612,7 +612,7 @@ moranLocalI <- function(m_sfe,
 #'
 #' @export
 moranLocalIPerm <- function(m_sfe,
-                            sample_id,
+                            sample_id = NULL,
                             genes = TRUE,
                             nsim = 999,
                             zero.policy = NULL,

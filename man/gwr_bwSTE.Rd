@@ -11,12 +11,12 @@ gwr_bwSTE(
   sample_id,
   approach = c("CV", "AIC"),
   kernel = c("bisquare", "gaussian", "exponential", "tricube", "boxcar"),
-  family = c("poisson", "binomial"),
   adaptive = FALSE,
   p = 2,
   dMat = NULL,
   parallel.method = FALSE,
   parallel.arg = NULL,
+  family = c("poisson", "binomial"),
   lamda = 0.05,
   t.units = "auto",
   ksi = 0,
@@ -51,11 +51,6 @@ wgt=0 otherwise;}
 \item{boxcar}{wgt=1 if dist < bw, wgt=0 otherwise.}
 }}
 
-\item{family}{a description of the error distribution and link function to
-be used in the model, which can be specified by “poisson” or “binomial”
-description. Used only for the \code{gwr_method}: \code{"gwr-generalised"}
-\code{\link[GWmodel]{bw.ggwr}}}
-
 \item{adaptive}{If \code{TRUE}, calculate an adaptive kernel where the
 bandwidth (\code{bw}) corresponds to the number of nearest neighbours
 (i.e., adaptive distance); default is \code{FALSE}, where a fixed kernel is
@@ -64,8 +59,14 @@ found (bandwidth is a fixed distance).}
 \item{p}{The power of the Minkowski distance, default is 2, i.e., the
 Euclidean distance.}
 
-\item{dMat}{A pre-specified distance matrix, it can be calculated by the
-function \code{\link{gw.dist}}.}
+\item{dMat}{A pre-specified distance matrix, it can be calculated and added
+to the SFE object by the \code{\link{addDistMat}} function. If \code{NULL}, it
+fetches the first (or only) distance matrix from the SFE's metadata slot.
+If you have multiple distance matrices then you can use one of the
+\code{"euclidean"}, \code{"manhattan"}, or \code{"minkowski"} to select the one you prefer.
+Defaults to \code{NULL}. If you want to calculate a different distance matrix,
+you can do so by using the \code{\link[GWmodel]{gw.dist}} function. Then,
+provide the matrix as a value to this argument.}
 
 \item{parallel.method}{FALSE as default, and the calibration will be
 conducted traditionally via the serial technique, "omp": multi-thread
@@ -80,6 +81,11 @@ value is the number of cores - 1; if \code{parallel.method} is "cluster",
 value is the number of cores - 1; if \code{parallel.method} is "cuda",
 \code{parallel.arg} refers to the number of calibrations included in each
 group, but note a too large value may cause the overflow of GPU memory.}
+
+\item{family}{a description of the error distribution and link function to
+be used in the model, which can be specified by “poisson” or “binomial”
+description. Used only for the \code{gwr_method}: \code{"gwr-generalised"}
+\code{\link[GWmodel]{bw.ggwr}}}
 
 \item{lamda}{an parameter between 0 and 1 for calculating spatio-temporal
 distance. Used only for the \code{gwr_method}: \code{"gtwr"}
