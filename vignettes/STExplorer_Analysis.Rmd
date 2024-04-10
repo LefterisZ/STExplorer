@@ -1279,7 +1279,7 @@ To compute the Global Moran's *I* statistic for a spatial transcriptomics datase
 
 Inference for Moran’s *I* relies on a null hypothesis of spatial randomness. The distribution of the statistic under the null can be obtained using either an assumption of normality (independent normal random variates), or so-called randomisation (i.e., each value is equally likely to occur at any location). While analytical derivations offer interpretable expressions for the mean and variance, inference based on them approximates a standard normal distribution, which may be inappropriate when assumptions are unmet.
 
-An alternative computational approach involves permutation. This method computes a reference distribution for the statistic by randomly shuffling observed values across locations. Each reshuffled dataset generates a statistic, forming the reference distribution. While less sensitive to underlying assumption violations, this approach is limited to the actual sample.
+An alternative computational approach involves permutation. This approach enhances result reliability by directly computing a reference distribution for the statistic under the null hypothesis of spatial randomness. This method computes a reference distribution for the statistic by randomly shuffling observed values across locations. Each reshuffled dataset generates a statistic, forming the reference distribution. While less sensitive to underlying assumption violations, this approach is limited to the actual sample.
 
 From the reference distribution, a *pseudo p-value* is calculated using the formula 
 
@@ -1288,6 +1288,8 @@ $$p = (R + 1) / (M + 1)$$
 where R is the number of times the computed Moran’s *I* from permuted datasets equals or exceeds the observed statistic, and M is the number of permutations (usually 99, 999, etc.).
 
 The pseudo p-value summarises the reference distribution results but is not an analytical p-value. Importantly, significance depends partly on the number of permutations. For instance, a p-value of 0.01 with 99 permutations is not necessarily more significant than a p-value of 0.001 with 999 permutations.
+
+#### Calculating Global Moran’s *I*
 
 ```{r moran-global}
 sfe <- moranGlobalIPerm(sfe, genes = TRUE, mc.cores = 1)
@@ -1315,6 +1317,8 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
 
 ```
 
+#### Calculating Local Moran's *I*
+
 After selecting genes of interest based on the Global Moran's I values, we can calculate the Local Moran's *I* statistic for each gene. This statistic evaluates the spatial autocorrelation at each location within the dataset, providing insights into local clustering patterns.
 
 ```{r moran-local}
@@ -1322,6 +1326,8 @@ sfe <- moranLocalIPerm(m_sfe = sfe,
                        genes = gs,
                        mc.cores = 8)
 ```
+
+#### Visualising Local Moran's *I* Results
 
 We can visualise the results of the Local Moran's *I* analysis by plotting the spatial distribution of significant local autocorrelation values for each selected gene. Two visualisation options are available:
 
@@ -1361,16 +1367,31 @@ for (g in gs) {
 This comprehensive approach to analysing global and local spatial autocorrelation provides valuable insights into the spatial distribution of gene expression patterns in spatial transcriptomics data.
 
 #### Limitations of Moran's *I*
+
 While Moran's *I* is a widely used measure of spatial autocorrelation, it has limitations. One limitation is its sensitivity to the choice of spatial weights matrix, which defines the relationship between spatial units. Different weight specifications can yield different Moran's *I* values and affect the interpretation of spatial patterns. Additionally, Moran's *I* may not capture all aspects of spatial dependence, particularly when spatial relationships are non-linear or complex.
 
-#### Considerations for Interpretation 
+#### Considerations for interpretation 
+
 When interpreting Moran's *I* results in spatial transcriptomics studies, it's important to consider tissue architecture, cellular composition, and experimental design. Spatial patterns may reflect underlying tissue structures, such as gradients or compartments, as well as cellular interactions and spatially regulated biological processes. Understanding the biological context is crucial for distinguishing genuine spatial patterns from artefacts or confounding factors. Additionally, incorporating spatial visualisation techniques, such as spatial heatmaps or spatially explicit plots, can aid in interpreting Moran's *I* results and identifying biologically relevant spatial patterns.
 
 ### Geary's *C*
 
-Alternative measures to Moran’s I include Geary’s C and Getis and Ord’s G statistic. Geary’s C takes only positive values, where C = 1 means that there is a lack of spatial autocorrelation. Values of C approaching 0 show increasing positive spatial autocorrelation, and C ≫ 1 is indicative of negative spatial autocorrelation which suggests large differences between a location and its neighbours. Thus, Geary’s C is inversely related to Moran’s I, though as the measures are calculated differently, they are not directly related. Due to these differences in calculation, Moran’s I is more a global measure and more sensitive to extreme values while Geary’s C is sensitive to differences between values in neighbouring areas [@Zormpas2023Cell].
+In addition to Moran’s *I*, alternative measures of spatial autocorrelation include Geary’s *C* and Getis and Ord’s *G* statistic. Geary’s *C* assesses spatial autocorrelation by examining differences between neighbouring locations. A Geary’s *C* value of:
 
-Firstly, we can calculate the Global Geary's *C*.
+-   **1:** suggests no spatial autocorrelation
+-   **approaching 0:** indicate increasing positive spatial autocorrelation
+-   **much greater than 1:** imply negative spatial autocorrelation, indicating large differences between a location and its neighbours
+
+As evident from the equation below, the focus of Geary's **C** is on squared differences (dissimilarity). In other words, small values of the statistics suggest positive spatial autocorrelation, whereas large values suggest negative spatial autocorrelation ([check also here][https://geodacenter.github.io/workbook/6b_local_adv/lab6b.html#local-geary]).
+
+Geary’s *C* is inversely related to Moran’s I, although they are calculated differently and not directly related. Moran’s *I* is more sensitive to extreme values and considered a global measure, while Geary’s *C* focuses on differences between neighbouring areas [@Zormpas2023Cell].
+
+Similarly to Moran's analysis, relying solely on analytical inference can be unreliable due to its approximation. Instead, a conditional permutation procedure is preferred. Interpretation follows a similar framework as for the Moran statistic, with attention to pseudo p-values and significance. It's important to note again that pseudo p-values provide a summary of results from the reference distribution and should be interpreted cautiously, not equated with analytical p-values. This computational approach offers a more robust method for assessing global spatial autocorrelation.
+
+#### Calculating Global Geary's *C*
+
+To compute the Global Geary's *C* statistic for a spatial transcriptomics dataset, we utilise the `gearyGlobalCPerm` function. This function calculates the global Geary's *C* value and generates a pseudo p-value through permutation testing.
+
 
 ```{r geary-global}
 sfe <- gearyGlobalCPerm(sfe, genes = TRUE, mc.cores = 8)
@@ -1391,7 +1412,9 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
 
 ```
 
-Now that we selected the genes that exhibit putatively interesting patterns in space, we can calculate the local measure of SA (*here local Geary's C*) and visualise the results on a map of the tissue section.
+#### Calculating Local Geary's *C*
+
+Once we've selected relevant genes that exhibit putatively interesting patterns in space, we calculate the local Geary's *C* to assess spatial autocorrelation at each location within the dataset.
 
 ```{r geary-local}
 sfe <- gearyLocalCPerm(m_sfe = sfe,
@@ -1399,7 +1422,9 @@ sfe <- gearyLocalCPerm(m_sfe = sfe,
                        mc.cores = 8)
 ```
 
-Now we can map the local statistics ([see Moran's I for more info](#morans-i)).
+#### Visualising Local Geary's *C* Results
+
+We can visualise the results of the Local Geary's *C* analysis by plotting the spatial distribution of significant local autocorrelation values for each selected gene. The visualisation options are similar to those for Moran's *I*, [as described earlier](#morans-i)).
 
 ```{r geary-plot}
 for (g in gs) {
@@ -1430,9 +1455,29 @@ for (g in gs) {
 }
 ```
 
+#### Limitations of Geary's *C*
+
+Despite its usefulness, Geary's *C* has several limitations that should be considered when interpreting results. One significant limitation is its sensitivity to the scale of measurement and spatial heterogeneity. Geary's *C* may yield different results depending on the spatial scale at which the analysis is conducted, making comparisons across studies challenging. 
+
+#### Considerations for interpretation 
+
+Interpreting Geary's *C* results involves several key considerations to ensure meaningful interpretation. Firstly, comparing observed Geary's *C* values with expected values under spatial randomness helps identify spatial autocorrelation patterns (essentially using the pseudo p-values to identify those areas). Additionally, understanding the tissue's context and potential spatial processes driving observed patterns is essential for accurate interpretation. Lastly, integrating Geary's C results with other spatial analyses and domain-specific knowledge enhances understanding of spatial patterns and processes in spatial transcriptomics.
+
+
 ### Getis & Ord's *G*
 
 The G statistic is ideal for checking whether similar values co-locate as it only provides a measure of positive spatial autocorrelation. It is more useful as a local model of spatial autocorrelation, as discussed in the next section [@Zormpas2023Cell].
+
+The interpretation of Getis-Ord statistics is relatively straightforward: 
+
+-   **a value exceeding the mean:** (or a positive value for a standardized z-score) indicates a High-High values cluster or hot spot
+-   **a value below the mean:** (or a negative z-score) signifies a Low-Low values cluster or cold spot. 
+
+Unlike the Moran and Geary statistics, the Getis-Ord method does not account for spatial outliers.
+
+Inference from Getis-Ord statistics can be obtained through an analytical approximation, as outlined in Getis and Ord (1992) and Ord and Getis (1995). However, similar to the Moran and Geary statistics, such approximations may lack reliability in practical applications. Alternatively, conditional random permutation can be utilised, employing the same procedure as for the other statistical methods.
+
+#### Calculating Global Getis & Ord's *G*
 
 Firstly, we can calculate the Global Getis & Ord's *G*.
 
@@ -1455,6 +1500,8 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
 
 ```
 
+#### Calculating Local Getis & Ord's *G*
+
 Now that we selected the genes that exhibit putatively interesting patterns in space, we can calculate the local measure of SA (*here local Getis & Ord's G*) and visualise the results on a map of the tissue section.
 
 ```{r geary-local}
@@ -1462,6 +1509,8 @@ sfe <- getisLocalGPerm(m_sfe = sfe,
                        genes = gs,
                        mc.cores = 8)
 ```
+
+#### Visualising Local Getis & Ord's *G* Results
 
 Now we can map the local statistics ([see Moran's I for more info](#morans-i)).
 
@@ -1493,6 +1542,15 @@ for (g in gs) {
   print(p)
 }
 ```
+
+#### Limitations of Getis & Ord's *G*
+
+While Getis & Ord's *G* statistic is valuable for detecting clustering of similar values, it has certain limitations in the context of spatial transcriptomics. One limitation is its sensitivity to the choice of spatial scale or neighbourhood size. Depending on the scale chosen, the detected clusters may vary, impacting the interpretation of spatial patterns. Additionally, Getis & Ord's *G* is limited to identifying positive spatial autocorrelation only, meaning it may overlook negative spatial relationships or dispersion patterns.
+
+
+#### Considerations for interpretation 
+
+To interpret Getis & Ord's *G* results (similar to all previous SA statistics), firstly, we need to understand the biological context and underlying spatial processes. This is crucial for interpreting the detected clustering patterns. We should also consider the biological mechanisms driving the observed spatial relationships and how they relate to gene expression patterns. Furthermore, exploring sensitivity analyses by varying the neighbourhood size or spatial scale can help assess the robustness of results and identify optimal parameters for analysis (this is also useful for the other two SA statistics as well). Integrating Getis & Ord's *G* results with other spatial analyses, such as Moran's *I* or Geary's *C*, can provide a more comprehensive understanding of spatial patterns and their biological significance. Finally, visualising Getis & Ord's *G* results alongside spatial gene expression data using techniques like spatial heatmaps or spatially explicit plots can aid in interpreting clustering patterns and identifying biologically relevant spatial features.
 
 ## Putting it all together
 
