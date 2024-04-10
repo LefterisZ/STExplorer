@@ -12,6 +12,7 @@ int.gwpca(
   .p,
   .k,
   .bw,
+  .type,
   .kernel,
   .adaptive,
   .scores,
@@ -34,6 +35,8 @@ int.gwpca(
 \item{.k}{The number of components to retain.}
 
 \item{.bw}{The bandwidth parameter.}
+
+\item{.type}{hex or spot geometries.}
 
 \item{.kernel}{The kernel function to use for weighting.}
 

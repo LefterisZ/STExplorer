@@ -29,6 +29,9 @@ too.}
 \item{sample_id}{A character string specifying the sample ID for
 analysis. If NULL the first sample is selected.}
 
+\item{type}{Character vector specifying the spot type, either "spot" or
+"hex".}
+
 \item{colours}{One of "viridis" or "custom". Select between Viridis' package
 colour schemes and custom colours provided by you. IMPORTANT:
 Look at Details for more information.}

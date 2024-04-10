@@ -17,6 +17,7 @@ gwpcaSTE(
   scores = FALSE,
   robust = FALSE,
   cv = TRUE,
+  type = c("spot", "hex"),
   future = FALSE,
   strategy = "sequential",
   workers = 1,

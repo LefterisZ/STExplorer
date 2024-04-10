@@ -569,6 +569,8 @@ plotQC_scat <- function(sfe,
 #'              data.
 #' @param sample_id A character string specifying the sample ID for
 #'                  analysis. If NULL the first sample is selected.
+#' @param type Character vector specifying the spot type, either "spot" or
+#'             "hex".
 #' @param metric Character vector specifying the metric, either "libsize",
 #'               "mito", "detected", or custom. If custom is selected then you
 #'               have to provide the `metric_name` and `metric_lab` arguments

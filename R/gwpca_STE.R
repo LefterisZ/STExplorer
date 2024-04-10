@@ -95,6 +95,7 @@ gwpcaSTE <- function(sfe,
                       scores = FALSE,
                       robust = FALSE,
                       cv = TRUE,
+                      type = c("spot", "hex"),
                       future = FALSE,
                       strategy = "sequential",
                       workers = 1,
@@ -136,6 +137,17 @@ gwpcaSTE <- function(sfe,
   ## fetch start time
   s <- Sys.time()
 
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "hex") {
+    stopifnot("spotHex" %in% names(colGeometries(sfe)))
+    type <- "spotHex"
+  } else if (type == "spot") {
+    type <- "spotPoly"
+  }
+
   ## RUN GWPCA
   gwpca_result <- int.gwpca(.sfe = sfe,
                             .assay = assay,
@@ -144,6 +156,7 @@ gwpcaSTE <- function(sfe,
                             .p = p,
                             .k = k,
                             .bw = bw,
+                            .type = type,
                             .kernel = kernel,
                             .adaptive = adaptive,
                             .scores = scores,
@@ -843,6 +856,7 @@ int.gwpca.FLoop <- function(i,
 #' @param .p The power parameter for distance calculation.
 #' @param .k The number of components to retain.
 #' @param .bw The bandwidth parameter.
+#' @param .type hex or spot geometries.
 #' @param .kernel The kernel function to use for weighting.
 #' @param .adaptive Logical indicating if adaptive bandwidth should be used.
 #' @param .scores Logical indicating if local scores should be calculated.
@@ -894,6 +908,7 @@ int.gwpca <- function(.sfe,
                       .p,
                       .k,
                       .bw,
+                      .type,
                       .kernel,
                       .adaptive,
                       .scores,
@@ -1087,7 +1102,7 @@ int.gwpca <- function(.sfe,
   SDF <- SpatialPointsDataFrame(coords = .elocat,
                                 data = res.df,
                                 match.ID = FALSE)
-  geometry <- colGeometry(.sfe, "spotHex")
+  geometry <- colGeometry(.sfe, .type)
   ## Put them in a list to output
   res <- list(pca = pca.res, loadings = w, SDF = SDF,
               gwpca.scores = gwpca.scores, var = d1,

@@ -857,6 +857,18 @@ plotGWPCA_leadingG(gwpca = pcagw,
                    size = 8)
 ```
 
+Another option we have is to plot the absolute leading score per gene per location per PC.
+
+```{r 04_}
+plotGWPCA_leadingScores <- function(gwpca = pcagw,
+                                    comps = c(1,3,5),
+                                    genes = c("ENSG00000254709", "ENSG00000077942"),
+                                    type = "hex",
+                                    colours = "viridis",
+                                    col_args = list(),
+                                    gene_names = c("IGLL5", "FBLN1"))
+```
+
 ### Percentage of Total Variation (PTV)
 
 Another useful diagnostic for PCA is the percentage of variability in the data explained by each of the components. Locally, this can be achieved by looking at the `local.PV` component of `pcagw`; this is written as `pcagw$local.PV`. This is an 1161 by 20 matrix - where 1161 is the number of observations and 20 is the number of components (`k`). For each location, the 20 columns correspond to the percentage of the total variance explained by each of the principal components at that location. If, say, the first two components contributed 90% of the total variance, then it is reasonable to assume that much of the variability in the data can be seen by just looking at these two components. Because this is geographically weighted PCA, this quantity varies across the map.
