@@ -214,7 +214,7 @@ plotFGWC_heatmap <- function(fgwc,
   ## Annotate rows
   annot_row <- data.frame(Type = markers$Type, # get annotations
                           Subtype = markers$Subtype)
-  rownames(annot_row) <- markers$gene.name # add gene names in rownames
+  rownames(annot_row) <- make.unique(markers$gene.name) # add gene names in rownames
   ## Remove genes that might not be present in the input
   annot_row <- annot_row %>%
     filter(rownames(.) %in% rownames(pheat_in)) %>%

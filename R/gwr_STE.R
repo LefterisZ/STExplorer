@@ -452,26 +452,56 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
 }
 
 
+#' Extract SDF from gwr object
+#'
+#' This function extracts the SDF data frame from within a gwr class object and
+#' converts it to class sf.
+#'
+#' @param gwr A GWR object as created by `gwrSTE`.
+#'
+#' @return A data frame of class sf.
+#'
+#' @importFrom sf st_as_sf
+#'
+#' @rdname gwr_toSF
+#' @author Eleftherios (Lefteris) Zormpas
+#' @export
+gwr_toSF <- function(gwr) {
+  sf::st_as_sf(gwr$SDF)
+}
+
+
 #' GWR summary table
 #'
 #' This function generates a summary table for a Geographically Weighted
 #' Regression (GWR) object.
 #'
-#' @param gwr A GWR object as created by `gwrSTE`.
+#' @param gwr A GWR object as created by `gwrSTE`, or the SDF data frame from
+#'            within the GWR object converted to an SF class object using
+#'            `gwr_toSF`.
+#' @param stat Character string. It must be a column name from the `gwr$SDF`
+#'             data frame. It is essentially, the statistic for which to
+#'             provide a summary.
 #'
 #' @return A summary table containing descriptive statistics for the GWR object.
 #'
 #' @rdname gwr_stats
 #' @author Eleftherios Zormpas
 #' @export
-gwr_stats <- function(gwr) {
-  n <- .int_countElements(gwr$lm$terms[[3]])
+gwr_stats.gwr <- function(gwr) {
+  n <- .int_countElements(deparse1(gwr$lm$terms[[3]]))
   gwr.tab <- apply(gwr$SDF@data[, 1:(5 + n)], 2, summary)
   gwr.tab <- round(gwr.tab, 1)
   gwr.tab <- t(gwr.tab[,1:(1 + n)])
   return(gwr.tab)
 }
 
+gwr_stats.SF <- function(gwr, stat) {
+  ## Summary statistics for Local_R2
+  summary_stats <- summary(gwr[[stat]])
+  cat("Summary Statistics for Local R-squared Values:\n")
+  return(summary_stats)
+}
 
 # ---------------------------------------------------------------------------- #
 #  ################# INTERNAL FUNCTIONS ASSOCIATED WITH GWR #################

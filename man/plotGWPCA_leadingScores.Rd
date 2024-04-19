@@ -11,7 +11,7 @@ plotGWPCA_leadingScores(
   type = c("spot", "hex"),
   colours = c("viridis", "custom"),
   col_args = list(),
-  gene_names = TRUE
+  gene_names
 )
 }
 \arguments{

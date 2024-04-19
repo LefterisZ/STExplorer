@@ -675,9 +675,13 @@ A distance matrix is a mirrored matrix that contains the distance between a spot
 
 There are 6 different kernels that can be used to weight the distances between spots. The next two figures are from the `GWmodel` publication [@Gollini2015Feb] and illustrate the mathematical application of these kernals, and show graphically how they weight by distance.
 
+<a id="figure1"></a>
+
 ```{r GWmodelFig1, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="The math equations that define the kernels."}
 knitr::include_graphics("images/gwmodel_kernel_math.png")
 ```
+
+<a id="figure2"></a>
 
 ```{r GWmodelFig2, echo=FALSE, out.width = "100%", fig.align="center", fig.cap="Examples from using each kernel."}
 knitr::include_graphics("images/gwmodel_kernel_graphs.png")
@@ -1245,6 +1249,87 @@ There are 2 basic steps to any GW approach:
 1.  Determine the optimal kernel bandwidth $h$ (i.e. how many data points - or which size window - to include in each local model). Here an AIC approach is used.
 2.  Fit the GWR model.
 
+> **NOTE:** The two genes selected below are merely used to illustrate how you can use run GWR.
+
+#### Set up the formula
+
+Here we will set up our formula. The formula includes the variables that we will be using for the regression.
+
+The formula is divided in two parts by the `~`. On the left-hand side we place the dependent (or response) variables and on the right-hand side we place the independent (or the predictor) variables.
+
+Let's assume a formula of type `geneA~geneB`. The dependent variable (geneA) is the one being predicted or explained by the independent variable (geneB). It represents the outcome or response variable that is influenced by changes in the independent variable. Conversely, the independent variable (geneB) is the predictor or explanatory variable, representing the factor that is manipulated or controlled in the analysis and is hypothesised to have an effect on the dependent variable (geneA).
+
+```{r gwr_form}
+## Build formula
+formula <- "ENSG00000091513~ENSG00000197971"
+
+## Alternative example:
+# formula <- "ENSG00000170476~ENSG00000111796+ENSG00000198851"
+
+```
+
+#### Select bandwidth
+
+The kernel size, also known as the bandwidth, holds significant importance as it determines the number of data points included in each local model. However, finding the optimal bandwidth involves evaluating different potential bandwidths and applying a measure of model fit. In the context of GWR in geography, two options are commonly used for this purpose which we also transferred to biology:
+
+1.  Leave-One-Out Cross Validation (CV): This method systematically removes each observation one at a time for a potential bandwidth, assessing how well the local model with that bandwidth predicts the value of each removed data point.
+2.  Akaike’s Information Criterion (AIC or corrected AIC, AICc): This criterion measures model parsimony, which balances model accuracy with complexity. A parsimonious model is one that offers explanatory power while being as simple as possible.
+
+When determining the optimal GWR bandwidth, AIC is preferred over CV because it considers model parsimony, helping to avoid overfitting GWR models. Consequently, bandwidths determined using AIC tend to be larger than those obtained using CV.
+
+> **NOTE:** to remember the different kernel types please refer to [Figure 1](#figure1) and [Figure 2](#figure2)
+
+```{r gwr_bw}
+## Find Bandwidth
+bw <- gwr_bwSTE(gwr_method = "basic",
+                formula = formula,
+                m_sfe = msfe,
+                sample_id = "JBO022",
+                kernel = "bisquare",
+                approach = "AIC")
+
+```
+
+#### Run GWR
+Make sure you provide `gwrSTE` with the same `gwr_method` and `kernel` from above.
+
+```{r gwr}
+## Run GWR
+gwr <- gwrSTE(gwr_method = "basic",
+              formula = formula,
+              m_sfe = msfe,
+              sample_id = "JBO022",
+              bw = bw,
+              kernel = "bisquare")
+
+```
+
+
+#### Print Summary stats
+```{r gwr_stats}
+gwr_stats(gwr)
+
+```
+
+#### Plot
+```{r gwr_plot1}
+
+
+```
+
+#### Plot
+```{r gwr_plot2}
+
+
+```
+
+#### Plot
+```{r gwr_plot3}
+
+
+```
+
+
 ## Spatial Autocorrelation
 
 When we are performing spatial analysis in research, we're looking to achieve one (or more) of mainly three things:
@@ -1293,7 +1378,7 @@ Inference for Moran’s *I* relies on a null hypothesis of spatial randomness. T
 
 An alternative computational approach involves permutation. This approach enhances result reliability by directly computing a reference distribution for the statistic under the null hypothesis of spatial randomness. This method computes a reference distribution for the statistic by randomly shuffling observed values across locations. Each reshuffled dataset generates a statistic, forming the reference distribution. While less sensitive to underlying assumption violations, this approach is limited to the actual sample.
 
-From the reference distribution, a *pseudo p-value* is calculated using the formula 
+From the reference distribution, a *pseudo p-value* is calculated using the formula
 
 $$p = (R + 1) / (M + 1)$$
 
@@ -1382,7 +1467,7 @@ This comprehensive approach to analysing global and local spatial autocorrelatio
 
 While Moran's *I* is a widely used measure of spatial autocorrelation, it has limitations. One limitation is its sensitivity to the choice of spatial weights matrix, which defines the relationship between spatial units. Different weight specifications can yield different Moran's *I* values and affect the interpretation of spatial patterns. Additionally, Moran's *I* may not capture all aspects of spatial dependence, particularly when spatial relationships are non-linear or complex.
 
-#### Considerations for interpretation 
+#### Considerations for interpretation
 
 When interpreting Moran's *I* results in spatial transcriptomics studies, it's important to consider tissue architecture, cellular composition, and experimental design. Spatial patterns may reflect underlying tissue structures, such as gradients or compartments, as well as cellular interactions and spatially regulated biological processes. Understanding the biological context is crucial for distinguishing genuine spatial patterns from artefacts or confounding factors. Additionally, incorporating spatial visualisation techniques, such as spatial heatmaps or spatially explicit plots, can aid in interpreting Moran's *I* results and identifying biologically relevant spatial patterns.
 
@@ -1394,7 +1479,7 @@ In addition to Moran’s *I*, alternative measures of spatial autocorrelation in
 -   **approaching 0:** indicate increasing positive spatial autocorrelation
 -   **much greater than 1:** imply negative spatial autocorrelation, indicating large differences between a location and its neighbours
 
-As evident from the equation below, the focus of Geary's **C** is on squared differences (dissimilarity). In other words, small values of the statistics suggest positive spatial autocorrelation, whereas large values suggest negative spatial autocorrelation ([check also here][https://geodacenter.github.io/workbook/6b_local_adv/lab6b.html#local-geary]).
+As evident from the equation below, the focus of Geary's **C** is on squared differences (dissimilarity). In other words, small values of the statistics suggest positive spatial autocorrelation, whereas large values suggest negative spatial autocorrelation ([check also here][<https://geodacenter.github.io/workbook/6b_local_adv/lab6b.html#local-geary>]).
 
 Geary’s *C* is inversely related to Moran’s I, although they are calculated differently and not directly related. Moran’s *I* is more sensitive to extreme values and considered a global measure, while Geary’s *C* focuses on differences between neighbouring areas [@Zormpas2023Cell].
 
@@ -1403,7 +1488,6 @@ Similarly to Moran's analysis, relying solely on analytical inference can be unr
 #### Calculating Global Geary's *C*
 
 To compute the Global Geary's *C* statistic for a spatial transcriptomics dataset, we utilise the `gearyGlobalCPerm` function. This function calculates the global Geary's *C* value and generates a pseudo p-value through permutation testing.
-
 
 ```{r geary-global}
 sfe <- gearyGlobalCPerm(sfe, genes = TRUE, mc.cores = 8)
@@ -1469,21 +1553,20 @@ for (g in gs) {
 
 #### Limitations of Geary's *C*
 
-Despite its usefulness, Geary's *C* has several limitations that should be considered when interpreting results. One significant limitation is its sensitivity to the scale of measurement and spatial heterogeneity. Geary's *C* may yield different results depending on the spatial scale at which the analysis is conducted, making comparisons across studies challenging. 
+Despite its usefulness, Geary's *C* has several limitations that should be considered when interpreting results. One significant limitation is its sensitivity to the scale of measurement and spatial heterogeneity. Geary's *C* may yield different results depending on the spatial scale at which the analysis is conducted, making comparisons across studies challenging.
 
-#### Considerations for interpretation 
+#### Considerations for interpretation
 
 Interpreting Geary's *C* results involves several key considerations to ensure meaningful interpretation. Firstly, comparing observed Geary's *C* values with expected values under spatial randomness helps identify spatial autocorrelation patterns (essentially using the pseudo p-values to identify those areas). Additionally, understanding the tissue's context and potential spatial processes driving observed patterns is essential for accurate interpretation. Lastly, integrating Geary's C results with other spatial analyses and domain-specific knowledge enhances understanding of spatial patterns and processes in spatial transcriptomics.
-
 
 ### Getis & Ord's *G*
 
 The G statistic is ideal for checking whether similar values co-locate as it only provides a measure of positive spatial autocorrelation. It is more useful as a local model of spatial autocorrelation, as discussed in the next section [@Zormpas2023Cell].
 
-The interpretation of Getis-Ord statistics is relatively straightforward: 
+The interpretation of Getis-Ord statistics is relatively straightforward:
 
 -   **a value exceeding the mean:** (or a positive value for a standardized z-score) indicates a High-High values cluster or hot spot
--   **a value below the mean:** (or a negative z-score) signifies a Low-Low values cluster or cold spot. 
+-   **a value below the mean:** (or a negative z-score) signifies a Low-Low values cluster or cold spot.
 
 Unlike the Moran and Geary statistics, the Getis-Ord method does not account for spatial outliers.
 
@@ -1559,8 +1642,7 @@ for (g in gs) {
 
 While Getis & Ord's *G* statistic is valuable for detecting clustering of similar values, it has certain limitations in the context of spatial transcriptomics. One limitation is its sensitivity to the choice of spatial scale or neighbourhood size. Depending on the scale chosen, the detected clusters may vary, impacting the interpretation of spatial patterns. Additionally, Getis & Ord's *G* is limited to identifying positive spatial autocorrelation only, meaning it may overlook negative spatial relationships or dispersion patterns.
 
-
-#### Considerations for interpretation 
+#### Considerations for interpretation
 
 To interpret Getis & Ord's *G* results (similar to all previous SA statistics), firstly, we need to understand the biological context and underlying spatial processes. This is crucial for interpreting the detected clustering patterns. We should also consider the biological mechanisms driving the observed spatial relationships and how they relate to gene expression patterns. Furthermore, exploring sensitivity analyses by varying the neighbourhood size or spatial scale can help assess the robustness of results and identify optimal parameters for analysis (this is also useful for the other two SA statistics as well). Integrating Getis & Ord's *G* results with other spatial analyses, such as Moran's *I* or Geary's *C*, can provide a more comprehensive understanding of spatial patterns and their biological significance. Finally, visualising Getis & Ord's *G* results alongside spatial gene expression data using techniques like spatial heatmaps or spatially explicit plots can aid in interpreting clustering patterns and identifying biologically relevant spatial features.
 
