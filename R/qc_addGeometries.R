@@ -23,6 +23,11 @@
 #' @param flipped Default is FALSE. This argument is important for 10X Visium
 #' data. See details below.
 #'
+#' @param barcodes A character string. Can take values either "all", "input",
+#' or a user specified character vector with barcodes to be selected for
+#' geometries generation. When you have an already pre-processed dataset, use
+#' "input". Default is "all".
+#'
 #' @details
 #' This function adds centroid and hexagon geometries to the
 #' \code{colGeometries} slot of the SpatialFeatureExperiment object. It
@@ -64,7 +69,8 @@ addGeometries <- function(m_sfe,
                           samples,
                           sample_id,
                           res = c("lowres", "hires", "fullres"),
-                          flipped = FALSE) {
+                          flipped = FALSE,
+                          barcodes = "all") {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
@@ -82,11 +88,14 @@ addGeometries <- function(m_sfe,
                        res = res)
 
   ## Add Hexagons
+  # NOTE: need to change the way hexagons are generated to accommodate
+  #       instances where a user has an already pre-processed sfe object.
   sfe <- add.spotHex(sfe = sfe,
                      samples = samples,
                      sample_id = sample_id,
                      res = res,
-                     flipped = flipped)
+                     flipped = flipped,
+                     barcodes = barcodes)
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)

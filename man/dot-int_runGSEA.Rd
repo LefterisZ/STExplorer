@@ -65,6 +65,7 @@ data and parameters. The results are returned as a dataframe.
 \code{\link{gwpca_FunctionalClustering}}, \code{\link[clusterProfiler]{GSEA}}
 
 Other Spatial Transcriptomics Analysis: 
+\code{\link{.int_generateGeneList}()},
 \code{\link{gwpca_FunctionalClustering}()},
 \code{\link{plotGWPCA_FuncCLust}()}
 }

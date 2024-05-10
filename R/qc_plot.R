@@ -189,8 +189,8 @@ plotQC_spotsAnnotation <- function(sfe,
   ## Plot annotation map
   p <- ggplot2::ggplot() +
     ggplot2::geom_sf(data = data,
-                     aes(geometry = data$geometry,
-                         fill = data$annotation)) +
+                     aes(geometry = geometry,
+                         fill = annotation)) +
     do.call(scale_fill_manual, c(list(...), fill_args)) +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
@@ -776,8 +776,8 @@ plotQC_filtered <- function(sfe,
   ## Plot filtered locations map
   p <- ggplot2::ggplot() +
     ggplot2::geom_sf(data = data,
-                     ggplot2::aes(geometry = data$geometry,
-                                  fill = data$fill)) +
+                     ggplot2::aes(geometry = geometry,
+                                  fill = fill)) +
     ggplot2::scale_fill_manual(values = c("grey95", "red")) +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
@@ -871,7 +871,7 @@ plotQC_sizeFactors <- function(sfe,
 
   ## Generate plot
   p <- ggplot(data = data,
-         aes(x = data$aes_x)) +
+         aes(x = aes_x)) +
     do.call(geom_histogram, c(list(...), hist_args,
                               list(aes(y = after_stat(density))))) +
     do.call(geom_density, c(list(...), dens_args)) +

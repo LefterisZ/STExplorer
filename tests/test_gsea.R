@@ -21,7 +21,7 @@ list <- parallel::mclapply(X = 1:nrow(inputGSEA),
                            pvalueCutoff = 0.25,
                            TERM2GENE = t2g,
                            pAdjustMethod = "fdr",
-                           scoreType = "std",
+                           scoreType = "pos",
                            nPermSimple = 10000,
                            mc.cores = 8)
 

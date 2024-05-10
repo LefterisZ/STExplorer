@@ -362,6 +362,9 @@ plotQC_hist(sfe, metric = "libsize", limits = c(2000, 36500),
 
 # plotQC_scat(sfe, metric = "libsize")
 
+## Map the library sizes
+plotQC_map(sfe, metric = "libsize")
+
 ## Select threshold
 sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 500, max_t = 32000)
 
@@ -397,6 +400,9 @@ plotQC_hist(sfe, metric = "detected", limits = c(500, NA))
 
 # plotQC_scat(sfe, metric = "detected")
 
+## Map the library sizes
+plotQC_map(sfe, metric = "detected")
+
 ## Select threshold
 sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 500, max_t = NA)
 
@@ -424,6 +430,9 @@ plotQC_hist(sfe, metric = "mito", limits = c(NA, 15))
 ## Use this only if your dataset has information about the number of cells per spot
 
 # plotQC_scat(sfe, metric = "mito")
+
+## Map the library sizes
+plotQC_map(sfe, metric = "mito")
 
 ## Select threshold
 sfe <- setQCthresh_Mito(sfe, sample_id = TRUE, min_t = NA, max_t = 15)
@@ -627,7 +636,6 @@ top_hvgs <- getTopHighVarGenes(dec,
 
 ## Visualize mean-variance relationship
 plotGeneVariance(dec = dec, hvgs = top_hvgs)
-
 ```
 
 The `trend` function that we used above is returned from the `modelGeneVar` function and returns the fitted value of the trend at any value of the mean. The "biological" variance of a gene is what remains when the fitted variance for a gene of that expression value is subtracted from the total variance (so genes above the blue trend line have a positive biological variance).
@@ -716,6 +724,193 @@ plotNeighbourGraph(msfe, sample_id = "JBO019",
 ```
 
 Now that we have a fully QC-ed dataset with spatial weights and a neighbour graph applied, we have prepared our data fully for the application of geospatial methods - specifically in practical 4, geogrpahically weighted principal components analysis (GWPCA).
+
+## Fuzzy Geographically Weighted Clustering (FGWC)
+
+### Background
+
+FGWC is a supervised clustering method that, for each point in space, assigns partial membership to multiple classes. The big difference between FGWC and classic clustering is the assumption that biological clusters do not always have hard boundaries but in many cases, an ecotone exists around each cluster area that generates a gradient between two adjacent clusters. Much like the geographical ecotones we see in nature biological ecotones are either present naturally or can be introduced by the platform used to conduct the experiment.
+
+Usually, when clustering single-cell RNA-sequencing (scRNA-seq) data researchers look to cluster together cells based on their cell type and subtype. In spatial transcriptomics, researchers usually look to identify regions of the tissue that match the existing information of the histopathology expert annotation or reveal hidden patterns in the microenvironment that are not visible through microscopy only.
+
+Fuzzy Geographically Weighted Clustering (FGWC) was developed by Mason and Jacobson (2007) by adding neighborhood effects and population to configure the membership matrix in Fuzzy C-Means. There are seven optimisation algorithms that currently provided in this package, mainly from the Yang (2014). The optimization algorithm uses the centroid as the parameter to be optimized. Here are the algorithm that can be used:
+
+1.  **"classic"** - The classical algorithm of FGWC based on Mason and Jacobson (2007) for centroid optimisation and Runkler and Katz (2006) for membership optimization.\
+
+2.  **"abc"** - Optimization using artificial bee colony algorithm based on Karaboga and Basturk (2007) (see also Wijayanto and Purwarianti 2014 and Wijayanto et al. 2016 for FGWC implementation).\
+
+3.  **"fpa"** - Optimization using flower pollination algorithm based on (Yang 2012).\
+
+4.  **"gsa"** - Optimization using gravitational search algorithm based on Rashedi et al. (2009) and Li and Dong (2017) (see also Pamungkas and Pramana 2019 for FGWC implementation).\
+
+5.  **"hho"** - Optimization using harris-hawk optimization with "heidari" (Heidari et al. 2019) (default). and "bairathi" (Bairathi and Gopalani 2018).\
+
+6.  **"ifa"** - Optimization using intelligent firefly algorithm based on Yang (2009), as well as the intelligent improvement by Fateen and Bonilla-Petriciolet (2013) (see also Nasution et al. 2020 for FGWC implementation).\
+
+7.  **"pso"** - Optimization using particle swarm optimization based on Runkler and Katz (2006) and Bansal et al. (2011) for inertia option (see also Wijayanto and Purwarianti 2014; Putra and Kurniawan 2017; Abdussamad 2020 for FGWC implementation).\
+
+8.  **"tlbo"** - Optimization using teaching - learning based optimization based on Rao et al. (2012) and elitism improvement by Rao and Patel (2012).\
+
+Furthermore, there are 10 distance types that can be used to calculate the membership (see cdist for details). the default parameter of FGWC (in case you do not want to tune anything) is
+
+```{r fgwc_params1, eval=FALSE}
+c(kind = 'u', ncluster = 2, m = 2, distance = 'euclidean', order = 2, alpha = 0.7, a = 1, b = 1, max.iter = 500, error = 1e-5, randomN = 1)
+```
+
+There is also a universal parameter to the optimization algorithm as well as the details. The default parameter for the optimization algorithm is
+
+```{r fgwc_params2, eval=FALSE}
+c(vi.dist = 'uniform',  npar = 10, par.no = 2, par.dist = 'euclidean', par.order = 2, pso = TRUE, same = 10, type = 'sim.annealing', ei.distr = 'normal', vmax = 0.7, wmax = 0.9, wmin = 0.4, chaos = 4, x0 = 'F', map = 0.7, ind = 1, skew = 0, sca = 1)
+```
+
+If you do not define a certain parameter, the parameter will be set to its default value (the values above).
+
+>**NOTE:** an important note here is the parameter `a`. If you look at the documentation for fgwcuv (`?fgwcuv`) you will see that `a` sets the spatial magnitude of distance. Default is 1. This number is used as an exponential in the internal calculations. Essentially, tells FGWC how
+much additive importance space should have. You can increase this number and most likely you will observe more refined clusters coming out of FGWC.
+
+### Reduce dimensions using NMF
+
+> **NOTE:** the number of factors that we get back is left to the default of 2. We suggest that you should play with this number and find the best option for your data. Use the `ncomponents` argument. 
+
+```{r fgwc_nmf}
+sfe_nmf <- fgwc_nmf(sfe, 
+                    sample_id = "JBO022", 
+                    top_hvgs = top_hvgs[["JBO022"]])
+
+```
+
+### Select FGWC parameters
+
+```{r fgwc_params}
+fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
+
+```
+
+### Run FGWC
+
+```{r fgwc}
+fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", fgwc_param = fgwc_param)
+
+```
+
+### Plot the highest membership clusters
+
+```{r fgwc_plot-single}
+plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+
+```
+
+Since FGWC is a method that assigns membership percentages to each cluster, we can select and plot the cluster with the highest percentage of membership in each location and create a map of clusters. If we contrast the highest membership cluster map with the tissue histology (see below) and the scRNA-seq-based annotation we will see that the clustering result resembles, at least, the annotation.
+
+```{r fgwc-tisue_annot, echo=FALSE, out.height="20%", fig.show='hold',fig.align='center', fig.cap="Left: sample image. Right: sample annotation."}
+knitr::include_graphics("./images/tissue_annotation_gtruth.png")
+```
+
+### Plot the membership percentages
+
+Nevertheless, this is not an accurate depiction of the clustering results. A more accurate representation is the one shown below. There, we show maps of percentages from all clusters side-by-side, and we can investigate the ecotones that might exist between clusters.
+
+```{r fgwc_plot-multi}
+plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+
+```
+
+**What is an ecotone?** - An ecotone in geographical sciences is a blurred gradient between a forest area and a grassland. Most of the times, a forest area doesn't stop abruptly to become a grassland but slowly the forest is thinning out to give its place to the grassland. The same idea can be found in spatial transcriptomics too. There might be genes or cells that their expression or presence in space does not form coherent areas but blends with the surrounding areas in a smooth-like transition from one gene expression to the other or from one cell type to the other. Additionally, the fact that the spatial transcriptomics platforms are yet not in single cell level, means that we have an artificial introduction of ecotones. One example is the 10X Genomics Visium platform where each spot can include 2-10+ cells depending on tissue density. This means that a spot can overlap different tissue zones leading to an abnormal clustering if we don't consider ecotones.
+
+```{r  fgwc_ecotones, echo=FALSE, out.height="20%", fig.show='hold',fig.align='center', fig.cap="The ecotone is an area of transition between two areas of different morphology. We can find such ecotones in data from low-resolution spot-based technologies like Visium."}
+knitr::include_graphics("./images/ecotones.png") 
+```
+
+In the multiple membership plot earlier we can see an example of ecotones. Clusters 3 and 5 present the ecotone as a blurred gradient of intermediate percentages between the two clusters. The ecotone though is not always the same size. For example, in clusters like cluster 4, the ecotone is much thinner.
+
+### Plot a heatmap of established biomarkers
+
+For this plot to be generated, it required from the user to provide a data frame (table) with four (4) columns that includes the below information and the specific column names:
+
+1.  **"gene.name"**: gene names (e.g., APOE)\
+2.  **"ensg.ID"**: ENSGene IDs (e.g., ENSG00000130203)\
+3.  **"Type"**: Cell type (e.g., Hepatocytes)\
+4.  **"Subtype"**: Cell subtype (e.g., Stellate cells)\
+
+If no subtype exists, add an empty character string using: `""`.
+
+**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. **NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype` marker genes data frame: `marker_genes$Subtype <- ""`
+
+```{r fgwc_plot-heatmap}
+## Load the liver markers example dataset
+# markers <- data(markers)
+
+## Plot the heatmap
+heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 2, cutree_cols = 5)
+
+```
+
+In cases where the unit of measurement is an area encompassing more than one cell (i.e., 10X Visium spots), fuzzy clustering looks more appropriate. Indeed, if we look at cell-type markers in cluster 4 we see that each location has a mixture of different cell-type markers indicating that a mixture of cells exists in each spot and thus absolute clustering often fails to capture the high levels of heterogeneity present. This idea of an ecotone and of a gradient rather than absolute cluster boundaries more closely captures the different types of cells that might co-exist in a 10X Visium spot and also leads to a more dynamic clustering that can reveal the existing spatial heterogeneity.
+
+### Visualise subclusters
+
+This approach generates a blurred clustering of the data points and provides us with a way to see inside the spots. Utilising established cell-type markers, specific to the liver tissue, we can examine the intra-cluster cell-type heterogeneity that the ecotone suggested, by subdividing each cluster into subclusters according to their cell-type mixture.
+
+```{r  fgwc_plot-subClust}
+plotFGWC_subClust(heatmap = heatmap, k = 5, clust = 3, m_sfe = sfe, sample_id = "JBO022")
+
+```
+
+### Plot a heatmap for selected subclusters
+
+To understand the composition of each subcluster we can plot a heatmap using the same established markers.
+
+```{r  fgwc_plot-subClust-heatmap}
+## Only plot the sub-cluster heatmap
+plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
+
+## Save the heatmap as an object
+subHeatmap <- plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
+```
+
+### References
+
+Abdussamad S (2020). "Evaluation of Implementation Context Based Clustering In Fuzzy Geographically Weighted Clustering-Particle Swarm Optimization Algorithm." Jurnal EECCIS, 14(1), 10--15. ISSN 2460-8122, <https://jurnaleeccis.ub.ac.id/index.php/eeccis/article/view/609>.
+
+Bairathi D, Gopalani D (2018). "A Novel Swarm Intelligence Based Optimization Method: Harris' Hawk Optimization." In Advances in Intelligent Systems and Computing, 832--842. Springer International Publishing. doi: 10.1007/978-3-030-16660-1_81, <https://doi.org/10.1007/978-3-030-16660-1_81>.
+
+Bansal JC, Singh PK, Saraswat M, Verma A, Jadon SS, Abraham A (2011). "Inertia Weight strategies in Particle Swarm Optimization." In 2011 Third World Congress on Nature and Biologically Inspired Computing. doi: 10.1109/nabic.2011.6089659, <https://doi.org/10.1109/nabic.2011.6089659>.
+
+Fateen SK, Bonilla-Petriciolet A (2013). "Intelligent Firefly Algorithm for Global Optimization." Cuckoo Search and Firefly Algorithm: Theory and Applications, 516, 315--330.
+
+Heidari AA, Mirjalili S, Faris H, Aljarah I, Mafarja M, Chen H (2019). "Harris hawks optimization: Algorithm and applications." Future Generation Computer Systems, 97, 849--872. doi: 10.1016/j.future.2019.02.028, <https://doi.org/10.1016/j.future.2019.02.028>.
+
+Karaboga D, Basturk B (2007). "A powerful and efficient algorithm for numerical function optimization: artificial bee colony (ABC) algorithm." Journal of Global Optimization, 39(3), 459--471. doi: 10.1007/s10898-007-9149-x, <https://doi.org/10.1007/s10898-007-9149-x>.
+
+Li J, Dong N (2017). "Gravitational Search Algorithm with a New Technique." In 2017 13th International Conference on Computational Intelligence and Security (CIS), 516--519. doi: 10.1109/CIS.2017.00120, <https://doi.org/10.1109/CIS.2017.00120>.
+
+Mason GA, Jacobson RD (2007). "Fuzzy Geographically Weighted Clustering." In Proceedings of the 9th International Conference on Geocomputation, 1--7.
+
+Nasution BI, Kurniawan R, Siagian TH, Fudholi A (2020). "Revisiting social vulnerability analysis in Indonesia: An optimized spatial fuzzy clustering approach." International Journal of Disaster Risk Reduction, 51, 101801. doi: 10.1016/j.ijdrr.2020.101801, <https://doi.org/10.1016/j.ijdrr.2020.101801>.
+
+Pamungkas IH, Pramana S (2019). "Improvement Method of Fuzzy Geographically Weighted Clustering using Gravitational Search Algorithm." Journal of Computer Science and Information, 11(1).
+
+Putra FH, Kurniawan R (2017). "Clustering for Disaster Areas Endemic Dengue Hemorrhagic Fever Based on Factors had Caused in East Java Using Fuzzy Geographically Weighted Clustering - Particle Swarm Optimization." Jurnal Aplikasi Statistika & Komputasi Statistik, 8(01), 27. ISSN 2615-1367.
+
+Rao RV, Patel V (2012). "An elitist teaching-learning-based optimization algorithm for solving complex constrained optimization problems." International Journal of Industrial Engineering Computations, 3(4), 535--560. ISSN 19232926, doi: 10.5267/j.ijiec.2012.03.007, <https://doi.org/10.5267/j.ijiec.2012.03.007>.
+
+Rao RV, Savsani VJ, Balic J (2012). "Teaching- learning-based optimization algorithm for unconstrained and constrained real-parameter optimization problems." Engineering Optimization, 44(12), 1447--1462. doi: 10.1080/0305215x.2011.652103, <https://doi.org/10.1080/0305215x.2011.652103>.
+
+Rashedi E, Nezamabadi-pour H, Saryazdi S (2009). "GSA: A Gravitational Search Algorithm." Information Sciences, 179(13).
+
+Runkler TA, Katz C (2006). "Fuzzy Clustering by Particle Swarm Optimization." In 2006 IEEE International Conference on Fuzzy Systems. doi: 10.1109/fuzzy.2006.1681773, <https://doi.org/10.1109/fuzzy.2006.1681773>.
+
+Wijayanto AW, Purwarianti A (2014). "Improvement design of fuzzy geo-demographic clustering using Artificial Bee Colony optimization." In 2014 International Conference on Cyber and IT Service Management (CITSM), 69--74. ISBN 978-1-4799-7975-2.
+
+Wijayanto AW, Purwarianti A (2014). "Improvement of fuzzy geographically weighted clustering using particle swarm optimization." In 2014 International Conference on Information Technology Systems and Innovation (ICITSI), 7--12. ISBN 978-1-4799-6527-4.
+
+Wijayanto AW, Purwarianti A, Son LH (2016). "Fuzzy geographically weighted clustering using artificial bee colony: An efficient geo-demographic analysis algorithm and applications to the analysis of crime behavior in population." Applied Intelligence, 44(2), 377--398. ISSN 0924-669X.
+
+Yang X (2014). Nature-Inspired Optimization Algorithms, Elsevier insights. Elsevier Science. ISBN 9780124167452.
+
+Yang X (2012). "Flower Pollination Algorithm for Global Optimization." In Unconventional Computation and Natural Computation, 240--249. Springer Berlin Heidelberg. doi: 10.1007/978-3-642-32894-7_27, <https://doi.org/10.1007/978-3-642-32894-7_27>.
+
+Yang X (2009). "Firefly Algorithms for Multimodal Optimization." In Stochastic Algorithms: Foundations and Applications, 169--178. Springer Berlin Heidelberg. doi: 10.1007/978-3-642-04944-6_14, <https://doi.org/10.1007/978-3-642-04944-6_14>.
 
 ## Geographically Weighted Principal Components Analysis (GWPCA)
 
@@ -986,7 +1181,7 @@ Now that we have a term-to-gene data frame, we can perform functional clustering
 ## 'spec' is the number of clusters. Make sure you leave enough cores for your
 ## computer to keep running all other essential utilities.
 
-gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
+gsea_map_pos <- gwpca_FunctionalClustering(gwpca = pcagw,
                                        pc = 1,
                                        genes_no = 2,
                                        NES = 1.4,
@@ -1023,188 +1218,7 @@ plotGWPCA_FuncCLust(gsea_map, count = 5, legend = "right")
 
 In our example above, we used the Canonical Pathways (CP) module from the MSigDB to run GSEA in each location. After filtering the results per location to remove low-quality results, we selected the most enriched CP to label each location and perform the clustering. However, GSEA provides more information that accompanies each enriched term which assists us in making more informative decisions and increases the depth of our understanding of the result. For this reason, we also plot maps that show normalised enrichment scores, the adjusted p-values, the rank of the gene list, the gene set size, and the number of genes from the ranked list present in each canonical pathway. In the analysis workflow we repeat the functional clustering with a series of gene sets depending on the tissue studied and the biological questions present. Here we give two examples of additional functional clustering using the Hallmark Gene Sets and Liver Cell-type Signatures from the MSigDB.
 
-## Fuzzy Geographically Weighted Clustering (FGWC)
 
-### Background
-
-FGWC is a supervised clustering method that, for each point in space, assigns partial membership to multiple classes. The big difference between FGWC and classic clustering is the assumption that biological clusters do not always have hard boundaries but in many cases, an ecotone exists around each cluster area that generates a gradient between two adjacent clusters. Much like the geographical ecotones we see in nature biological ecotones are either present naturally or can be introduced by the platform used to conduct the experiment.
-
-Usually, when clustering single-cell RNA-sequencing (scRNA-seq) data researchers look to cluster together cells based on their cell type and subtype. In spatial transcriptomics, researchers usually look to identify regions of the tissue that match the existing information of the histopathology expert annotation or reveal hidden patterns in the microenvironment that are not visible through microscopy only.
-
-Fuzzy Geographically Weighted Clustering (FGWC) was developed by Mason and Jacobson (2007) by adding neighborhood effects and population to configure the membership matrix in Fuzzy C-Means. There are seven optimisation algorithms that currently provided in this package, mainly from the Yang (2014). The optimization algorithm uses the centroid as the parameter to be optimized. Here are the algorithm that can be used:
-
-1.  **"classic"** - The classical algorithm of FGWC based on Mason and Jacobson (2007) for centroid optimisation and Runkler and Katz (2006) for membership optimization.\
-
-2.  **"abc"** - Optimization using artificial bee colony algorithm based on Karaboga and Basturk (2007) (see also Wijayanto and Purwarianti 2014 and Wijayanto et al. 2016 for FGWC implementation).\
-
-3.  **"fpa"** - Optimization using flower pollination algorithm based on (Yang 2012).\
-
-4.  **"gsa"** - Optimization using gravitational search algorithm based on Rashedi et al. (2009) and Li and Dong (2017) (see also Pamungkas and Pramana 2019 for FGWC implementation).\
-
-5.  **"hho"** - Optimization using harris-hawk optimization with "heidari" (Heidari et al. 2019) (default). and "bairathi" (Bairathi and Gopalani 2018).\
-
-6.  **"ifa"** - Optimization using intelligent firefly algorithm based on Yang (2009), as well as the intelligent improvement by Fateen and Bonilla-Petriciolet (2013) (see also Nasution et al. 2020 for FGWC implementation).\
-
-7.  **"pso"** - Optimization using particle swarm optimization based on Runkler and Katz (2006) and Bansal et al. (2011) for inertia option (see also Wijayanto and Purwarianti 2014; Putra and Kurniawan 2017; Abdussamad 2020 for FGWC implementation).\
-
-8.  **"tlbo"** - Optimization using teaching - learning based optimization based on Rao et al. (2012) and elitism improvement by Rao and Patel (2012).\
-
-Furthermore, there are 10 distance that can be used to calculate the membership (see cdist for details). the default parameter of FGWC (in case you do not want to tune anything) is
-
-```{r fgwc_params1, eval=FALSE}
-c(kind = 'u', ncluster = 2, m = 2, distance = 'euclidean', order = 2, alpha = 0.7, a = 1, b = 1,
-max.iter = 500, error = 1e-5, randomN = 1)
-```
-
-There is also a universal parameter to the optimization algorithm as well as the details. The default parameter for the optimization algorithm is
-
-```{r fgwc_params2, eval=FALSE}
-c(vi.dist = 'uniform',  npar = 10, par.no = 2, par.dist = 'euclidean', par.order = 2, pso = TRUE, 
-same = 10, type = 'sim.annealing', ei.distr = 'normal', vmax = 0.7, wmax = 0.9, wmin = 0.4, 
-chaos = 4, x0 = 'F', map = 0.7, ind = 1, skew = 0, sca = 1)
-```
-
-If you do not define a certain parameter, the parameter will be set to its default value (the values above).
-
-### Reduce dimensions using NMF
-
-```{r fgwc_nmf}
-sfe_nmf <- fgwc_nmf(sfe, sample_id = "JBO022", top_hvgs = top_hvgs[["JBO022"]])
-
-```
-
-### Select FGWC parameters
-
-```{r fgwc_params}
-fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
-
-```
-
-### Run FGWC
-
-```{r fgwc}
-fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", fgwc_param = fgwc_param)
-
-```
-
-### Plot the highest membership clusters
-
-```{r fgwc_plot-single}
-plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
-
-```
-
-Since FGWC is a method that assigns membership percentages to each cluster, we can select and plot the cluster with the highest percentage of membership in each location and create a map of clusters. If we contrast the highest membership cluster map with the tissue histology (see below) and the scRNA-seq-based annotation we will see that the clustering result resembles, at least, the annotation.
-
-```{r fgwc-tisue_annot, echo=FALSE, out.height="20%", fig.show='hold',fig.align='center', fig.cap="Left: sample image. Right: sample annotation."}
-knitr::include_graphics("./images/tissue_annotation_gtruth.png")
-```
-
-### Plot the membership percentages
-
-Nevertheless, this is not an accurate depiction of the clustering results. A more accurate representation is the one shown below. There, we show maps of percentages from all clusters side-by-side, and we can investigate the ecotones that might exist between clusters.
-
-```{r fgwc_plot-multi}
-plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
-
-```
-
-**What is an ecotone?** - An ecotone in geographical sciences is a blurred gradient between a forest area and a grassland. Most of the times, a forest area doesn't stop abruptly to become a grassland but slowly the forest is thinning out to give its place to the grassland. The same idea can be found in spatial transcriptomics too. There might be genes or cells that their expression or presence in space does not form coherent areas but blends with the surrounding areas in a smooth-like transition from one gene expression to the other or from one cell type to the other. Additionally, the fact that the spatial transcriptomics platforms are yet not in single cell level, means that we have an artificial introduction of ecotones. One example is the 10X Genomics Visium platform where each spot can include 2-10+ cells depending on tissue density. This means that a spot can overlap different tissue zones leading to an abnormal clustering if we don't consider ecotones.
-
-```{r  fgwc_ecotones, echo=FALSE, out.height="20%", fig.show='hold',fig.align='center', fig.cap="The ecotone is an area of transition between two areas of different morphology. We can find such ecotones in data from low-resolution spot-based technologies like Visium."}
-knitr::include_graphics("./images/ecotones.png") 
-```
-
-In the multiple membership plot earlier we can see an example of ecotones. Clusters 3 and 5 present the ecotone as a blurred gradient of intermediate percentages between the two clusters. The ecotone though is not always the same size. For example, in clusters like cluster 4, the ecotone is much thinner.
-
-### Plot a heatmap of established biomarkers
-
-For this plot to be generated, it required from the user to provide a data frame (table) with four (4) columns that includes the below information and the specific column names:
-
-1.  **"gene.name"**: gene names (e.g., APOE)\
-2.  **"ensg.ID"**: ENSGene IDs (e.g., ENSG00000130203)\
-3.  **"Type"**: Cell type (e.g., Hepatocytes)\
-4.  **"Subtype"**: Cell subtype (e.g., Stellate cells)\
-
-If no subtype exists, add an empty character string using: `""`.
-
-**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. **NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype` marker genes data frame: `marker_genes$Subtype <- ""`
-
-```{r fgwc_plot-heatmap}
-## Load the liver markers example dataset
-# markers <- data(markers)
-
-## Plot the heatmap
-heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 2, cutree_cols = 5)
-
-```
-
-In cases where the unit of measurement is an area encompassing more than one cell (i.e., 10X Visium spots), fuzzy clustering looks more appropriate. Indeed, if we look at cell-type markers in cluster 4 we see that each location has a mixture of different cell-type markers indicating that a mixture of cells exists in each spot and thus absolute clustering often fails to capture the high levels of heterogeneity present. This idea of an ecotone and of a gradient rather than absolute cluster boundaries more closely captures the different types of cells that might co-exist in a 10X Visium spot and also leads to a more dynamic clustering that can reveal the existing spatial heterogeneity.
-
-### Visualise subclusters
-
-This approach generates a blurred clustering of the data points and provides us with a way to see inside the spots. Utilising established cell-type markers, specific to the liver tissue, we can examine the intra-cluster cell-type heterogeneity that the ecotone suggested, by subdividing each cluster into subclusters according to their cell-type mixture.
-
-```{r  fgwc_plot-subClust}
-plotFGWC_subClust(heatmap = heatmap, k = 5, clust = 3, m_sfe = sfe, sample_id = "JBO022")
-
-```
-
-### Plot a heatmap for selected subclusters
-
-To understand the composition of each subcluster we can plot a heatmap using the same established markers.
-
-```{r  fgwc_plot-subClust-heatmap}
-## Only plot the sub-cluster heatmap
-plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
-
-## Save the heatmap as an object
-subHeatmap <- plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
-```
-
-### References
-
-Abdussamad S (2020). "Evaluation of Implementation Context Based Clustering In Fuzzy Geographically Weighted Clustering-Particle Swarm Optimization Algorithm." Jurnal EECCIS, 14(1), 10--15. ISSN 2460-8122, <https://jurnaleeccis.ub.ac.id/index.php/eeccis/article/view/609>.
-
-Bairathi D, Gopalani D (2018). "A Novel Swarm Intelligence Based Optimization Method: Harris' Hawk Optimization." In Advances in Intelligent Systems and Computing, 832--842. Springer International Publishing. doi: 10.1007/978-3-030-16660-1_81, <https://doi.org/10.1007/978-3-030-16660-1_81>.
-
-Bansal JC, Singh PK, Saraswat M, Verma A, Jadon SS, Abraham A (2011). "Inertia Weight strategies in Particle Swarm Optimization." In 2011 Third World Congress on Nature and Biologically Inspired Computing. doi: 10.1109/nabic.2011.6089659, <https://doi.org/10.1109/nabic.2011.6089659>.
-
-Fateen SK, Bonilla-Petriciolet A (2013). "Intelligent Firefly Algorithm for Global Optimization." Cuckoo Search and Firefly Algorithm: Theory and Applications, 516, 315--330.
-
-Heidari AA, Mirjalili S, Faris H, Aljarah I, Mafarja M, Chen H (2019). "Harris hawks optimization: Algorithm and applications." Future Generation Computer Systems, 97, 849--872. doi: 10.1016/j.future.2019.02.028, <https://doi.org/10.1016/j.future.2019.02.028>.
-
-Karaboga D, Basturk B (2007). "A powerful and efficient algorithm for numerical function optimization: artificial bee colony (ABC) algorithm." Journal of Global Optimization, 39(3), 459--471. doi: 10.1007/s10898-007-9149-x, <https://doi.org/10.1007/s10898-007-9149-x>.
-
-Li J, Dong N (2017). "Gravitational Search Algorithm with a New Technique." In 2017 13th International Conference on Computational Intelligence and Security (CIS), 516--519. doi: 10.1109/CIS.2017.00120, <https://doi.org/10.1109/CIS.2017.00120>.
-
-Mason GA, Jacobson RD (2007). "Fuzzy Geographically Weighted Clustering." In Proceedings of the 9th International Conference on Geocomputation, 1--7.
-
-Nasution BI, Kurniawan R, Siagian TH, Fudholi A (2020). "Revisiting social vulnerability analysis in Indonesia: An optimized spatial fuzzy clustering approach." International Journal of Disaster Risk Reduction, 51, 101801. doi: 10.1016/j.ijdrr.2020.101801, <https://doi.org/10.1016/j.ijdrr.2020.101801>.
-
-Pamungkas IH, Pramana S (2019). "Improvement Method of Fuzzy Geographically Weighted Clustering using Gravitational Search Algorithm." Journal of Computer Science and Information, 11(1).
-
-Putra FH, Kurniawan R (2017). "Clustering for Disaster Areas Endemic Dengue Hemorrhagic Fever Based on Factors had Caused in East Java Using Fuzzy Geographically Weighted Clustering - Particle Swarm Optimization." Jurnal Aplikasi Statistika & Komputasi Statistik, 8(01), 27. ISSN 2615-1367.
-
-Rao RV, Patel V (2012). "An elitist teaching-learning-based optimization algorithm for solving complex constrained optimization problems." International Journal of Industrial Engineering Computations, 3(4), 535--560. ISSN 19232926, doi: 10.5267/j.ijiec.2012.03.007, <https://doi.org/10.5267/j.ijiec.2012.03.007>.
-
-Rao RV, Savsani VJ, Balic J (2012). "Teaching- learning-based optimization algorithm for unconstrained and constrained real-parameter optimization problems." Engineering Optimization, 44(12), 1447--1462. doi: 10.1080/0305215x.2011.652103, <https://doi.org/10.1080/0305215x.2011.652103>.
-
-Rashedi E, Nezamabadi-pour H, Saryazdi S (2009). "GSA: A Gravitational Search Algorithm." Information Sciences, 179(13).
-
-Runkler TA, Katz C (2006). "Fuzzy Clustering by Particle Swarm Optimization." In 2006 IEEE International Conference on Fuzzy Systems. doi: 10.1109/fuzzy.2006.1681773, <https://doi.org/10.1109/fuzzy.2006.1681773>.
-
-Wijayanto AW, Purwarianti A (2014). "Improvement design of fuzzy geo-demographic clustering using Artificial Bee Colony optimization." In 2014 International Conference on Cyber and IT Service Management (CITSM), 69--74. ISBN 978-1-4799-7975-2.
-
-Wijayanto AW, Purwarianti A (2014). "Improvement of fuzzy geographically weighted clustering using particle swarm optimization." In 2014 International Conference on Information Technology Systems and Innovation (ICITSI), 7--12. ISBN 978-1-4799-6527-4.
-
-Wijayanto AW, Purwarianti A, Son LH (2016). "Fuzzy geographically weighted clustering using artificial bee colony: An efficient geo-demographic analysis algorithm and applications to the analysis of crime behavior in population." Applied Intelligence, 44(2), 377--398. ISSN 0924-669X.
-
-Yang X (2014). Nature-Inspired Optimization Algorithms, Elsevier insights. Elsevier Science. ISBN 9780124167452.
-
-Yang X (2012). "Flower Pollination Algorithm for Global Optimization." In Unconventional Computation and Natural Computation, 240--249. Springer Berlin Heidelberg. doi: 10.1007/978-3-642-32894-7_27, <https://doi.org/10.1007/978-3-642-32894-7_27>.
-
-Yang X (2009). "Firefly Algorithms for Multimodal Optimization." In Stochastic Algorithms: Foundations and Applications, 169--178. Springer Berlin Heidelberg. doi: 10.1007/978-3-642-04944-6_14, <https://doi.org/10.1007/978-3-642-04944-6_14>.
 
 ## Geographically Weighted Regression
 

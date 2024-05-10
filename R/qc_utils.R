@@ -266,6 +266,9 @@ add.spotCntd <- function(sfe, sample_id) {
 #' using the \code{read10xVisiumSFE} function.
 #' @param res The desired resolution. Can take one of the following values:
 #' "lowres", "hires", "fullres".
+#' @param flipped look at addGeometries documentation
+#' @param barcodes look at addGeometries documentation
+#'
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -290,7 +293,8 @@ add.spotHex <- function(sfe,
                         samples,
                         sample_id,
                         res = c("lowres", "hires", "fullres"),
-                        flipped) {
+                        flipped,
+                        barcodes = "all") {
   ## Prepare required data
   res <- match.arg(res)
   res <- .int_resSwitch(res)
@@ -359,7 +363,15 @@ add.spotHex <- function(sfe,
                                    st_convex_hull(cntd_union))
 
     ## Generate the POLYGONS from the MULTILINESTRING
-    select_cntds <- centroids$Section == 1 # centroids$Section == 0
+    # First select the barcodes for which the polygons will be generated
+    if (barcodes == "all") {
+      select_cntds <- centroids$Section == 1 # centroids$Section == 0
+    } else if (barcodes == "input") {
+      select_cntds <- centroids$Barcode %in% cData$Barcode
+    } else if (length(barcodes) > 1) {
+      select_cntds <- centroids$Barcode %in% barcodes
+    }
+
     polygons <- st_polygonize(voronoi_env) %>% # polygonise the tessellation
       st_cast() %>% # convert GEOMETRYCOLLECTION to multiple POLYGONS
       st_sf() %>%  # convert sfc object to sf for st_join afterwards

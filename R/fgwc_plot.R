@@ -54,8 +54,8 @@ plotFGWC_single <- function(fgwc,
   ## Plot single cluster
   ggplot() +
     geom_sf(data = data,
-            aes(geometry = data$geometry,
-                fill = as.factor(data$Cluster)),
+            aes(geometry = geometry,
+                fill = as.factor(Cluster)),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_manual(values = annot_cols) +
@@ -123,8 +123,8 @@ plotFGWC_multi <- function(fgwc,
 
   ggplot() +
     geom_sf(data = data,
-            aes(geometry = .data$geometry,
-                fill = .data$membership),
+            aes(geometry = geometry,
+                fill = membership),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_distiller(palette = palette, limits = c(0, 1)) +
@@ -346,9 +346,9 @@ plotFGWC_subClust <- function(heatmap, k, clust,
   }
 
   ggplot(data = subclust_map) +
-    geom_sf(aes(geometry = .data$geometry, fill = .data$gTruth),
+    geom_sf(aes(geometry = geometry, fill = gTruth),
             alpha = 0.8) +
-    geom_sf(aes(geometry = .data$geometry_subC, colour = .data$subclust),
+    geom_sf(aes(geometry = geometry_subC, colour = subclust),
             fill = NA,
             linewidth = 1.1) +
     scale_fill_manual(values = colour.annot,

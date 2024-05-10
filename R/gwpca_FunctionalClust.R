@@ -132,7 +132,13 @@ getTerm2Gene <- function(user_data = NULL,
 #' @param TERM2GENE The term-to-gene mapping for gene sets.
 #' @param pAdjustMethod The method for multiple testing correction in GSEA
 #' (default is "fdr").
-#' @param scoreType The GSEA scoring type (default is "std").
+#' @param scoreType The GSEA scoring type (default is "pos"). Possible options
+#'                  are ("std", "pos", "neg"). If the "std" option is selectedthe
+#'                  enrichment score is computed as in the original GSEA. The
+#'                  "pos" and "neg" score types are intended to be used for
+#'                  one-tailed tests (i.e. when one is interested only in
+#'                  positive ("pos") or negateive ("neg") enrichment). Look at
+#'                  details for more info.
 #' @param nPermSimple The number of permutations for simple GSEA.
 #' @param mc.cores The number of cores to use for parallel processing.
 #' @param regex A regular expression pattern for cluster identification.
@@ -141,6 +147,14 @@ getTerm2Gene <- function(user_data = NULL,
 #' @details
 #' Detailed explanation of the function, including any relevant details about the
 #' algorithm used, data processing steps, and result interpretation.
+#'
+#' For the score type the default is "pos" because here we use PCA loadings
+#' instead of differential gene expression. The ± signs in a PCA loading are
+#' somewhat arbitrary and depend on the initial rotation used in PCA
+#' calculations. For this reason, we suggest the "pos" approach where we
+#' provide to GSEA the absolute loadings and then essentially we look only for
+#' positive enrichment. You are free to select the "std" method. In this case,
+#' the original loadings are passed into GSEA.
 #'
 #' @importFrom stringr str_count
 #' @importFrom parallel mclapply
@@ -226,6 +240,9 @@ gwpca_FunctionalClustering <- function(gwpca,
 }
 
 
+# ---------------------------------------------------------------------------- #
+#  ################# INTERNAL FUNCTIONS ASSOCIATED WITH GWR #################
+# ---------------------------------------------------------------------------- #
 #' Internal Function: Run Gene Set Enrichment Analysis (GSEA) for a Single
 #' Location
 #'
@@ -282,8 +299,9 @@ gwpca_FunctionalClustering <- function(gwpca,
                          nPermSimple,
                          ...) {
   # Generate geneList
-  geneList <- inputGSEA[X,] %>%
-    .[order(inputGSEA[X,], decreasing = TRUE)]
+  geneList <- .int_generateGeneList(inputGSEA = inputGSEA,
+                                    X = X,
+                                    scoreType = scoreType)
 
   # Run GSEA
   gsea <- clusterProfiler::GSEA(geneList,
@@ -293,7 +311,8 @@ gwpca_FunctionalClustering <- function(gwpca,
                                 pAdjustMethod = pAdjustMethod,
                                 verbose = FALSE,
                                 scoreType = scoreType,
-                                nPermSimple = nPermSimple)
+                                nPermSimple = nPermSimple,
+                                ...)
 
   if (dim(gsea@result)[1] == 0) {
     na <- c(rep(NA, dim(gsea@result)[2])) %>%
@@ -307,3 +326,83 @@ gwpca_FunctionalClustering <- function(gwpca,
 
   return(gsea@result)
 }
+
+
+#' Internal Function: Generate Gene List Based on Score Type
+#'
+#' This function generates a gene list based on the specified score type from
+#' the input gene expression data for a single spatial location. It is an
+#' internal function used within the main analysis function and is not intended
+#' for direct use.
+#'
+#' @param inputGSEA The input gene expression data for the specified spatial
+#' location.
+#' @param X The index of the spatial location for which the gene list is
+#' generated.
+#' @param scoreType The type of score used for sorting genes. Valid options
+#' are "std" for standard GSEA and "pos" for positive enrichment.
+#'
+#' @return A vector containing the sorted gene list.
+#'
+#' @aliases .int_generateGeneList
+#'
+#' @rdname dot-int_generateGeneList
+#'
+#' @details
+#' This function internally sorts genes in descending order based on the
+#' specified score type ("std" or "pos"). For "std", genes are sorted based on
+#' their original loading scores, while for "pos", genes are sorted based on
+#' the absolute value of their expression values.
+#'
+#' @seealso
+#' \code{\link{.int_sortGenes}}
+#'
+#' @keywords internal gene expression data gene list sorting score type
+#' @family Spatial Transcriptomics Analysis
+#'
+#' @examples
+#' # This function is an internal function used within the main function.
+#' # Refer to the main analysis function for example usage.
+#'
+.int_generateGeneList <- function(inputGSEA, X, scoreType) {
+  if (scoreType == "std") {
+    geneList <- .int_sortGenes(inputGSEA[X,])
+  } else if (scoreType == "pos") {
+    geneList <- .int_sortGenes(abs(inputGSEA[X,]))
+  }
+  return(geneList)
+}
+
+
+#' Internal Function: Sort Genes in Descending Order
+#'
+#' This function sorts genes in descending order based on their expression
+#' values. It is an internal function used within other functions and is not
+#' intended for direct use.
+#'
+#' @param data The gene expression data to be sorted.
+#'
+#' @return A vector containing the sorted gene expression values.
+#'
+#' @aliases .int_sortGenes
+#'
+#' @rdname dot-int_sortGenes
+#'
+#' @details
+#' This function sorts genes in descending order based on their expression
+#' values. It is used internally within other functions to sort genes before
+#' further processing.
+#'
+#' @seealso
+#' \code{\link{.int_generateGeneList}}
+#'
+#' @keywords internal gene expression data gene list sorting
+#'
+#' @examples
+#' # This function is an internal function used within other functions.
+#' # Refer to the documentation of the calling function for example usage.
+#'
+.int_sortGenes <- function(data) {
+  return(data[order(data, decreasing = TRUE)])
+}
+

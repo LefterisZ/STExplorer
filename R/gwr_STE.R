@@ -471,6 +471,7 @@ gwr_toSF <- function(gwr) {
 }
 
 
+
 #' GWR summary table
 #'
 #' This function generates a summary table for a Geographically Weighted
@@ -488,7 +489,12 @@ gwr_toSF <- function(gwr) {
 #' @rdname gwr_stats
 #' @author Eleftherios Zormpas
 #' @export
-gwr_stats.gwr <- function(gwr) {
+gwr_stats <- function(gwr, stat) {
+  UseMethod("gwr_stats")
+}
+
+#' @export
+gwr_stats.gwr <- function(gwr, stat) {
   n <- .int_countElements(deparse1(gwr$lm$terms[[3]]))
   gwr.tab <- apply(gwr$SDF@data[, 1:(5 + n)], 2, summary)
   gwr.tab <- round(gwr.tab, 1)
@@ -496,12 +502,14 @@ gwr_stats.gwr <- function(gwr) {
   return(gwr.tab)
 }
 
+#' @export
 gwr_stats.SF <- function(gwr, stat) {
   ## Summary statistics for Local_R2
   summary_stats <- summary(gwr[[stat]])
   cat("Summary Statistics for Local R-squared Values:\n")
   return(summary_stats)
 }
+
 
 # ---------------------------------------------------------------------------- #
 #  ################# INTERNAL FUNCTIONS ASSOCIATED WITH GWR #################

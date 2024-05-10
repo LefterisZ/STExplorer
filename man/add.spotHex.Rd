@@ -9,7 +9,8 @@ add.spotHex(
   samples,
   sample_id,
   res = c("lowres", "hires", "fullres"),
-  flipped
+  flipped,
+  barcodes = "all"
 )
 }
 \arguments{
@@ -24,6 +25,10 @@ using the \code{read10xVisiumSFE} function.}
 
 \item{res}{The desired resolution. Can take one of the following values:
 "lowres", "hires", "fullres".}
+
+\item{flipped}{look at addGeometries documentation}
+
+\item{barcodes}{look at addGeometries documentation}
 }
 \description{
 IMPORTANT: this function is not exported to be used alone.

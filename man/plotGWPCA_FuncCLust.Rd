@@ -35,6 +35,7 @@ Analysis (GWPCA).
 }
 \seealso{
 Other Spatial Transcriptomics Analysis: 
+\code{\link{.int_generateGeneList}()},
 \code{\link{.int_runGSEA}()},
 \code{\link{gwpca_FunctionalClustering}()}
 }

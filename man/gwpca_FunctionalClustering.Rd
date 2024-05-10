@@ -42,7 +42,13 @@ in GSEA.}
 \item{pAdjustMethod}{The method for multiple testing correction in GSEA
 (default is "fdr").}
 
-\item{scoreType}{The GSEA scoring type (default is "std").}
+\item{scoreType}{The GSEA scoring type (default is "pos"). Possible options
+are ("std", "pos", "neg"). If the "std" option is selectedthe
+enrichment score is computed as in the original GSEA. The
+"pos" and "neg" score types are intended to be used for
+one-tailed tests (i.e. when one is interested only in
+positive ("pos") or negateive ("neg") enrichment). Look at
+details for more info.}
 
 \item{nPermSimple}{The number of permutations for simple GSEA.}
 
@@ -65,6 +71,14 @@ into a final dataframe, and additional filtering and processing are applied.
 \details{
 Detailed explanation of the function, including any relevant details about the
 algorithm used, data processing steps, and result interpretation.
+
+For the score type the default is "pos" because here we use PCA loadings
+instead of differential gene expression. The ± signs in a PCA loading are
+somewhat arbitrary and depend on the initial rotation used in PCA
+calculations. For this reason, we suggest the "pos" approach where we
+provide to GSEA the absolute loadings and then essentially we look only for
+positive enrichment. You are free to select the "std" method. In this case,
+the original loadings are passed into GSEA.
 }
 \examples{
 ## Example usage:
@@ -78,6 +92,7 @@ algorithm used, data processing steps, and result interpretation.
 \code{\link{gwpcaSTE}}, \code{\link[clusterProfiler]{GSEA}}
 
 Other Spatial Transcriptomics Analysis: 
+\code{\link{.int_generateGeneList}()},
 \code{\link{.int_runGSEA}()},
 \code{\link{plotGWPCA_FuncCLust}()}
 }

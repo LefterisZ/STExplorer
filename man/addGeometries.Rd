@@ -9,7 +9,8 @@ addGeometries(
   samples,
   sample_id,
   res = c("lowres", "hires", "fullres"),
-  flipped = FALSE
+  flipped = FALSE,
+  barcodes = "all"
 )
 }
 \arguments{
@@ -29,6 +30,11 @@ or "fullres".}
 
 \item{flipped}{Default is FALSE. This argument is important for 10X Visium
 data. See details below.}
+
+\item{barcodes}{A character string. Can take values either "all", "input",
+or a user specified character vector with barcodes to be selected for
+geometries generation. When you have an already pre-processed dataset, use
+"input". Default is "all".}
 }
 \description{
 A function to add centroid and hexagon geometries in the \code{colGeometries}
