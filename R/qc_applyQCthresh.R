@@ -102,8 +102,8 @@ applyQCthresh_feat <- function(m_sfe,
 
 #' @rdname applyQCthresh_feat
 #' @export
-applyQCthresh_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
-                                                            sample_id = TRUE) {
+applyQCthresh_feat.SpatialFeatureExperiment <- function(m_sfe,
+                                                        sample_id = TRUE) {
 
   ## Filter genes
   sfe <- .int_discardFeat(m_sfe)

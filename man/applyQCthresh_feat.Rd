@@ -2,12 +2,13 @@
 % Please edit documentation in R/qc_applyQCthresh.R
 \name{applyQCthresh_feat}
 \alias{applyQCthresh_feat}
+\alias{applyQCthresh_feat.SpatialFeatureExperiment}
 \alias{applyQCthresh_feat.MetaSpatialFeatureExperiment}
 \title{Apply Quality Control Thresholds to MetaSpatialFeatureExperiment}
 \usage{
 applyQCthresh_feat(m_sfe, sample_id = TRUE)
 
-\method{applyQCthresh_feat}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
+\method{applyQCthresh_feat}{SpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
 
 \method{applyQCthresh_feat}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
 }
