@@ -613,7 +613,7 @@ setQCthresh_custom <- function(m_sfe,
                                sample_id = TRUE,
                                MARGIN,
                                qcMetric) {
-  UseMethod("setQCthresh_ZeroExpr")
+  UseMethod("setQCthresh_custom")
 }
 
 #' @rdname setQCthresh_custom
@@ -668,7 +668,7 @@ setQCthresh_custom.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' This function marks the features (genes) flagged for discarding based on
 #' specified QC metrics.
 #'
-#' @param msfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.
+#' @param m_sfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.
 #' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
 #' sample/image identifier(s). If \code{TRUE}, all samples/images are
 #' considered. If \code{NULL}, the first available entry is considered.
@@ -709,11 +709,39 @@ setQCthresh_custom.MetaSpatialFeatureExperiment <- function(m_sfe,
 setQCtoDiscard_feat <- function(msfe,
                                 sample_id = TRUE,
                                 filters = TRUE) {
+  UseMethod("setQCtoDiscard_feat")
+}
+
+
+#' @rdname setQCtoDiscard_feat
+#' @export
+setQCtoDiscard_feat.SpatialFeatureExperiment <- function(m_sfe,
+                                                         sample_id = TRUE,
+                                                         filters = TRUE) {
+  ## Mark features to discard
+  sfe <- .int_featToDiscard(sfe = m_sfe, filters = filters)
+
+  ## Get a summary table
+  tbl_list <- .int_summaryTable(sfe, filters = filters)
+
+  ## Check the number of discarded features for each metric per sample
+  cat("Number of locations filtered out:\n")
+  print(rlist::list.rbind(tbl_list))
+
+  return(sfe)
+}
+
+
+#' @rdname setQCtoDiscard_feat
+#' @export
+setQCtoDiscard_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                             sample_id = TRUE,
+                                                             filters = TRUE) {
   ## Select samples
-  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
+  ids <- .int_getMSFEsmplID(msfe = m_sfe, sample_id = sample_id)
 
   ## Mark features to discard
-  msfe_int <- lapply(msfe@sfe_data[ids], .int_featToDiscard, filters = filters)
+  msfe_int <- lapply(m_sfe@sfe_data[ids], .int_featToDiscard, filters = filters)
 
   ## Get a summary table
   tbl_list <- lapply(msfe_int, .int_summaryTable, filters = filters)
@@ -724,12 +752,12 @@ setQCtoDiscard_feat <- function(msfe,
 
   ## If specific samples where modified replace in the metaSFE list
   if (is.character(sample_id)) {
-    msfe@sfe_data[names(msfe_int)] <- msfe_int
+    m_sfe@sfe_data[names(msfe_int)] <- msfe_int
   } else {
-    msfe@sfe_data <- msfe_int
+    m_sfe@sfe_data <- msfe_int
   }
 
-  return(msfe)
+  return(m_sfe)
 }
 
 

@@ -2,13 +2,17 @@
 % Please edit documentation in R/qc_setQCthresh.R
 \name{setQCtoDiscard_feat}
 \alias{setQCtoDiscard_feat}
+\alias{setQCtoDiscard_feat.SpatialFeatureExperiment}
+\alias{setQCtoDiscard_feat.MetaSpatialFeatureExperiment}
 \title{Set QC Thresholds for Discarding Features}
 \usage{
 setQCtoDiscard_feat(msfe, sample_id = TRUE, filters = TRUE)
+
+\method{setQCtoDiscard_feat}{SpatialFeatureExperiment}(m_sfe, sample_id = TRUE, filters = TRUE)
+
+\method{setQCtoDiscard_feat}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE, filters = TRUE)
 }
 \arguments{
-\item{msfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.}
-
 \item{sample_id}{A character string, \code{TRUE}, or \code{NULL} specifying
 sample/image identifier(s). If \code{TRUE}, all samples/images are
 considered. If \code{NULL}, the first available entry is considered.}
@@ -16,6 +20,8 @@ considered. If \code{NULL}, the first available entry is considered.}
 \item{filters}{Either TRUE to select all calculated QC metrics or a
 character vector with the column names of the QC metrics to consider for
 filtering features. QC metric columns begin with "qc_".}
+
+\item{m_sfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.}
 }
 \value{
 A SpatialFeatureExoeriment or a MetaSpatialFeatureExoeriment object
