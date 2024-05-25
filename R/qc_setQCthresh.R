@@ -995,9 +995,9 @@ setQCtoDiscard_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' @rdname dot-int_custom_1
 #'
 .int_custom_1 <- function(sfe, qcMetric, qc_name) {
-  id <- unique(sfe$sample_id)
-
-  qcMetric <- qcMetric[[id]]
+  # id <- unique(sfe$sample_id)
+  #
+  # qcMetric <- qcMetric[[id]]
 
   rowData(sfe)[[qc_name]] <- qcMetric
 

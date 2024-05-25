@@ -65,7 +65,7 @@ applyQCthresh_loc <- function(sfe, sample_id = TRUE) {
 #' creating a new \code{MetaSpatialFeatureExperiment} with the filtered
 #' features.
 #'
-#' @param msfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.
+#' @param m_sfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.
 #'
 #' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
 #' sample/image identifier(s). If \code{TRUE}, all samples/images are
@@ -95,24 +95,42 @@ applyQCthresh_loc <- function(sfe, sample_id = TRUE) {
 #' }
 #'
 #' @export
-applyQCthresh_feat <- function(msfe,
+applyQCthresh_feat <- function(m_sfe,
                                sample_id = TRUE) {
-  ## Select samples
-  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
+  UseMethod("applyQCthresh_feat")
+}
+
+#' @rdname applyQCthresh_feat
+#' @export
+applyQCthresh_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                            sample_id = TRUE) {
 
   ## Filter genes
-  msfe_int <- lapply(msfe@sfe_data[ids], .int_discardFeat)
+  sfe <- .int_discardFeat(m_sfe)
+
+  return(sfe)
+}
+
+
+#' @rdname applyQCthresh_feat
+#' @export
+applyQCthresh_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                            sample_id = TRUE) {
+  ## Select samples
+  ids <- .int_getMSFEsmplID(msfe = m_sfe, sample_id = sample_id)
+
+  ## Filter genes
+  msfe_int <- lapply(m_sfe@sfe_data[ids], .int_discardFeat)
 
   ## If specific samples where modified replace in the metaSFE list
   if (is.character(sample_id)) {
-    msfe@sfe_data[names(msfe_int)] <- msfe_int
+    m_sfe@sfe_data[names(msfe_int)] <- msfe_int
   } else {
-    msfe@sfe_data <- msfe_int
+    m_sfe@sfe_data <- msfe_int
   }
 
-  return(msfe)
+  return(m_sfe)
 }
-
 
 #' Internal Function: Filter QC Discard Status for a Specific Sample in
 #' SpatialFeatureExperiment

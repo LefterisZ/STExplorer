@@ -2,12 +2,17 @@
 % Please edit documentation in R/qc_applyQCthresh.R
 \name{applyQCthresh_feat}
 \alias{applyQCthresh_feat}
+\alias{applyQCthresh_feat.MetaSpatialFeatureExperiment}
 \title{Apply Quality Control Thresholds to MetaSpatialFeatureExperiment}
 \usage{
-applyQCthresh_feat(msfe, sample_id = TRUE)
+applyQCthresh_feat(m_sfe, sample_id = TRUE)
+
+\method{applyQCthresh_feat}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
+
+\method{applyQCthresh_feat}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
 }
 \arguments{
-\item{msfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.}
+\item{m_sfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment.}
 
 \item{sample_id}{A character string, \code{TRUE}, or \code{NULL} specifying
 sample/image identifier(s). If \code{TRUE}, all samples/images are
