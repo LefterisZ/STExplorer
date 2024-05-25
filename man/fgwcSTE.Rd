@@ -12,8 +12,7 @@ fgwcSTE(
   distMat = NULL,
   dMetric = NULL,
   algorithm = "classic",
-  fgwc_param = NULL,
-  opt_param = NULL
+  parameters = NULL
 )
 }
 \arguments{
@@ -36,11 +35,8 @@ a data frame with 2 columns.}
 
 \item{algorithm}{algorithm used for FGWC}
 
-\item{fgwc_param}{a vector that consists of FGWC parameter
-(see \code{\link{fgwcuv}} for parameter details)}
-
-\item{opt_param}{a vector that consists of optimization algorithm parameter
-(see \code{\link{fgwcuv}} for parameter details)}
+\item{parameters}{a vector that consists of FGWC parameters
+(see \code{\link{fgwc_params}} for parameter details)}
 }
 \value{
 an object of class \code{"fgwc"}.\cr

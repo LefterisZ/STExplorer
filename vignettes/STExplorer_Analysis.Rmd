@@ -46,7 +46,7 @@ if (!require("devtools", quietly = TRUE))
     install.packages("devtools")
 
 devtools::install_github("LefterisZ/STExplorer",
-                         auth_token = "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",
+                         auth_token = AUTH_TOKEN,
                          force = TRUE)
 
 
@@ -780,7 +780,7 @@ sfe_nmf <- fgwc_nmf(sfe,
 ```
 
 ### Select FGWC parameters
-
+The `fgwc_params` function is used to create a list of arguments required for any type of algorithm. At the moment, STExplorer supports only the classic and the Artificial Bee Colony (ABC) algorithms. For the default parameters of either the classic algorithm or the ABC optimisation algorithm use the `?fgwc_params`.
 ```{r fgwc_params}
 fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
 
@@ -789,7 +789,7 @@ fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
 ### Run FGWC
 
 ```{r fgwc}
-fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", fgwc_param = fgwc_param)
+fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", parameters = fgwc_param)
 
 ```
 
@@ -812,6 +812,16 @@ Nevertheless, this is not an accurate depiction of the clustering results. A mor
 
 ```{r fgwc_plot-multi}
 plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+
+```
+
+```{r fgwc_plot-multi-violin}
+plotFGWC_multiViolin(fgwc = fgwc)
+
+```
+
+```{r fgwc_plot-doughnut}
+
 
 ```
 
@@ -936,7 +946,7 @@ vars = top_hvgs[["JBO022"]]
 ##  PCA will be calculated. The distance is measured in ultra-high resolution 
 ##  image pixels. The default is 6x the diameter of the Visium spot. Make sure 
 ##  to adjust it if it is too large or too small for your setting.
-bw = 6*sfe@metadata[["spotDiameter"]][["JBO022"]][["spot_diameter_fullres"]]
+bw = 3*sfe@metadata[["spotDiameter"]][["JBO022"]][["spot_diameter_fullres"]]
 ## Set the number of components to be retained
 k = 20
 ## Set the kernel to be used
@@ -1181,7 +1191,7 @@ Now that we have a term-to-gene data frame, we can perform functional clustering
 ## 'spec' is the number of clusters. Make sure you leave enough cores for your
 ## computer to keep running all other essential utilities.
 
-gsea_map_pos <- gwpca_FunctionalClustering(gwpca = pcagw,
+gsea_map <- gwpca_FunctionalClustering(gwpca = pcagw,
                                        pc = 1,
                                        genes_no = 2,
                                        NES = 1.4,
@@ -1212,7 +1222,7 @@ Let's have a look at the individual arguments of the `gwpca_FunctionalClustering
 Now we can plot the Functional Clustering results.
 
 ```{r functional_clust5, message=FALSE}
-plotGWPCA_FuncCLust(gsea_map, count = 5, legend = "right")
+plotGWPCA_FuncCLust(gsea_map, count = 5, legend = "right", legend.title = "Pathways")
 
 ```
 

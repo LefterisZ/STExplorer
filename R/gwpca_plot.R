@@ -783,7 +783,8 @@ plotGWPCA_discrHeatmap <- function(m_sfe,
 #' @param legend A character string specifying the legend position. The
 #' arguments are the \code{ggplot2}'s \code{legend.position} arguments: "top",
 #' "bottom", "left", "right".
-#' @importFrom gridExtra grid.arrange
+#' @param legend.title A character string specifying the legend title.
+#' @import patchwork
 #' @importFrom dplyr rename arrange filter select mutate
 #' @importFrom ggplot2 scale_fill_viridis_d scale_fill_manual
 #' @importFrom ggplot2 scale_fill_gradient2 scale_fill_viridis_c
@@ -799,19 +800,19 @@ plotGWPCA_discrHeatmap <- function(m_sfe,
 #' @family Spatial Transcriptomics Analysis
 #'
 #' @export
-plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
+plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
   ## The Legend labels
-  lookup <- c(cluster = "Var1", count = "Freq")
+  lookup <- c(cluster = "Var1", freq = "Freq")
   spot_labels <- data.frame(table(gsea_map$cluster)) %>%
     dplyr::rename(all_of(lookup)) %>%
-    dplyr::arrange(dplyr::desc(count)) %>%
-    mutate(show = ifelse(count > count, TRUE, FALSE))
+    dplyr::arrange(dplyr::desc(freq)) %>%
+    mutate(show = ifelse(freq > count, TRUE, FALSE))
 
   ## The legend breaks:
   spot_breaks <- spot_labels %>%
-    dplyr::filter(.data$show == TRUE) %>%
-    dplyr::arrange(.data$cluster) %>%
-    dplyr::select(.data$cluster) %>%
+    dplyr::filter(show == TRUE) %>%
+    dplyr::arrange(cluster) %>%
+    dplyr::select(cluster) %>%
     .[["cluster"]] %>%
     as.vector()
   n_cols1 <- ceiling(length(unique(gsea_map$genes_no)) / 10)
@@ -835,9 +836,9 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
                       breaks = spot_breaks,
                       na.value = "grey95") +
     labs(title = NULL,
-         fill = legend) +
+         fill = legend.title) +
     theme_void() +
-    theme(legend.position = "right")
+    theme(legend.position = legend)
 
   gsea_plots[[2]] <- ggplot() +
     geom_sf(data = gsea_map,
@@ -858,13 +859,13 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
   gsea_plots[[3]] <- ggplot() +
     geom_sf(data = gsea_map,
             aes(geometry = geometry,
-                fill = p.adjust),
+                fill = -log10(p.adjust)),
             colour = "grey30",
             show.legend = TRUE) +
     scale_fill_viridis_c(option = "magma",
                          na.value = "grey95") +
     labs(title = NULL,
-         fill = "Adjusted\np-value") +
+         fill = "-log10\nAdjusted\np-value") +
     theme_void()
 
   gsea_plots[[4]] <- ggplot() +
@@ -906,7 +907,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend) {
     ggplot2::guides(fill = ggplot2::guide_legend(ncol = n_cols2, byrow = TRUE))
 
   ## Arrange plots
-  gridExtra::grid.arrange(grobs = gsea_plots, nrow = 2, ncol = 3)
+  (gsea_plots[[1]]|gsea_plots[[2]])/(gsea_plots[[3]]|gsea_plots[[4]]|gsea_plots[[5]]|gsea_plots[[6]])
 
 }
 

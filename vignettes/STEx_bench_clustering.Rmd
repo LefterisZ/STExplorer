@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 
 Welcome to the vignette of STExplorer. STExplorer is a package the performs geographically inspired analysis of spatial transcriptomics data.
 
-## Install package
+## Install/Load packages
 
 ```{r }
 ## To install the stable version of the package from Bioconductor run the below:
@@ -48,7 +48,7 @@ if (!require("devtools", quietly = TRUE))
     install.packages("devtools")
 
 devtools::install_github("LefterisZ/STExplorer",
-                         auth_token = "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",
+                         auth_token = AUTH_TOKEN,
                          force = TRUE)
 
 
@@ -73,9 +73,10 @@ library(readr)
 # library(ggExtra)
 # library(future)
 # library(doFuture)
-# library(foreach)
+library(foreach)
 # library(progressr)
-# library(parallel)
+library(parallel)
+library(doParallel)
 # library(cols4all)
 # library(pheatmap)
 library(RColorBrewer)
@@ -1244,15 +1245,14 @@ ncluster = c(2, 3, 4, 5)
 a = c(1, 2, 5, 10)
 m = c(2, 1.8, 1.5, 1.2)
 
-folder = file.path("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/")
-
 # Create all possible combinations
 combinations <- expand.grid(ncluster = ncluster, a = a, m = m)
 
 # Set parallel backend
-num_cores <- 4
-registerDoParallel(cores = num_cores)
+# cl <- parallel::makeCluster(6)
+# registerDoParallel(cl)
 
+# Run clustering
 for (sID in sIDs) {
   i <- grep(sID, sIDs)
   tot <- length(sIDs)
@@ -1264,11 +1264,12 @@ for (sID in sIDs) {
   sfe <- getSFE(msfe, sample_id = sID)
   
   dir.create(paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", sID, "/"), recursive = TRUE)  
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", sID, "/")
   
-  foreach(ncomp = 1:length(sfe_nmf_stexIn[[sID]])) %dopar% {
-    ncomp <- gsub("nComp_", "", names(sfe_nmf_seuIn)[ncomp])
+  for (ncomps in 1:length(sfe_nmf_stexIn[[sID]])) {
+    ncomp <- gsub("nComp_", "", names(sfe_nmf_seuIn)[ncomps])
     
-    data_to_cluster <- sfe_nmf_stexIn[[sID]][[ncomp]]
+    data_to_cluster <- sfe_nmf_stexIn[[sID]][[ncomps]]
     
     for (i in 1:nrow(combinations)) {
       # Select parameters
@@ -1278,35 +1279,35 @@ for (sID in sIDs) {
       
       message(i, "/", nrow(combinations), "  Working on nCl = ", ncluster, ", a = ", a, ", m = ", m)
       # Set FGWC parameters
-      fgwc_param <- fgwc_params(algorithm = "classic", ncluster = ncluster, a = a, m = m)
+      fgwc_param <- STExplorer::fgwc_params(algorithm = "classic", ncluster = ncluster, a = a, m = m)
       # Run FGWC
-      fgwc <- fgwcSTE(sfe, "V1_2", 
+      fgwc <- STExplorer::fgwcSTE(sfe, sID, 
                       data = data_to_cluster, 
                       dMetric = "euclidean", 
                       algorithm = "classic", 
                       fgwc_param = fgwc_param)
       # plot single
-      plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "V1_2") + 
+      STExplorer::plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = sID) + 
         theme(legend.position = "none") + 
         labs(title = paste0("nCl:", ncluster, "  a:", a, "  m:", m))
-      ggsave(paste0(folder, "V1_2_single_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
+      ggsave(paste0(folder, sID, "_single_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
              device = "svg",
              width = grDevices::dev.size(units = "in")[1],
              height = grDevices::dev.size(units = "in")[2],
              units = "in",
              dpi = 300)
       # plot multi
-      plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "V1_2")+ 
+      STExplorer::plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = sID) + 
         theme(legend.position = "none")  + 
         labs(title = paste0("nCl:", ncluster, "  a:", a, "  m:", m))
-      ggsave(paste0(folder, "V1_2_multi_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
+      ggsave(paste0(folder, sID, "_multi_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
              device = "svg",
              width = grDevices::dev.size(units = "in")[1],
              height = grDevices::dev.size(units = "in")[2],
              units = "in",
              dpi = 300)
-      }
     }
+  }
 }
 
 

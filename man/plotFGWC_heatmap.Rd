@@ -48,8 +48,9 @@ plotFGWC_heatmap(fgwc_result, m_sfe, sample_id, markers_data, cluster_no)
 \code{\link{plotFGWC_multi}}
 
 Other plotting functions: 
-\code{\link{plotFGWC_multi}()},
-\code{\link{plotFGWC_single}()}
+\code{\link{plotFGWC_multiMap}()},
+\code{\link{plotFGWC_multiViolin}()},
+\code{\link{plotFGWC_singleMap}()}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

@@ -2,17 +2,23 @@
 % Please edit documentation in R/fgwc_STE.R
 \name{fgwc_params}
 \alias{fgwc_params}
+\alias{classic_params}
+\alias{abc_params}
 \title{Generate Parameters for Fuzzy Geographically Weighted Clustering}
 \usage{
 fgwc_params(
   algorithm = c("classic", "abc", "fpa", "gsa", "hho", "ifa", "pso", "tlbo"),
+  ...
+)
+
+classic_params(
   ncluster,
   kind = "u",
-  m = 2,
+  m = 1.5,
   distance = "manhattan",
   order = 1,
   alpha = 0.5,
-  a = 1,
+  a = 2,
   b = 1,
   max.iter = 500,
   error = 1e-05,
@@ -20,10 +26,31 @@ fgwc_params(
   uij = NA,
   vi = NA
 )
+
+abc_params(
+  ncluster,
+  m = 1.6,
+  distance = "manhattan",
+  order = 1,
+  alpha = 0.5,
+  a = 2,
+  b = 1,
+  error = 1e-05,
+  max.iter = 100,
+  randomN = 0,
+  vi.dist = "uniform",
+  nfood = 10,
+  n.onlooker = 5,
+  limit = 4,
+  pso = FALSE,
+  abc.same = 10
+)
 }
 \arguments{
 \item{algorithm}{The type of FGWC or optimization algorithm to use. Choose
 from "classic", "abc", "fpa", "gsa", "hho", "ifa", "pso", "tlbo".}
+
+\item{...}{arguments passed down to the specific algorithm function}
 
 \item{ncluster}{The number of clusters.}
 
@@ -45,24 +72,46 @@ effect.}
 
 \item{b}{Spatial magnitude of population (default is 1).}
 
-\item{max.iter}{Maximum iteration (default is 500).}
+\item{max.iter}{maximum iteration. Default is 500.}
 
-\item{error}{Error tolerance (default is 1e-5).}
+\item{error}{error tolerance. Default is 1e-5.}
 
-\item{randomN}{Random seed for initialization (if \code{uij} or \code{vi}
-is NA, default is 1).}
+\item{randomN}{random seed for initialisation (if uij or vi is NA).
+Default is 0.}
 
 \item{uij}{Membership matrix initialization.}
 
 \item{vi}{Centroid matrix initialization.}
+
+\item{vi.dist}{a string of centroid population distribution between
+"uniform" (default) and "normal". Can be defined as vi.dist= in opt_param.}
+
+\item{nfood}{number of foods population. Can be defined as npar= in
+opt_param.}
+
+\item{n.onlooker}{number of onlooker bees, Can be defined as n.onlooker in
+opt_param.}
+
+\item{limit}{number of turns to eliminate food with no solutions. Can be
+defined as limit in opt_param.}
+
+\item{pso}{whether to add PSO term in bee's movement. Either TRUE or FALSE.
+Can be defined as pso in opt_param.}
+
+\item{abc.same}{number of consecutive unchanges to stop the iteration. Can
+be defined as same= in opt_param. description}
 }
 \value{
-A named vector of FGWC parameters or optimization algorithm
+A list of FGWC parameters or optimization algorithm
 parameters.
 }
 \description{
 This function generates parameters for Fuzzy Geographically Weighted
 Clustering (FGWC) or optimization algorithms for FGWC.
+}
+\details{
+depending on the algorithm the function calls internally the respective
+function.
 }
 \examples{
 \dontrun{
@@ -78,7 +127,8 @@ params <- fgwc_params(algorithm = "classic", ncluster = 3, kind = "u", m = 2)
 \code{\link[naspaclust]{psofgwc}}, \code{\link[naspaclust]{tlbofgwc}}
 
 Other clustering functions: 
-\code{\link{fgwc_nmf}()}
+\code{\link{fgwc_nmf}()},
+\code{\link{fgwc_nmfFactorNumber}()}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

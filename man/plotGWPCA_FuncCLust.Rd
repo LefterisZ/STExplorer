@@ -4,7 +4,7 @@
 \alias{plotGWPCA_FuncCLust}
 \title{Plot Functional Clustering Results from GWPCA}
 \usage{
-plotGWPCA_FuncCLust(gsea_map, count = 5, legend)
+plotGWPCA_FuncCLust(gsea_map, count = 5, legend, legend.title)
 }
 \arguments{
 \item{gsea_map}{A spatial dataset containing functional clustering results,
@@ -17,6 +17,8 @@ to be displayed in the legend.}
 \item{legend}{A character string specifying the legend position. The
 arguments are the \code{ggplot2}'s \code{legend.position} arguments: "top",
 "bottom", "left", "right".}
+
+\item{legend.title}{A character string specifying the legend title.}
 }
 \value{
 A grid of spatial plots representing different aspects of functional

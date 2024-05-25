@@ -2,9 +2,15 @@
 % Please edit documentation in R/normalisation.R
 \name{normaliseCounts}
 \alias{normaliseCounts}
+\alias{normaliseCounts.SpatialFeatureExperiment}
+\alias{normaliseCounts.MetaSpatialFeatureExperiment}
 \title{Normalise Counts in a Spatial Transcriptomics Experiment}
 \usage{
 normaliseCounts(m_sfe, sample_id, method = c("log"), ...)
+
+\method{normaliseCounts}{SpatialFeatureExperiment}(m_sfe, method = c("log"), ...)
+
+\method{normaliseCounts}{MetaSpatialFeatureExperiment}(m_sfe, method = c("log"), ...)
 }
 \arguments{
 \item{m_sfe}{An object of class SpatialFeatureExperiment or

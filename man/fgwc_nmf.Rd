@@ -63,6 +63,7 @@ nmf_result <- fgwc_nmf(m_sfe = sfe, sample_id = "ID1", top_hvgs = top_genes)
 \code{\link[scater]{calculateNMF}} for additional details on NMF clustering.
 
 Other clustering functions: 
+\code{\link{fgwc_nmfFactorNumber}()},
 \code{\link{fgwc_params}()}
 }
 \author{

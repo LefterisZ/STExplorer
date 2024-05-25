@@ -1,4 +1,6 @@
 
+![STExplorer](vignettes/images/STExplorer_logo_hex.png)
+
 # STExplorer
 
 <!-- badges: start -->

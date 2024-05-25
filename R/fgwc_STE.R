@@ -1,3 +1,22 @@
+#' Identify the optimal number of factors
+#'
+#' This function uses different statistical methods to select the optimal
+#' number of factors for a given dataset.
+#'
+#' @param name description
+#'
+#' @return An integer. The number of optimal factors.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @keywords clustering spatial-expression nmf
+#' @family clustering functions
+#' @rdname fgwc_nmfFactorNumber
+#' @aliases fgwc_nmfFactorNumber
+#'
+#' @export
+fgwc_nmfFactorNumber <- function() {}
+
+
 #' Perform Non-negative Matrix Factorisation (NMF)
 #'
 #' This function performs Non-negative Matrix Factorisation (NMF) on the gene
@@ -80,26 +99,13 @@ fgwc_nmf <- function(m_sfe,
 #'
 #' @param algorithm The type of FGWC or optimization algorithm to use. Choose
 #' from "classic", "abc", "fpa", "gsa", "hho", "ifa", "pso", "tlbo".
-#' @param ncluster The number of clusters.
-#' @param kind Use \code{'u'} for the membership approach and \code{'v'} for
-#' the centroid approach.
-#' @param m Degree of fuzziness or fuzzifier (default is 2).
-#' @param distance The distance metric between data and centroid (default is
-#' "euclidean").
-#' @param order Minkowski order (default is 1).
-#' @param alpha The old membership effect with `[0,1]`. If \code{alpha} equals
-#' 1, it will be the same as Fuzzy C-Means. If 0, it equals the neighborhood
-#' effect.
-#' @param a Spatial magnitude of distance (default is 1).
-#' @param b Spatial magnitude of population (default is 1).
-#' @param max.iter Maximum iteration (default is 500).
-#' @param error Error tolerance (default is 1e-5).
-#' @param randomN Random seed for initialization (if \code{uij} or \code{vi}
-#' is NA, default is 1).
-#' @param uij Membership matrix initialization.
-#' @param vi Centroid matrix initialization.
+#' @param ... arguments passed down to the specific algorithm function
 #'
-#' @return A named vector of FGWC parameters or optimization algorithm
+#' @details
+#' depending on the algorithm the function calls internally the respective
+#' function.
+#'
+#' @return A list of FGWC parameters or optimization algorithm
 #' parameters.
 #'
 #' @examples
@@ -122,48 +128,134 @@ fgwc_nmf <- function(m_sfe,
 #' @export
 fgwc_params <- function(algorithm = c("classic", "abc", "fpa", "gsa",
                                       "hho", "ifa", "pso", "tlbo"),
-                        ncluster,
-                        kind = "u",
-                        m = 2,
-                        distance = "manhattan",
-                        order = 1,
-                        alpha = 0.5,
-                        a = 1,
-                        b = 1,
-                        max.iter = 500,
-                        error = 1e-5,
-                        randomN = 1,
-                        uij = NA,
-                        vi = NA) {
+                        ...) {
   ## Check algorithm arguments
   algorithm <- match.arg(algorithm)
 
   if (algorithm == "classic") {
     ## A named vector that consists of FGWC parameter, or a vector that consists
     ##   of optimization algorithm parameter.
-    params <- c(kind = kind,
-                ncluster = ncluster,
-                m = m,
-                distance = distance,
-                order = order,
-                alpha = alpha,
-                a = a, # Modifying the membership matrix utilizing the distance matrix.
-                b = b, # Modifying the membership matrix utilizing the population.
-                max.iter = max.iter,
-                error = error,
-                randomN = randomN,
-                uij = uij,
-                vi = vi)
+    params <- classic_params(...)
+    return(params)
+  } else if (algorithm == "abc") {
+    ## optimization algorithm parameter.
+    params <- abc_params(...)
     return(params)
   }
-  else if (algorithm != "classic") {
-    stop("\nCurrently this function supports only algortihm type 'classic'.\n",
+  else if (!algorithm %in% c("classic", "abc")) {
+    stop("\nCurrently this function supports only the 'classic' algortihm",
+         "type and the 'abc' optimisation method.\n",
          "For the other optimisation algorithms, refer to the vignette with\n",
          "the default parameters for any optimisation algortihm or refer to\n",
          "the help page (?fgwc_params) to find the optimisation algorithm's\n",
          "help under section 'See also'.")
   }
 
+}
+
+#' @param ncluster The number of clusters.
+#' @param kind Use \code{'u'} for the membership approach and \code{'v'} for
+#' the centroid approach.
+#' @param m Degree of fuzziness or fuzzifier (default is 2).
+#' @param distance The distance metric between data and centroid (default is
+#' "euclidean").
+#' @param order Minkowski order (default is 1).
+#' @param alpha The old membership effect with `[0,1]`. If \code{alpha} equals
+#' 1, it will be the same as Fuzzy C-Means. If 0, it equals the neighborhood
+#' effect.
+#' @param a Spatial magnitude of distance (default is 1).
+#' @param b Spatial magnitude of population (default is 1).
+#' @param max.iter Maximum iteration (default is 500).
+#' @param error Error tolerance (default is 1e-5).
+#' @param randomN Random seed for initialization (if \code{uij} or \code{vi}
+#' is NA, default is 1).
+#' @param uij Membership matrix initialization.
+#' @param vi Centroid matrix initialization.
+#'
+#' @rdname fgwc_params
+#' @export
+classic_params <- function(ncluster,
+                           kind = "u",
+                           m = 1.5,
+                           distance = "manhattan",
+                           order = 1,
+                           alpha = 0.5,
+                           a = 2,
+                           b = 1,
+                           max.iter = 500,
+                           error = 1e-5,
+                           randomN = 1,
+                           uij = NA,
+                           vi = NA) {
+  ## A named vector that consists of FGWC parameter
+  params <- list(kind = kind,
+                 ncluster = ncluster,
+                 m = m,
+                 distance = distance,
+                 order = order,
+                 alpha = alpha,
+                 a = a, # Modifying the membership matrix utilizing the distance matrix.
+                 b = b, # Modifying the membership matrix utilizing the population.
+                 max.iter = max.iter,
+                 error = error,
+                 randomN = randomN,
+                 uij = uij,
+                 vi = vi)
+  return(params)
+}
+
+#' @param error error tolerance. Default is 1e-5.
+#' @param max.iter maximum iteration. Default is 500.
+#' @param randomN random seed for initialisation (if uij or vi is NA).
+#' Default is 0.
+#' @param vi.dist a string of centroid population distribution between
+#' "uniform" (default) and "normal". Can be defined as vi.dist= in opt_param.
+#' @param nfood number of foods population. Can be defined as npar= in
+#' opt_param.
+#' @param n.onlooker number of onlooker bees, Can be defined as n.onlooker in
+#' opt_param.
+#' @param limit number of turns to eliminate food with no solutions. Can be
+#' defined as limit in opt_param.
+#' @param pso whether to add PSO term in bee's movement. Either TRUE or FALSE.
+#' Can be defined as pso in opt_param.
+#' @param abc.same number of consecutive unchanges to stop the iteration. Can
+#' be defined as same= in opt_param. description
+#' @rdname fgwc_params
+#' @export
+abc_params <- function(ncluster,
+                       m = 1.6,
+                       distance = "manhattan",
+                       order = 1,
+                       alpha = 0.5,
+                       a = 2,
+                       b = 1,
+                       error = 1e-05,
+                       max.iter = 100,
+                       randomN = 0,
+                       vi.dist = "uniform",
+                       nfood = 10,
+                       n.onlooker = 5,
+                       limit = 4,
+                       pso = FALSE,
+                       abc.same = 10) {
+  ## optimization algorithm parameter.
+  params <- list(ncluster = ncluster,
+                 m = m,
+                 distance = distance,
+                 order = order,
+                 alpha = alpha,
+                 a = a, # Modifying the membership matrix utilizing the distance matrix.
+                 b = b, # Modifying the membership matrix utilizing the population.
+                 error = error,
+                 max.iter = max.iter,
+                 randomN = randomN,
+                 vi.dist = vi.dist,
+                 nfood = nfood,
+                 n.onlooker = n.onlooker,
+                 limit = limit,
+                 pso = pso,
+                 abc.same = abc.same)
+  return(params)
 }
 
 #' #' Fuzzy Geographicaly Weighted Clustering
@@ -184,10 +276,8 @@ fgwc_params <- function(algorithm = c("classic", "abc", "fpa", "gsa",
 #' @param dMetric Character string specifying the distance metric.
 #' @param distMat an n*n distance matrix between regions.
 #' @param algorithm algorithm used for FGWC
-#' @param fgwc_param a vector that consists of FGWC parameter
-#' (see \code{\link{fgwcuv}} for parameter details)
-#' @param opt_param a vector that consists of optimization algorithm parameter
-#' (see \code{\link{fgwcuv}} for parameter details)
+#' @param parameters a vector that consists of FGWC parameters
+#' (see \code{\link{fgwc_params}} for parameter details)
 #'
 #' @return an object of class \code{"fgwc"}.\cr
 #' An \code{"fgwc"} object contains as follows:
@@ -246,7 +336,8 @@ fgwc_params <- function(algorithm = c("classic", "abc", "fpa", "gsa",
 #' Patel (2012).
 #' }
 #'
-#' @importFrom naspaclust fgwc
+#' @importFrom naspaclust fgwcuv
+#' @importFrom naspaclust abcfgwc
 #'
 #' @seealso \code{\link[naspaclust]{fgwcuv}}, \code{\link[naspaclust]{abcfgwc}},
 #' \code{\link[naspaclust]{fpafgwc}}, \code{\link[naspaclust]{gsafgwc}},
@@ -348,8 +439,7 @@ fgwcSTE <- function(m_sfe,
                     distMat = NULL,
                     dMetric = NULL,
                     algorithm = "classic",
-                    fgwc_param = NULL,
-                    opt_param = NULL) {
+                    parameters = NULL) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
@@ -364,27 +454,26 @@ fgwcSTE <- function(m_sfe,
   }
 
   ## Set defaults
-  if (is.null(fgwc_param)) {
-    fgwc_param <- c(kind = 'u', ncluster = 2, m = 2,
+  if (is.null(parameters) && algorithm == "classic") {
+    parameters <- c(kind = 'u', ncluster = 2, m = 2,
                     distance = 'euclidean', order = 2,
                     alpha = 0.7, a = 1, b = 1,
                     max.iter = 500, error = 1e-5, randomN = 1)
   }
-  if (is.null(opt_param)) {
-    opt_param <- c(vi.dist = 'uniform',
-                   npar = 10, par.no = 2, par.dist = 'euclidean', par.order = 2,
-                   pso = TRUE, same = 10, type = 'sim.annealing',
-                   ei.distr = 'normal', vmax = 0.7, wmax = 0.9, wmin = 0.4,
-                   chaos = 4, x0 = 'F', map = 0.7, ind = 1, skew = 0, sca = 1)
-  }
+
+  main_params <- list(data = data,
+                      pop = pop,
+                      distmat = distMat)
 
   ## Run FGWC
-  fgwc <- naspaclust::fgwc(data = data,
-                           pop = pop,
-                           distmat = distMat,
-                           algorithm = algorithm,
-                           fgwc_param = fgwc_param,
-                           opt_param = opt_param)
+  if (algorithm == "classic") {
+    ## Run classic FGWC
+    fgwc <- do.call(naspaclust::fgwcuv, c(parameters, main_params))
+  } else if (algorithm == "abc") {
+    ## Run FGWC with Artificial Bee Colony (ABC) optimisation
+    fgwc <- do.call(naspaclust::abcfgwc, c(parameters, main_params))
+  }
+
 
   return(fgwc)
 }

@@ -183,7 +183,7 @@ normaliseCounts <- function(m_sfe,
   UseMethod("normaliseCounts")
 }
 
-
+#' @rdname normaliseCounts
 #' @export
 normaliseCounts.SpatialFeatureExperiment <- function(m_sfe,
                                                      method = c("log"),
@@ -202,7 +202,7 @@ normaliseCounts.SpatialFeatureExperiment <- function(m_sfe,
   return(m_sfe)
 }
 
-
+#' @rdname normaliseCounts
 #' @export
 normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
                                                          method = c("log"),
