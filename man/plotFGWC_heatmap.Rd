@@ -50,6 +50,7 @@ plotFGWC_heatmap(fgwc_result, m_sfe, sample_id, markers_data, cluster_no)
 Other plotting functions: 
 \code{\link{plotFGWC_multiMap}()},
 \code{\link{plotFGWC_multiViolin}()},
+\code{\link{plotFGWC_nmfFactorsMap}()},
 \code{\link{plotFGWC_singleMap}()}
 }
 \author{

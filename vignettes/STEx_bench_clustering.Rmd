@@ -596,7 +596,7 @@ for (sID in sIDs) {
   
   # ---------------------------------------------------------------------------- #
   # ---------------------------------------------------------------------------- #
-  plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = sID, annotate = TRUE, alpha = 0.3)
+  plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = sID, annotate = FALSE, alpha = 0.3)
   
   folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/annotation/", sID, "/")
   prfx <- sID

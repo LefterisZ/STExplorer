@@ -2,12 +2,18 @@
 % Please edit documentation in R/qc_setQCthresh.R
 \name{setQCthresh_ZeroExpr}
 \alias{setQCthresh_ZeroExpr}
+\alias{setQCthresh_ZeroExpr.SpatialFeatureExperiment}
+\alias{setQCthresh_ZeroExpr.MetaSpatialFeatureExperiment}
 \title{Set QC Thresholds for Zero Expression}
 \usage{
-setQCthresh_ZeroExpr(msfe, sample_id = TRUE)
+setQCthresh_ZeroExpr(m_sfe, sample_id = TRUE)
+
+\method{setQCthresh_ZeroExpr}{SpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
+
+\method{setQCthresh_ZeroExpr}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
 }
 \arguments{
-\item{msfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
+\item{m_sfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
 object.}
 
 \item{sample_id}{A character string, \code{TRUE}, or \code{NULL} specifying

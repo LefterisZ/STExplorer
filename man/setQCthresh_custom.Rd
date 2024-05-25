@@ -2,12 +2,18 @@
 % Please edit documentation in R/qc_setQCthresh.R
 \name{setQCthresh_custom}
 \alias{setQCthresh_custom}
+\alias{setQCthresh_custom.SpatialFeatureExperiment}
+\alias{setQCthresh_custom.MetaSpatialFeatureExperiment}
 \title{Set QC Thresholds using Custom Metrics}
 \usage{
-setQCthresh_custom(msfe, sample_id = TRUE, MARGIN, qcMetric)
+setQCthresh_custom(m_sfe, sample_id = TRUE, MARGIN, qcMetric)
+
+\method{setQCthresh_custom}{SpatialFeatureExperiment}(m_sfe, sample_id = TRUE, MARGIN, qcMetric)
+
+\method{setQCthresh_custom}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE, MARGIN, qcMetric)
 }
 \arguments{
-\item{msfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
+\item{m_sfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
 object.}
 
 \item{sample_id}{A character string, \code{TRUE}, or \code{NULL} specifying

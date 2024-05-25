@@ -426,7 +426,7 @@ setQCtoDiscard_loc <- function(sfe, sample_id = TRUE, filters = TRUE) {
 #' These functions set quality control (QC) thresholds for gene expression data
 #' based on zero expression values.
 #'
-#' @param msfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
+#' @param m_sfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
 #' object.
 #' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
 #' sample/image identifier(s). If \code{TRUE}, all samples/images are
@@ -456,23 +456,40 @@ setQCtoDiscard_loc <- function(sfe, sample_id = TRUE, filters = TRUE) {
 #' msfe <- setQCthresh_ZeroExpr(msfe, sample_id = TRUE)
 #'
 #' @export
-setQCthresh_ZeroExpr <- function(msfe, sample_id = TRUE) {
+setQCthresh_ZeroExpr <- function(m_sfe, sample_id = TRUE) {
+  UseMethod("setQCthresh_ZeroExpr")
+}
+
+
+#' @rdname setQCthresh_ZeroExpr
+#' @export
+setQCthresh_ZeroExpr.SpatialFeatureExperiment <- function(m_sfe,
+                                                          sample_id = TRUE) {
+  sfe <- .int_isZero(m_sfe)
+
+  return(sfe)
+}
+
+#' @rdname setQCthresh_ZeroExpr
+#' @export
+setQCthresh_ZeroExpr.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                              sample_id = TRUE)
+  {
   ## Select samples
-  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
+  ids <- .int_getMSFEsmplID(msfe = m_sfe, sample_id = sample_id)
 
   ## Find genes without expression in each sample
-  msfe_int <- lapply(msfe@sfe_data[ids], .int_isZero)
+  msfe_int <- lapply(m_sfe@sfe_data[ids], .int_isZero)
 
   ## If specific samples where modified replace in the metaSFE list
   if (is.character(sample_id)) {
-    msfe@sfe_data[names(msfe_int)] <- msfe_int
+    m_sfe@sfe_data[names(msfe_int)] <- msfe_int
   } else {
-    msfe@sfe_data <- msfe_int
+    m_sfe@sfe_data <- msfe_int
   }
 
-  return(msfe)
+  return(m_sfe)
 }
-
 
 #' Set QC Thresholds for Low Logarithmic Mean in Gene Expression
 #'
@@ -542,7 +559,7 @@ setQCthresh_LowLogMean <- function(msfe,
 #' This function sets quality control (QC) thresholds using custom metrics for
 #' gene expression data or for location data.
 #'
-#' @param msfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
+#' @param m_sfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
 #' object.
 #' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
 #' sample/image identifier(s). If \code{TRUE}, all samples/images are
@@ -592,34 +609,60 @@ setQCthresh_LowLogMean <- function(msfe,
 #'                            qcMetric)
 #'
 #' @export
-setQCthresh_custom <- function(msfe,
+setQCthresh_custom <- function(m_sfe,
                                sample_id = TRUE,
                                MARGIN,
                                qcMetric) {
+  UseMethod("setQCthresh_ZeroExpr")
+}
+
+#' @rdname setQCthresh_custom
+#' @export
+setQCthresh_custom.SpatialFeatureExperiment <- function(m_sfe,
+                                                        sample_id = TRUE,
+                                                        MARGIN,
+                                                        qcMetric) {
+  ## Get QC name
+  qc_name <- paste0("qc_", deparse(substitute(qcMetric)))
+
+  ## Add QC metric
+  if (MARGIN == 1) {
+    sfe <- .int_custom_1(sfe = m_sfe, qcMetric = qcMetric, qc_name = qc_name)
+  } else if (MARGIN == 2) {
+    sfe <- .int_custom_2(sfe = m_sfe, qcMetric = qcMetric, qc_name = qc_name)
+  }
+
+  return(sfe)
+}
+
+#' @rdname setQCthresh_custom
+#' @export
+setQCthresh_custom.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                            sample_id = TRUE,
+                                                            MARGIN,
+                                                            qcMetric) {
   ## Select samples
-  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
+  ids <- .int_getMSFEsmplID(msfe = m_sfe, sample_id = sample_id)
 
   ## Get QC name
   qc_name <- paste0("qc_", deparse(substitute(qcMetric)))
 
   ## Add QC metric
   if (MARGIN == 1) {
-    msfe_int <- lapply(msfe@sfe_data[ids], .int_custom_1, qcMetric, qc_name)
+    msfe_int <- lapply(m_sfe@sfe_data[ids], .int_custom_1, qcMetric, qc_name)
   } else if (MARGIN == 2) {
-    msfe_int <- lapply(msfe@sfe_data[ids], .int_custom_2, qcMetric, qc_name)
+    msfe_int <- lapply(m_sfe@sfe_data[ids], .int_custom_2, qcMetric, qc_name)
   }
 
   ## If specific samples where modified replace in the metaSFE list
   if (is.character(sample_id)) {
-    msfe@sfe_data[names(msfe_int)] <- msfe_int
+    m_sfe@sfe_data[names(msfe_int)] <- msfe_int
   } else {
-    msfe@sfe_data <- msfe_int
+    m_sfe@sfe_data <- msfe_int
   }
 
-  return(msfe)
+  return(m_sfe)
 }
-
-
 #' Set QC Thresholds for Discarding Features
 #'
 #' This function marks the features (genes) flagged for discarding based on

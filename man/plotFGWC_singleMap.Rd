@@ -43,7 +43,8 @@ plotFGWC_single(fgwc_result, m_sfe, sample_id)
 Other plotting functions: 
 \code{\link{plotFGWC_heatmap}()},
 \code{\link{plotFGWC_multiMap}()},
-\code{\link{plotFGWC_multiViolin}()}
+\code{\link{plotFGWC_multiViolin}()},
+\code{\link{plotFGWC_nmfFactorsMap}()}
 }
 \author{
 Eleftherios (Lefteris) Zormpas
