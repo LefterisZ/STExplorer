@@ -72,13 +72,18 @@ addSFE <- function(x, sfe, sample_id = TRUE) {
 #'
 #' @param x An instance of the MetaSpatialFeatureExperiment class.
 #' @param sample_id Character string. The name of the experiment/sample for
-#' the SFE to be accessed.
+#' the SFE to be accessed. If left to NULL, then the first sfe object in the
+#' list is selected.
 #'
 #' @return The SFE object associated with the provided name.
 #'
 #' @export
-getSFE <- function(x, sample_id) {
-  x@sfe_data[[sample_id]]
+getSFE <- function(x, sample_id = NULL) {
+  if (is.null(sample_id)) {
+    x@sfe_data[[1]]
+  } else {
+    x@sfe_data[[sample_id]]
+  }
 }
 
 #' Method to add an SFE object with multiple samples to a

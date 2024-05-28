@@ -252,7 +252,483 @@ plotFGWC_nmfFactorsMap <- function(nmf, m_sfe, sample_id) {
 }
 
 
-plotFGWC_nmfFactorsPie <- function() {}
+#' Plot Fuzzy Geographically Weighted Clustering (FGWC) - Pie and Donut Plot
+#'
+#' This function plots the FGWC using pie and donut plots. It visualises the
+#' distribution of clusters, annotations or NMF factors for each location in
+#' the spatial omics dataset. The function accepts several parameters to
+#' customise the plot appearance and behaviour.
+#'
+#' @param fgwc Object of class \linkS4class{fgwc}. The Fuzzy Geographically
+#' Weighted Clustering object, typically created by
+#' \code{\link[STExplorer]{fgwcSTE}}.
+#' @param m_sfe The spatial feature experiment (SFE) or metaSFE object.
+#' @param sample_id A character vector. The sample ID. Defaults to NULL and
+#' selects the fisrt sample if a metaSFE object is provided to the `m_sfe`
+#' argument. If an SFE object is provided then this argument is omitted.
+#' @param mapping A aesthetic mapping created by \code{\link[ggplot2]{aes}}. It
+#' specifies how the data is mapped to the plot. The expected mappings are
+#' "pie" and "donut" which determine the segmentation of the pie and donut
+#' plots, respectively. The variables that can be supplied to those mappings
+#' are currently one of `annotation`, `clustering`, and `factors`. The use of
+#' the `annotation` assumes the existence of an `annotation` column in the
+#' `colData`.
+#' @param start Angle in radians at which the pie/donut plot starts.
+#' @param addPieLabel A logical indicating whether to add labels to the pie plot
+#'   segments.
+#' @param addDonutLabel Logical indicating whether to add labels to the donut
+#' plot segments.
+#' @param showRatioDonut Logical indicating whether to show the ratio of each
+#' donut segment to the whole.
+#' @param showRatioPie Logical indicating whether to show the ratio of each pie
+#'   segment to the whole.
+#' @param ratioByGroup Logical indicating whether the ratio displayed on the
+#' donut plot should be calculated by group or individually.
+#' @param showRatioThreshold The minimum ratio required to display a segment
+#' label in the pie or donut plot.
+#' @param labelposition Position of the labels in the plot. It can take values
+#' 0, 1, 2, where 0 places the labels outside the plot, 1 places them on the
+#' segments, and 2 places them mostly outside with some overlapping.
+#' @param labelpositionThreshold Threshold for the label position 2. Labels
+#' with ratios below this threshold will be positioned outside the plot, while
+#' others may overlap.
+#' @param r0, @param r1, @param r2 Radii of the pie plot, inner donut plot, and
+#' outer donut plot, respectively.
+#' @param explode A numeric vector or NULL. If not NULL, the specified segments
+#' in the pie plot will be exploded.
+#' @param selected A numeric vector or NULL. If not NULL, the specified
+#' segments in the donut plot will be exploded.
+#' @param explodePos Position to which the exploded segments in the pie
+#' or donut plots will be moved.
+#' @param color The border colour of the pie and donut plots.
+#' @param pieColours A character vector of colours to be used in the pie plot
+#' segments. If not provided, colours are automatically generated.
+#' @param pieAlpha Transparency of the pie plot segments.
+#' @param donutAlpha Transparency of the donut plot segments.
+#' @param maxx Maximum radius of the pie/donut plots. If not provided, it is
+#'   determined automatically.
+#' @param showPieName Logical indicating whether to display the name of the
+#' pie plot.
+#' @param showDonutName Logical indicating whether to display the name of
+#' the donut plot.
+#' @param title A character string to add as title above the donut plot.
+#' If NULL, no title will be displayed.
+#' @param pieLabelSize Size of the labels in the pie plot.
+#' @param donutLabelSize Size of the labels in the donut plot.
+#' @param titlesize Size of the title or plot names.
+#' @param explodePie Logical indicating whether to explode the pie plot
+#' segments at the positions specified by \code{explode}.
+#' @param explodeDonut Logical indicating whether to explode the donut plot
+#' segments at the positions specified by \code{selected}.
+#' @param use.label Logical indicating whether to use the original labels from
+#' the data for the pie and donut plots.
+#' @param use.labels Logical indicating whether to use the original labels from
+#' the data for the segment labels.
+#' @param family The font family to use in the plot.
+#'
+#' @return A ggplot2 plot object.
+#'
+#' @importFrom ggplot2 ggplot aes scale_fill_manual theme geom_segment
+#' @importFrom ggplot2 coord_fixed xlim ylim guides element_rect
+#' @importFrom ggplot2 geom_text annotate element_text
+#' @importFrom ggforce theme_no_axes geom_arc_bar
+#' @importFrom dplyr group_by count rename select slice_max ungroup
+#' @importFrom tidyr pivot_longer
+#' @importFrom scales percent
+#' @importFrom grid grid.newpage viewport
+#'
+#' @examples
+#' \dontrun{
+#' # Plot FGWC using default settings
+#' plotFGWC_pie(fgwC_obj, m_sfe_obj)
+#' }
+#'
+#' @export
+plotFGWC_pie <- function(fgwc,
+                         m_sfe,
+                         sample_id = NULL,
+                         mapping = aes(pie = cluster, donut = annotation),
+                         start = 0,
+                         addPieLabel = TRUE,
+                         addDonutLabel = TRUE,
+                         showRatioDonut = TRUE,
+                         showRatioPie = TRUE,
+                         ratioByGroup = TRUE,
+                         showRatioThreshold = 0.02,
+                         labelposition = 2,
+                         labelpositionThreshold = 0.1,
+                         r0 = 0.3,
+                         r1 = 1,
+                         r2 = 1.2,
+                         explode = NULL,
+                         selected = NULL,
+                         explodePos = 0.1,
+                         color = "white",
+                         pieColours = NULL,
+                         pieAlpha = 0.8,
+                         donutAlpha = 1,
+                         maxx = NULL,
+                         showPieName = TRUE,
+                         showDonutName = FALSE,
+                         title = NULL,
+                         pieLabelSize = 4,
+                         donutLabelSize = 3,
+                         titlesize = 5,
+                         explodePie = TRUE,
+                         explodeDonut = FALSE,
+                         use.label = TRUE,
+                         use.labels = TRUE,
+                         family = "") {
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Extract mapping names
+  pies <- .int_getMapping(mapping, "pie")
+  donuts <- .int_getMapping(mapping, "donut")
+
+  ## Check that mappings provided are correct
+  .int_checkMappings(mapping = mapping)
+
+  ## Prepare data to plot
+  fgwc_finalData <- fgwc$finaldata %>%
+    rownames_to_column(var = "Barcode")
+
+  annot <- colData(sfe)["annotation"] %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "Barcode")
+
+  data <- left_join(fgwc_finalData, annot, by = "Barcode")
+
+  if ("factors" %in% c(pies, donuts)) {
+    data <- tidyr::pivot_longer(data,
+                                contains("Factor"),
+                                names_to = "factors",
+                                values_to = "factor_score") %>%
+      group_by(Barcode) %>%
+      dplyr::slice_max(order_by = factor_score) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(-tidyr::all_of(c("factor_score", "Barcode")))
+  }
+
+  data <- data %>%
+    dplyr::select(tidyr::all_of(c(pies, donuts)))
+
+  ## Get colours
+  if (is.null(pieColours)) {
+    mainColours <- STExplorer::getColours(length(unique(data[[pies]])))
+  } else {
+    mainColours <- pieColours
+  }
+
+  ## The below code is from webr::PieDonut function. It is slightly modified,
+  ## updated with the current ggplot2 usage rules, and reduced redundant steps.
+  ## However, the main functionality is the same.
+
+  # Calculate pie data
+  df <- data %>%
+    group_by(.data[[pies]]) %>%
+    dplyr::count(.data[[pies]]) %>%
+    dplyr::rename("Freq" = "n")
+  colnames(df)[1] <- pies
+  df$end <- cumsum(df$Freq)
+  df$start <- dplyr::lag(df$end)
+  df$start[1] <- 0
+  total <- sum(df$Freq)
+  df$start1 <- df$start * 2 * pi/total
+  df$end1 <- df$end * 2 * pi/total
+  df$start1 <- df$start1 + start
+  df$end1 <- df$end1 + start
+  df$focus <- 0
+  if (explodePie) {
+    df$focus[explode] <- explodePos
+  }
+  df$mid <- (df$start1 + df$end1)/2
+  df$x <- ifelse(df$focus == 0, 0, df$focus * sin(df$mid))
+  df$y <- ifelse(df$focus == 0, 0, df$focus * cos(df$mid))
+  df$label <- df[[pies]]
+  df$ratio <- df$Freq/sum(df$Freq)
+  if (showRatioPie) {
+    df$label <- ifelse(df$ratio >= showRatioThreshold,
+                       paste0(df$label, "\n(", scales::percent(df$ratio), ")"),
+                       as.character(df$label))
+  }
+  df$labelx <- (r0 + r1)/2 * sin(df$mid) + df$x
+  df$labely <- (r0 + r1)/2 * cos(df$mid) + df$y
+  df[[pies]] <- factor(df[[pies]])
+
+  # Calculate donut data
+  if (!is.null(donuts)) {
+    df3 <- data.frame(table(data[[donuts]], data[[pies]]),
+                      stringsAsFactors = FALSE)
+    colnames(df3)[1:2] <- c(donuts, pies)
+    a <- table(data[[donuts]], data[[pies]])
+    df3$group <- rep(colSums(a), each = nrow(a))
+    df3$pie <- rep(1:ncol(a), each = nrow(a))
+    total <- sum(df3$Freq)
+    df3$ratio1 <- df3$Freq/total
+    if (ratioByGroup) {
+      df3$ratio <- scales::percent(df3$Freq/df3$group)
+    } else {
+      df3$ratio <- scales::percent(df3$ratio1)
+    }
+    df3$end <- cumsum(df3$Freq)
+    df3$start <- dplyr::lag(df3$end)
+    df3$start[1] <- 0
+    df3$start1 <- df3$start * 2 * pi/total
+    df3$end1 <- df3$end * 2 * pi/total
+    df3$start1 <- df3$start1 + start
+    df3$end1 <- df3$end1 + start
+    df3$mid <- (df3$start1 + df3$end1)/2
+    df3$focus <- 0
+    if (!is.null(selected)) {
+      df3$focus[selected] <- explodePos
+    } else if (!is.null(explode)) {
+      selected <- c()
+      for (i in 1:length(explode)) {
+        start <- 1 + nrow(a) * (explode[i] - 1)
+        selected <- c(selected, start:(start + nrow(a) - 1))
+      }
+      df3$focus[selected] <- explodePos
+    }
+    df3$x <- 0
+    df3$y <- 0
+    if (!is.null(explode)) {
+      for (i in 1:length(explode)) {
+        xpos <- df$focus[explode[i]] * sin(df$mid[explode[i]])
+        ypos <- df$focus[explode[i]] * cos(df$mid[explode[i]])
+        df3$x[df3$pie == explode[i]] <- xpos
+        df3$y[df3$pie == explode[i]] <- ypos
+      }
+    }
+    df3$no <- 1:nrow(df3)
+    df3$label <- df3[[donuts]]
+    if (showRatioDonut) {
+      maxLabelSize <- max(nchar(levels(df3$label)))
+      if (maxLabelSize <= 2) {
+        df3$label <- paste0(df3$label, "(", df3$ratio, ")")
+      } else {
+        df3$label <- paste0(df3$label, "\n(", df3$ratio, ")")
+      }
+    }
+    df3$label[df3$ratio1 == 0] <- ""
+    df3$label[df3$ratio1 < showRatioThreshold] <- ""
+    df3$hjust <- ifelse((df3$mid %% (2 * pi)) > pi, 1, 0)
+    df3$vjust <- ifelse(((df3$mid %% (2 * pi)) < (pi/2)) |
+                          (df3$mid %% (2 * pi) > (pi * 3/2)),
+                        0,
+                        1)
+    df3$no <- factor(df3$no)
+
+    # Prepare label positions for donuts
+    if (labelposition > 0) {
+      df3$radius <- r2
+      if (explodeDonut) {
+        df3$radius[df3$focus != 0] <- df3$radius[df3$focus != 0] + df3$focus[df3$focus != 0]
+      }
+      df3$segx <- df3$radius * sin(df3$mid) + df3$x
+      df3$segy <- df3$radius * cos(df3$mid) + df3$y
+      df3$segxend <- (df3$radius + 0.05) * sin(df3$mid) + df3$x
+      df3$segyend <- (df3$radius + 0.05) * cos(df3$mid) + df3$y
+      if (labelposition == 2) {
+        df3$radius <- (r1 + r2)/2
+      }
+      df3$labelx <- (df3$radius) * sin(df3$mid) + df3$x
+      df3$labely <- (df3$radius) * cos(df3$mid) + df3$y
+    } else {
+      df3$radius <- (r1 + r2)/2
+      if (explodeDonut) {
+        df3$radius[df3$focus != 0] <- df3$radius[df3$focus != 0] + df3$focus[df3$focus != 0]
+      }
+      df3$labelx <- df3$radius * sin(df3$mid) + df3$x
+      df3$labely <- df3$radius * cos(df3$mid) + df3$y
+    }
+    df3$segx[df3$ratio1 == 0] <- 0
+    df3$segxend[df3$ratio1 == 0] <- 0
+    df3$segy[df3$ratio1 == 0] <- 0
+    df3$segyend[df3$ratio1 == 0] <- 0
+    if (labelposition == 0) {
+      df3$segx[df3$ratio1 < showRatioThreshold] <- 0
+      df3$segxend[df3$ratio1 < showRatioThreshold] <- 0
+      df3$segy[df3$ratio1 < showRatioThreshold] <- 0
+      df3$segyend[df3$ratio1 < showRatioThreshold] <- 0
+    }
+
+    ## Get colours for doughnut
+    subCol_no <- length(unique(df3[[donuts]]))
+    subColours <- getGradients(mainColours, subCol_no)
+    del <- which(df3$Freq == 0)
+    if (length(del) > 0) {
+      subColours <- subColours[-del]
+    }
+  }
+
+  # Prepare plot
+  p <- ggplot() + ggforce::theme_no_axes() + coord_fixed()
+  r3 <- ifelse(is.null(maxx), r2 + 0.3, maxx)
+
+  # Create pie plot
+  p1 <- p +
+    ggforce::geom_arc_bar(data = df,
+                          aes(x0 = x, y0 = y, r0 = r0, r = r1, start = start1,
+                              end = end1, fill = cluster),
+                          alpha = pieAlpha,
+                          color = color) +
+    theme(rect = element_rect(fill = "transparent",
+                                                linewidth = 0),
+                   panel.background = element_rect(fill = "transparent"),
+                   panel.border = element_rect(linewidth = 0),
+                   panel.grid.major = element_blank(),
+                   panel.grid.minor = element_blank()) +
+    scale_fill_manual(values = mainColours) +
+    xlim(r3 * c(-1, 1)) +
+    ylim(r3 * c(-1, 1)) +
+    guides(fill = FALSE)
+
+  # Add pie labels
+  if ((labelposition == 1) & (is.null(donuts))) {
+    p1 <- p1 +
+      geom_segment(data = df,
+                   aes(x = segx, y = segy, xend = segxend, yend = segyend)) +
+      geom_text(data = df,
+                aes(x = segxend, y = segyend, label = label,
+                    hjust = hjust, vjust = vjust),
+                size = pieLabelSize,
+                family = family)
+
+  } else if ((labelposition == 2) & (is.null(donuts))) {
+    p1 <- p1 +
+      geom_segment(data = df[df$ratio < labelpositionThreshold, ],
+                   aes(x = segx, y = segy, xend = segxend, yend = segyend)) +
+      geom_text(data = df[df$ratio < labelpositionThreshold, ],
+                aes(x = segxend, y = segyend, label = label,
+                    hjust = hjust, vjust = vjust),
+                size = pieLabelSize,
+                family = family) +
+      geom_text(data = df[df$ratio >= labelpositionThreshold, ],
+                aes(x = labelx, y = labely, label = label),
+                size = pieLabelSize,
+                family = family)
+
+  } else {
+    p1 <- p1 +
+      geom_text(data = df,
+                aes(x = labelx, y = labely, label = label),
+                size = pieLabelSize,
+                family = family)
+  }
+
+  # Add pie name
+  if (showPieName) {
+    p1 <- p1 +
+      annotate("text",
+               x = 0,
+               y = 0,
+               label = pies,
+               size = titlesize,
+               family = family)
+  }
+
+  # Adjust theme
+  p1 <- p1 + theme(text = element_text(family = family))
+
+  # Create donut plot
+  if (!is.null(donuts)) {
+    if (explodeDonut) {
+      p3 <- p +
+        ggforce::geom_arc_bar(data = df3,
+                              aes(x0 = x, y0 = y, r0 = r1, r = r2,
+                                  start = start1, end = end1,
+                                  fill = no, explode = focus),
+                              alpha = donutAlpha,
+                              color = color)
+
+    } else {
+      p3 <- p +
+        ggforce::geom_arc_bar(data = df3,
+                              aes(x0 = x, y0 = y, r0 = r1, r = r2,
+                                  start = start1, end = end1,
+                                  fill = no),
+                              alpha = donutAlpha,
+                              color = color)
+
+    }
+    p3 <- p3 +
+      theme(rect = element_rect(fill = "transparent", linewidth = 0),
+            panel.background = element_rect(fill = "transparent"),
+            panel.border = element_rect(linewidth = 0),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank()) +
+      scale_fill_manual(values = subColours) +
+      xlim(r3 * c(-1, 1)) +
+      ylim(r3 * c(-1, 1)) +
+      guides(fill = FALSE)
+
+    # Add donut labels
+    if (labelposition == 1) {
+      p3 <- p3 +
+        geom_segment(data = df3,
+                     aes(x = segx, y = segy, xend = segxend, yend = segyend)) +
+        geom_text(data = df3,
+                  aes(x = segxend, y = segyend, label = label,
+                      hjust = hjust, vjust = vjust),
+                  size = donutLabelSize,
+                  family = family)
+
+    } else if (labelposition == 0) {
+      p3 <- p3 +
+        geom_text(data = df3,
+                  aes(x = labelx, y = labely, label = label),
+                  size = donutLabelSize,
+                  family = family)
+
+    } else {
+      p3 <- p3 +
+        geom_segment(data = df3[df3$ratio1 < labelpositionThreshold, ],
+                     aes(x = segx, y = segy, xend = segxend, yend = segyend)) +
+        geom_text(data = df3[df3$ratio1 < labelpositionThreshold, ],
+                  aes(x = segxend, y = segyend, label = label,
+                      hjust = hjust, vjust = vjust),
+                  size = donutLabelSize,
+                  family = family) +
+        geom_text(data = df3[df3$ratio1 >= labelpositionThreshold, ],
+                  aes(x = labelx, y = labely, label = label),
+                  size = donutLabelSize,
+                  family = family)
+    }
+
+    # Add title or donut name
+    if (!is.null(title)) {
+      p3 <- p3 +
+        annotate("text",
+                 x = 0,
+                 y = r3,
+                 label = title,
+                 size = titlesize,
+                 family = family)
+
+    } else if (showDonutName) {
+      p3 <- p3 +
+        annotate("text",
+                 x = (-1) * r3,
+                 y = r3,
+                 label = donuts,
+                 hjust = 0,
+                 size = titlesize,
+                 family = family)
+    }
+
+    # Adjust theme
+    p3 <- p3 + theme(text = element_text(family = family))
+
+    # Combine plots
+    grid::grid.newpage()
+    print(p1, vp = grid::viewport(height = 1, width = 1))
+    print(p3, vp = grid::viewport(height = 1, width = 1))
+  } else {
+    p1
+  }
+}
+
 
 
 #' Plot Heatmap for Fuzzy Geographically Weighted Clustering (FGWC)
@@ -1056,4 +1532,93 @@ plotFGWC_subHeatmap <- function(heatmap,
     tibble::rownames_to_column(var = "Barcode")
 
   return(subclusts)
+}
+
+
+#' Internal: Extract and Process Mapping Value
+#'
+#' This function extracts the value associated with a specified variable name
+#' from a mapping and performs various string processing operations on the
+#' extracted value.
+#'
+#' @param mapping A named list or vector representing the mapping.
+#' @param varname The name or index of the variable to extract from the
+#'                mapping.
+#'
+#' @return The processed value associated with the specified variable name. If
+#' the processed value contains comma-separated elements, it is returned as a
+#' vector of strings. Otherwise, it is returned as a single string.
+#'
+#' @details
+#' The function performs the following steps:
+#' 1. Extracts the value associated with the specified variable name from the
+#' mapping.
+#' 2. If the version of the 'ggplot2' package is greater than "2.2.1", it
+#'    removes all occurrences of the tilde character (~) from the extracted
+#'    value.
+#' 3. Removes all occurrences of "c(", ")", and white space characters from the
+#'    extracted value using a regular expression.
+#' 4. If the processed value contains a comma, it splits the value into a
+#'    vector of strings using the comma as the separator.
+#' 5. Returns the processed value.
+#'
+#' @importFrom utils packageVersion
+#'
+#' @rdname dot-int_getMapping
+#'
+.int_getMapping <- function(mapping, varname) {
+  result <- mapping[varname]
+  if (packageVersion("ggplot2") > "2.2.1") {
+    result <- gsub("~", "", result, fixed = TRUE)
+  }
+  result <- gsub("c\\(|\\)|\\s", "", result, perl = TRUE)
+  if (grepl(",", result, fixed = TRUE)) {
+    result <- strsplit(result, ",", fixed = TRUE)[[1]]
+  }
+  result
+}
+
+
+#' Internal: Check the validity of mapping inputs for pie and donut plots
+#'
+#' This function checks if the provided mapping inputs for the pie and donut
+#' plots are valid. It ensures that the mapping names are among the allowed
+#' options, which are 'annotation', 'cluster', and 'factors'.
+#'
+#' @param mapping A ggplot2 `aes` function output containing the mapping
+#' information for the pie and donut plots. The names should be 'pie' and
+#' 'donut', and the values should be the column names from the colData.
+#'
+#' @return If the mappings are valid, the function returns `NULL` invisibly.
+#' If the mappings are invalid, the function throws an error with a
+#' descriptive message.
+#'
+#' @keywords internal
+#'
+#' @rdname dot-int_checkMappings
+#' @author Eleftherios (Lefteris) Zormpas
+.int_checkMappings <- function(mapping) {
+  ## Extract mapping names
+  pies <- .int_getMapping(mapping, "pie")
+  donuts <- .int_getMapping(mapping, "donut")
+
+  ## Define the allowed mappings
+  allowed_mappings <- c("annotation", "cluster", "factors")
+
+  ## Check if pie mappings are valid
+  if (!(pies %in% allowed_mappings)) {
+    stop("Currently, only 'annotation', 'cluster', and 'factors' are ",
+         "available for 'pie' mappings. If there is a need for other columns ",
+         "from the colData, please file a GitHub issue.")
+  }
+
+  ## Check if donut mappings are valid
+  if (!(donuts %in% allowed_mappings)) {
+    stop("Currently, only 'annotation', 'cluster', and 'factors' are ",
+         "available for 'pie' mappings. If there is a need for other columns ",
+         "from the colData, please file a GitHub issue.")
+  }
+
+  ## If no errors, the mappings are valid
+  invisible(NULL)
 }

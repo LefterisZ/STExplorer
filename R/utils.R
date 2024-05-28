@@ -241,6 +241,38 @@ outlierCutoff <- function(dt, coef = 1.5) {
 }
 
 
+#' Generate a Gradient of Colours
+#'
+#' This function creates a gradient of colours from a given vector of colours to white,
+#' with a specified number of steps.
+#'
+#' @param colours A character vector representing the colours to use for the gradient.
+#' @param steps An integer specifying the number of steps in the gradient.
+#'
+#' @return A list of vectors, each containing the colour values representing the gradient for a single input colour.
+#'
+#' @rdname getGradients
+#'
+#' @examples
+#' getGradients(c("red", "green", "blue"), steps = 3)
+#' getGradients(c("orange", "purple"), steps = 5)
+#'
+#' @export
+getGradients <- function(colours, steps) {
+  # Validate input parameters
+  if (!is.character(colours)) {
+    stop("Colours must be a character vector")
+  }
+  if (!is.numeric(steps) || steps <= 0) {
+    stop("Steps must be a positive integer")
+  }
+
+  # Create a gradient for each input colour
+  gradients <- lapply(colours, .int_getGradient, steps = steps)
+  return(unlist(gradients))
+}
+
+
 # ---------------------------------------------------------------------------- #
 #  ########## INTERNAL FUNCTIONS ASSOCIATED WITH DISTANCE MATRIX ############
 # ---------------------------------------------------------------------------- #
@@ -325,3 +357,38 @@ outlierCutoff <- function(dt, coef = 1.5) {
 }
 
 
+
+#' Internal: Generate a Gradient of Colours for a Single Colour
+#'
+#' This function creates a gradient of colours from a single colour to white,
+#' with a specified number of steps.
+#'
+#' @param colour A character string representing the colour to use for the gradient.
+#' @param steps An integer specifying the number of steps in the gradient.
+#'
+#' @return A vector of colour values representing the gradient.
+#'
+#' @importFrom grDevices col2rgb rgb
+#'
+#' @rdname dot-int_getGradient
+#'
+#' @keywords internal
+#'
+.int_getGradient <- function(colour, steps) {
+  # Convert colour to RGB values
+  color_rgb <- grDevices::col2rgb(colour)
+
+  # Calculate gradient steps
+  steps2 <- steps + 2
+  gradient_steps <- lapply(seq(0, 1, length.out = steps2), function(step) {
+    grDevices::rgb(
+      red = color_rgb[1] * step + 255 * (1 - step),
+      green = color_rgb[2] * step + 255 * (1 - step),
+      blue = color_rgb[3] * step + 255 * (1 - step),
+      maxColorValue = 255
+    )
+  })
+
+  # Return the gradient steps, excluding the first and last
+  return(unlist(gradient_steps)[2:(steps + 1)])
+}
