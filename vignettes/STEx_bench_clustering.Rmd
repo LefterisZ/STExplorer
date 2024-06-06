@@ -465,7 +465,7 @@ foreach(ncomp = 1:length(sfe_nmf_seuIn)) %dopar% {
                     data = sfe_nmf, 
                     dMetric = "euclidean", 
                     algorithm = "classic", 
-                    fgwc_param = fgwc_param)
+                    parameters = fgwc_param)
     # plot single
     plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "V1_2") + 
       theme(legend.position = "none") + 
@@ -1285,7 +1285,7 @@ for (sID in sIDs) {
                       data = data_to_cluster, 
                       dMetric = "euclidean", 
                       algorithm = "classic", 
-                      fgwc_param = fgwc_param)
+                      parameters = fgwc_param)
       # plot single
       STExplorer::plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = sID) + 
         theme(legend.position = "none") + 
@@ -1335,7 +1335,7 @@ fgwc <- fgwcSTE(sfe,
                 data = sfe_logcnt_pca$x, 
                 dMetric = "euclidean", 
                 algorithm = "classic", 
-                fgwc_param = fgwc_param)
+                parameters = fgwc_param)
 
 p1 <- plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = sID)
 

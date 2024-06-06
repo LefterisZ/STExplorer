@@ -39,23 +39,30 @@
 #'
 #' @export
 addDistMat <- function(msfe, p, sample_id = TRUE, ...) {
-  ## check arguments
-  # stopifnot(is(msfe, "SpatialFeatureExperiment"))
-
-  ## Select samples
-  ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
-
-  ## Generate the graphs
-  msfe_int <- lapply(msfe@sfe_data[ids], .int_addDistMat, p = p, ...)
-
-  ## If specific samples where modified replace in the metaSFE list
-  if (is.character(sample_id)) {
-    msfe@sfe_data[names(msfe_int)] <- msfe_int
-  } else {
-    msfe@sfe_data <- msfe_int
+  ## Check sfe or msfe
+  if (is(msfe, "SpatialFeatureExperiment")) {
+    sfe <- TRUE
+  } else if (is(msfe, "MetaSpatialFeatureExperiment")) {
+    sfe <- FALSE
   }
 
-  return(msfe)
+  if (sfe) {
+    sfe <- .int_addDistMat(sfe = msfe, p = p, ...)
+    return(sfe)
+
+  } else {
+    ## Select samples
+    ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
+    ## Generate the distance matrices
+    msfe_int <- lapply(msfe@sfe_data[ids], .int_addDistMat, p = p, ...)
+    ## If specific samples where modified replace in the metaSFE list
+    if (is.character(sample_id)) {
+      msfe@sfe_data[names(msfe_int)] <- msfe_int
+    } else {
+      msfe@sfe_data <- msfe_int
+    }
+    return(msfe)
+  }
 }
 
 #' Get Distance Matrix
@@ -96,7 +103,7 @@ getDistMat <- function(msfe, dMetric, sample_id = TRUE) {
 
   if (sfe) {
     dMat_int <- .int_getDistMat(msfe, dMetric = dMetric)
-  } else if (!sfe) {
+  } else {
     ## Select samples
     ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
     dMat_int <- lapply(msfe@sfe_data[ids], .int_getDistMat, dMetric = dMetric)
@@ -307,10 +314,11 @@ getGradients <- function(colours, steps) {
 #' @importFrom GWmodel gw.dist
 #'
 .int_addDistMat <- function(sfe, p, ...) {
+  ## Generate distance matrix
   dMat <- gw.dist(spatialCoords(sfe), p = p, ...)
   dimnames(dMat) <- list(NULL, colData(sfe)$Barcode)
 
-  # Determine the name of the distance metric
+  ## Determine the name of the distance metric
   if (p == 2) {
     dMetric <- "euclidean"
   } else if (p == 1) {
@@ -319,7 +327,7 @@ getGradients <- function(colours, steps) {
     dMetric <- paste0("minkowski_", p)
   }
 
-  # Store the distance matrix in the metadata of the SFE object
+  ## Store the distance matrix in the metadata of the SFE object
   sfe@metadata$dMat[[dMetric]] <- dMat
 
   return(sfe)
@@ -351,6 +359,10 @@ getGradients <- function(colours, steps) {
 #' @rdname dot-int_getDistMat
 #'
 .int_getDistMat <- function(sfe, dMetric) {
+  if (is.null(dMetric)) {
+    dMetric <- names(sfe@metadata$dMat)[1]
+  }
+
   dMat <- sfe@metadata$dMat[[dMetric]]
 
   return(dMat)

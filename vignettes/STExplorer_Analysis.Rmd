@@ -31,7 +31,7 @@ knitr::opts_chunk$set(
 
 Welcome to the vignette of STExplorer. STExplorer is a package the performs geographically inspired analysis of spatial transcriptomics data.
 
-## Install package
+## Install/Load package
 
 ```{r }
 ## To install the stable version of the package from Bioconductor run the below:
@@ -770,12 +770,20 @@ much additive importance space should have. You can increase this number and mos
 
 ### Reduce dimensions using NMF
 
-> **NOTE:** the number of factors that we get back is left to the default of 2. We suggest that you should play with this number and find the best option for your data. Use the `ncomponents` argument. 
+> **NOTE:** the number of factors that we get back is left to the default of 2. We suggest that you use the `fgwc_nmfFactorNumber` function first to identify the optimum number of factors for your dataset.
+
+> **NOTE:** `fgwc_nmfFactorNumber` is calculating the reconstruction errors for a given number of factors `k`using the input matrix and a randomized version, and identifies the optimal number of factors based on the difference in error reduction. The point where the difference minimises is taken as the optimum.
 
 ```{r fgwc_nmf}
+best_k_nmf <- fgwc_nmfFactorNumber(sfe, 
+                          sample_id = "JBO022", 
+                          top_hvgs = top_hvgs[["JBO022"]],
+                          loss = "mse")
+
 sfe_nmf <- fgwc_nmf(sfe, 
                     sample_id = "JBO022", 
-                    top_hvgs = top_hvgs[["JBO022"]])
+                    top_hvgs = top_hvgs[["JBO022"]],
+                    ncomponents = best_k_nmf$k)
 
 ```
 
@@ -787,6 +795,23 @@ fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
 ```
 
 ### Run FGWC
+Before running FGWC it is advisable to identify the best k for the number of clusters. To do so, you can use the `fgwc_findOptimumK` function. The function uses one of many different index statistics that are calculated by the `fgwcSTE` function and allows to use any of the elbow method, the biggest angle method or your intuition by looking at the index plot to identify the most suitable number of clusters for your data.
+
+> **NOTE:** the function input should be exactly the same as the input you will use to run FGWC in the next step.
+
+```{r fgwc_bestK}
+k <- fgwc_findOptimumK(fgwc_in = sfe_nmf,
+                       k_range = 2:10,
+                       index_type = "FPC",
+                       elbow_method = "knee",
+                       m_sfe = sfe,
+                       algorithm = "classic",
+                       parameters = fgwc_param)
+
+## update the parameters input
+fgwc_param <- fgwc_params(algorithm = "classic", ncluster = k)
+```
+
 
 ```{r fgwc}
 fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", parameters = fgwc_param)
@@ -815,13 +840,17 @@ plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
+We can also plot membership percentages from FGWC per annotation or winning cluster. This can be helpful to identify if any annotation group is connected more closely to a specific FGWC cluster.
 ```{r fgwc_plot-multi-violin}
 plotFGWC_multiViolin(fgwc = fgwc)
 
 ```
 
+A similar goal can be achieved by looking at this pie-doughnut chart too.
 ```{r fgwc_plot-doughnut}
-
+plotFGWC_pie(fgwc = fgwc,
+             m_sfe = sfe,
+             mapping = aes(pie = cluster, donut = annotation))
 
 ```
 
@@ -832,6 +861,11 @@ knitr::include_graphics("./images/ecotones.png")
 ```
 
 In the multiple membership plot earlier we can see an example of ecotones. Clusters 3 and 5 present the ecotone as a blurred gradient of intermediate percentages between the two clusters. The ecotone though is not always the same size. For example, in clusters like cluster 4, the ecotone is much thinner.
+
+**Extract valuable information from the NMF metagene signatures and connect them to specific clusters/geography**
+
+
+
 
 ### Plot a heatmap of established biomarkers
 

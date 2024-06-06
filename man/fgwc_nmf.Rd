@@ -9,7 +9,7 @@ fgwc_nmf(
   sample_id,
   assay = "logcounts",
   top_hvgs,
-  ncomponents = 2,
+  ncomponents,
   ntop = 600,
   subset_row = NULL,
   scale = FALSE,
@@ -64,7 +64,8 @@ nmf_result <- fgwc_nmf(m_sfe = sfe, sample_id = "ID1", top_hvgs = top_genes)
 
 Other clustering functions: 
 \code{\link{fgwc_nmfFactorNumber}()},
-\code{\link{fgwc_params}()}
+\code{\link{fgwc_params}()},
+\code{\link{plotFGWC_factorSelection}()}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

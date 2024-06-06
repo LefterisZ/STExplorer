@@ -128,7 +128,8 @@ params <- fgwc_params(algorithm = "classic", ncluster = 3, kind = "u", m = 2)
 
 Other clustering functions: 
 \code{\link{fgwc_nmf}()},
-\code{\link{fgwc_nmfFactorNumber}()}
+\code{\link{fgwc_nmfFactorNumber}()},
+\code{\link{plotFGWC_factorSelection}()}
 }
 \author{
 Eleftherios (Lefteris) Zormpas

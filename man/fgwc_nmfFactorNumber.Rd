@@ -2,24 +2,89 @@
 % Please edit documentation in R/fgwc_STE.R
 \name{fgwc_nmfFactorNumber}
 \alias{fgwc_nmfFactorNumber}
-\title{Identify the optimal number of factors}
+\title{Identify the optimal number of NMF factors}
 \usage{
-fgwc_nmfFactorNumber()
+fgwc_nmfFactorNumber(
+  m_sfe,
+  sample_id = NULL,
+  assay = "logcounts",
+  top_hvgs,
+  k_range = seq(2, 10, 1),
+  n_cores = 1,
+  do_plot = TRUE,
+  seed = 1,
+  loss = c("mse", "mkl"),
+  max.iter = 250
+)
 }
 \arguments{
-\item{name}{description}
+\item{m_sfe}{The \code{SpatialFeatureExperiment} or
+\code{MetaSpatialFeatureExperiment} object containing spatial expression
+data.}
+
+\item{sample_id}{The sample ID or index for which to perform clustering. If
+\code{NULL}, all samples are used.}
+
+\item{assay}{The name of the assay in \code{m_sfe} to use for clustering
+(default is "logcounts").}
+
+\item{top_hvgs}{A character vector of gene names representing the top highly
+variable genes. The gene names are expected to be ENSGene IDs.}
+
+\item{k_range}{A numeric vector specifying the range of factor numbers to
+evaluate (default is \code{seq(2, 12, 2)}).}
+
+\item{n_cores}{An integer indicating the number of cores to use for parallel
+processing (default is 1).}
+
+\item{do_plot}{Logical, indicating whether to plot the reconstruction error
+results (default is \code{TRUE}).}
+
+\item{seed}{An integer specifying the random seed for reproducibility
+(default is 1).}
+
+\item{loss}{Character, either \code{"mse"} (mean squared error) or
+\code{"mkl"} (mean Kullback-Leibler divergence) (default is \code{"mse"}).}
+
+\item{max.iter}{An integer specifying the maximum number of iterations for
+NMF (default is 250).}
 }
 \value{
 An integer. The number of optimal factors.
 }
 \description{
-This function uses different statistical methods to select the optimal
-number of factors for a given dataset.
+This function determines the optimal number of factors for Non-negative
+Matrix Factorization (NMF) by evaluating the reconstruction error of the
+input matrix \code{A} and a randomized version of \code{A}. The evaluation is done
+using either Mean Squared Error (MSE) or Mean Kullback-Leibler (MKL)
+divergence.
+}
+\details{
+This function is based on Frigyesi et al, 2008.
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2623306/ and on the \code{swne}
+package by Yan Wu https://doi.org/10.1016/j.cels.2018.10.015
+(https://github.com/yanwu2014/swne/).
+This function evaluates the reconstruction error for a specified range of
+factors (\code{k_range}) to determine the optimal number of factors for NMF.
+It compares the reconstruction error of the input matrix and a randomized
+version to identify the optimal cut-off.
+}
+\examples{
+\dontrun{
+# Assuming `sfe` is your SpatialFeatureExperiment object
+optimal_factors <- fgwc_nmfFactorNumber(m_sfe = sfe,
+                                        sample_id = "ID1",
+                                        top_hvgs = top_genes)
+}
+
 }
 \seealso{
+\code{\link[scater]{calculateNMF}} for additional details on NMF clustering.
+
 Other clustering functions: 
 \code{\link{fgwc_nmf}()},
-\code{\link{fgwc_params}()}
+\code{\link{fgwc_params}()},
+\code{\link{plotFGWC_factorSelection}()}
 }
 \author{
 Eleftherios (Lefteris) Zormpas
