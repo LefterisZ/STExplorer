@@ -1027,12 +1027,12 @@ filename <- paste0("./data/graphics_out/benchmarking/dimReduction/nmf_",
                    "Fact", ncomp, 
                    "_scaled", scale,
                    "_geneLoading.png")
-heatmap <- pheatmap(sfe_nmf_basis,
+heatmap <- pheatmap(sfe_nmf_stexIn_basis$V1_2$nComp_5,
                     scale = "row",
                     cluster_rows = TRUE,
                     cluster_cols = TRUE,
                     fontsize_row = 3,
-                    filename = ,
+                    # filename = filename,
                     width = 546,
                     height = 851)
 

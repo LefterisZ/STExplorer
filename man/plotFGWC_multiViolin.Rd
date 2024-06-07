@@ -2,20 +2,12 @@
 % Please edit documentation in R/fgwc_plot.R
 \name{plotFGWC_multiViolin}
 \alias{plotFGWC_multiViolin}
-\alias{plotFGWC_multi}
 \title{Plot Membership percentages from FGWC per annotation or winning cluster}
 \usage{
 plotFGWC_multiViolin(fgwc)
 }
 \arguments{
 \item{fgwc}{The result of FGWC clustering.}
-
-\item{m_sfe}{The spatial feature experiment (SFE) or metaSFE object.}
-
-\item{sample_id}{The sample ID.}
-
-\item{palette}{The color palette for the cluster memberships.
-Default is "YlGnBu".}
 }
 \value{
 A ggplot object.
@@ -26,23 +18,15 @@ This function plots the results of Fuzzy Geographically Weighted Clustering
 cluster in each location as violin plots.
 }
 \details{
-The function produces a panel of maps. One map per cluster. The colours in
-all maps are scaled to be the same. Meaning that the colour for 50\% in map 1
-is going to be the same with colour for 50\% in map 3.
-}
-\examples{
-\dontrun{
-# Example usage:
-plotFGWC_multi(fgwc_result, m_sfe, sample_id)
-}
-
+The function produces a set of violin plots. One set per annotation or
+winning cluster
 }
 \seealso{
 \code{\link{fgwc_nmf}}, \code{\link{plotFGWC_single}},
 \code{\link{plotFGWC_heatmap}}
 
 Other plotting functions: 
-\code{\link{plotFGWC_heatmap}()},
+\code{\link{plotFGWC_markersHeatmap}()},
 \code{\link{plotFGWC_multiMap}()},
 \code{\link{plotFGWC_nmfFactorsMap}()},
 \code{\link{plotFGWC_singleMap}()}

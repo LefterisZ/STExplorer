@@ -765,8 +765,7 @@ c(vi.dist = 'uniform',  npar = 10, par.no = 2, par.dist = 'euclidean', par.order
 
 If you do not define a certain parameter, the parameter will be set to its default value (the values above).
 
->**NOTE:** an important note here is the parameter `a`. If you look at the documentation for fgwcuv (`?fgwcuv`) you will see that `a` sets the spatial magnitude of distance. Default is 1. This number is used as an exponential in the internal calculations. Essentially, tells FGWC how
-much additive importance space should have. You can increase this number and most likely you will observe more refined clusters coming out of FGWC.
+> **NOTE:** an important note here is the parameter `a`. If you look at the documentation for fgwcuv (`?fgwcuv`) you will see that `a` sets the spatial magnitude of distance. Default is 1. This number is used as an exponential in the internal calculations. Essentially, tells FGWC how much additive importance space should have. You can increase this number and most likely you will observe more refined clusters coming out of FGWC.
 
 ### Reduce dimensions using NMF
 
@@ -788,13 +787,16 @@ sfe_nmf <- fgwc_nmf(sfe,
 ```
 
 ### Select FGWC parameters
+
 The `fgwc_params` function is used to create a list of arguments required for any type of algorithm. At the moment, STExplorer supports only the classic and the Artificial Bee Colony (ABC) algorithms. For the default parameters of either the classic algorithm or the ABC optimisation algorithm use the `?fgwc_params`.
+
 ```{r fgwc_params}
 fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
 
 ```
 
 ### Run FGWC
+
 Before running FGWC it is advisable to identify the best k for the number of clusters. To do so, you can use the `fgwc_findOptimumK` function. The function uses one of many different index statistics that are calculated by the `fgwcSTE` function and allows to use any of the elbow method, the biggest angle method or your intuition by looking at the index plot to identify the most suitable number of clusters for your data.
 
 > **NOTE:** the function input should be exactly the same as the input you will use to run FGWC in the next step.
@@ -812,7 +814,6 @@ k <- fgwc_findOptimumK(fgwc_in = sfe_nmf,
 fgwc_param <- fgwc_params(algorithm = "classic", ncluster = k)
 ```
 
-
 ```{r fgwc}
 fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", parameters = fgwc_param)
 
@@ -821,7 +822,7 @@ fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm 
 ### Plot the highest membership clusters
 
 ```{r fgwc_plot-single}
-plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+plotFGWC_singleMap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
@@ -836,23 +837,32 @@ knitr::include_graphics("./images/tissue_annotation_gtruth.png")
 Nevertheless, this is not an accurate depiction of the clustering results. A more accurate representation is the one shown below. There, we show maps of percentages from all clusters side-by-side, and we can investigate the ecotones that might exist between clusters.
 
 ```{r fgwc_plot-multi}
-plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+plotFGWC_multiMap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
 We can also plot membership percentages from FGWC per annotation or winning cluster. This can be helpful to identify if any annotation group is connected more closely to a specific FGWC cluster.
+
 ```{r fgwc_plot-multi-violin}
 plotFGWC_multiViolin(fgwc = fgwc)
 
 ```
 
 A similar goal can be achieved by looking at this pie-doughnut chart too.
+
 ```{r fgwc_plot-doughnut}
+## Matching FGWC clusters and annotation of locations
 plotFGWC_pie(fgwc = fgwc,
              m_sfe = sfe,
              mapping = aes(pie = cluster, donut = annotation))
 
+## Matching FGWC clusters and NMF factors
+plotFGWC_pie(fgwc = fgwc,
+             m_sfe = sfe,
+             mapping = aes(pie = cluster, donut = factors))
 ```
+
+> **NOTE:** When plotting the cluster-factors pair, the factor selected for each location is the factor with the highest score in this location according to NMF output.
 
 **What is an ecotone?** - An ecotone in geographical sciences is a blurred gradient between a forest area and a grassland. Most of the times, a forest area doesn't stop abruptly to become a grassland but slowly the forest is thinning out to give its place to the grassland. The same idea can be found in spatial transcriptomics too. There might be genes or cells that their expression or presence in space does not form coherent areas but blends with the surrounding areas in a smooth-like transition from one gene expression to the other or from one cell type to the other. Additionally, the fact that the spatial transcriptomics platforms are yet not in single cell level, means that we have an artificial introduction of ecotones. One example is the 10X Genomics Visium platform where each spot can include 2-10+ cells depending on tissue density. This means that a spot can overlap different tissue zones leading to an abnormal clustering if we don't consider ecotones.
 
@@ -862,10 +872,27 @@ knitr::include_graphics("./images/ecotones.png")
 
 In the multiple membership plot earlier we can see an example of ecotones. Clusters 3 and 5 present the ecotone as a blurred gradient of intermediate percentages between the two clusters. The ecotone though is not always the same size. For example, in clusters like cluster 4, the ecotone is much thinner.
 
+### Examine NMF metagene signatures and their connection to FGWC clusters
+
 **Extract valuable information from the NMF metagene signatures and connect them to specific clusters/geography**
 
+Firstly we can plot a map of the NMF factor scores for each location.
 
+```{r fgwc_nmf01}
+plotFGWC_nmfFactorsMap(nmf = sfe_nmf,
+                       m_sfe = sfe)
 
+```
+
+These maps allow us to see which NMF factors are "prevailing" in each location. This is an indicator that certain metagene signatures identified by NMF (or else known as NMF factors) are related to specific areas of the map and possibly to specific FGWC clusters.
+
+A similar way to showcase this, is by plotting a heatmap alongside spot annotations and/or FGWC clusters.
+
+```{r fgwc_nmf02}
+plotFGWC_nmfFactorsHeatmap(fgwc = fgwc,
+                           loc_annot = "both")
+
+```
 
 ### Plot a heatmap of established biomarkers
 
@@ -1262,132 +1289,6 @@ plotGWPCA_FuncCLust(gsea_map, count = 5, legend = "right", legend.title = "Pathw
 
 In our example above, we used the Canonical Pathways (CP) module from the MSigDB to run GSEA in each location. After filtering the results per location to remove low-quality results, we selected the most enriched CP to label each location and perform the clustering. However, GSEA provides more information that accompanies each enriched term which assists us in making more informative decisions and increases the depth of our understanding of the result. For this reason, we also plot maps that show normalised enrichment scores, the adjusted p-values, the rank of the gene list, the gene set size, and the number of genes from the ranked list present in each canonical pathway. In the analysis workflow we repeat the functional clustering with a series of gene sets depending on the tissue studied and the biological questions present. Here we give two examples of additional functional clustering using the Hallmark Gene Sets and Liver Cell-type Signatures from the MSigDB.
 
-
-
-## Geographically Weighted Regression
-
-> This chapter is based on material from this source: <https://bookdown.org/lexcomber/GEOG5917/modelling-with-regression-and-gwr.html>. Many thanks to Professor of Geography Lex Comber for letting us use it.
-
-Regression of some kind underpins many statistical models. However often they make one massive assumption: that the relationships between the xk’s and y are the same everywhere. Regression models (and most other models) are aspatial and because they consider all of the data in the study area in one universal model, they are referred to as Global models. For example, in the models seen in this session so far the assumption is that the contributions made by the different variables in predicting the target variable are the same across the study area. In reality this assumption of spatial invariance is violated in many instances when geographic phenomena are considered.
-
-For these reasons, as geographers of the cell micro-cosmos….
-
--   We do not expect things to be the **same** everywhere
--   We expect to find **clusters**, **hotspots** etc
--   We are interested in **how** and **where** processes, **relationships, and other phenomena** vary spatially\*\*
-
-In statistical terminology… We are interested in **spatial non-stationarity** in relationships and process **spatial heterogeneity**.
-
-What this means is that instead of just one general relationship for, for example, the association between changes in GeneA and GeneB in global model, we might expect that relationship (as described in the coefficient estimate for βk) to be different in different places. This is a core concept for geographical data analysis.
-
-This idea informs the technique known as Geographically Weighted Regression or GWR [@Brunsdon1996Oct]. If the relationships between the $x_{k}$’s and $y$ vary spatially, one might at least expect that the relationship between nearby sets of observations should be consistent.
-
-Recall that the equation for an Ordinary Least Squares (OLS) regression is: $$y_i = \beta_{0} + \sum_{m}^{k=1}\beta_{k}x_{ik} + \epsilon_i$$
-
-Suppose we assign a value of each regression coefficient to a location $(u,v)$ in space (e.g. $u$ is $x$ and $v$ is $y$ in cartesian space), so that we denote it $β_{k}(u,v)$. Thus we could estimate each $β_{k}(u,v)$ by calibrating a weighted regression model where $w_{i}$ was 1 if an observation was within some radius $h$ of $(u,v)$ and 0 otherwise.
-
-In this way, an entire surface of coefficients could be estimated. It may be imagined as being generated by a moving circular window, scanning across a map of the locations of the observations. However, 0/1 weighting is quite crude, and one might expect data from the periphery of the circular window to have less spatial influence than data near the middle.
-
-This is a *Geographically weighted* regression that examines how that relationships between $y$ and $x$ **vary spatially**: $$y = \beta_{0_(u_i, v_i)} + \sum_{m}^{k=1}\beta_{k}x_{ik_{(u_i, v_i)}} + \epsilon_{(u_i, v_i)}$$
-
-Thus, critical to the operation of GW models is a moving window or **kernel**, that downweights peripheral observations. The kernel moves through the study area and at each location computes a local model. It uses data under the kernel to construct a (local) model at that location with data points further away from the kernel centre weighted to that they contribute less to the solution. Hence the weighted element in the GW framework. Thus, the kernel defines the data and weights that are used to calibrate the model at each location. The weight, $w_{i}$, associated with each location $(u_{i},v_{i})$ is a decreasing function of $d_{i}$, the distance from the centre of the kernel to $(u_{i},v_{i})$:
-
-A typical kernel function for example is the bisquare kernel. For a given size or **bandwidth** $h$, this is defined by
-
-$$f(d) = \left\{ \begin{array}{cl}\left(1 - \left( \frac{d}{h} \right)^2 \right)^2 & \mbox{ if $d < h$}; \\ & \\ 0 & \mbox{ otherwise.} \end{array} \right.$$
-
-Here $h$ may be defined as a fixed value, or in an adaptive way. Gollini et al. [@Gollini2015Feb] provide a description of common kernels shape used in GW models. Generally larger values of $h$ result in a greater degree of spatial smoothing - having a larger window around $u$ in which cross tabulations have non-zero weighting. As $h→∞$ the coefficients converge to the global OLS model.
-
-### GWR
-
-Here we will essentially use a wrapper of the GWR functionalities from the `GWmodel` package to undertake a GWR of the liver data, replicating the OLS model, but this time allowing the coefficient estimates to vary over space.
-
-There are 2 basic steps to any GW approach:
-
-1.  Determine the optimal kernel bandwidth $h$ (i.e. how many data points - or which size window - to include in each local model). Here an AIC approach is used.
-2.  Fit the GWR model.
-
-> **NOTE:** The two genes selected below are merely used to illustrate how you can use run GWR.
-
-#### Set up the formula
-
-Here we will set up our formula. The formula includes the variables that we will be using for the regression.
-
-The formula is divided in two parts by the `~`. On the left-hand side we place the dependent (or response) variables and on the right-hand side we place the independent (or the predictor) variables.
-
-Let's assume a formula of type `geneA~geneB`. The dependent variable (geneA) is the one being predicted or explained by the independent variable (geneB). It represents the outcome or response variable that is influenced by changes in the independent variable. Conversely, the independent variable (geneB) is the predictor or explanatory variable, representing the factor that is manipulated or controlled in the analysis and is hypothesised to have an effect on the dependent variable (geneA).
-
-```{r gwr_form}
-## Build formula
-formula <- "ENSG00000091513~ENSG00000197971"
-
-## Alternative example:
-# formula <- "ENSG00000170476~ENSG00000111796+ENSG00000198851"
-
-```
-
-#### Select bandwidth
-
-The kernel size, also known as the bandwidth, holds significant importance as it determines the number of data points included in each local model. However, finding the optimal bandwidth involves evaluating different potential bandwidths and applying a measure of model fit. In the context of GWR in geography, two options are commonly used for this purpose which we also transferred to biology:
-
-1.  Leave-One-Out Cross Validation (CV): This method systematically removes each observation one at a time for a potential bandwidth, assessing how well the local model with that bandwidth predicts the value of each removed data point.
-2.  Akaike’s Information Criterion (AIC or corrected AIC, AICc): This criterion measures model parsimony, which balances model accuracy with complexity. A parsimonious model is one that offers explanatory power while being as simple as possible.
-
-When determining the optimal GWR bandwidth, AIC is preferred over CV because it considers model parsimony, helping to avoid overfitting GWR models. Consequently, bandwidths determined using AIC tend to be larger than those obtained using CV.
-
-> **NOTE:** to remember the different kernel types please refer to [Figure 1](#figure1) and [Figure 2](#figure2)
-
-```{r gwr_bw}
-## Find Bandwidth
-bw <- gwr_bwSTE(gwr_method = "basic",
-                formula = formula,
-                m_sfe = msfe,
-                sample_id = "JBO022",
-                kernel = "bisquare",
-                approach = "AIC")
-
-```
-
-#### Run GWR
-Make sure you provide `gwrSTE` with the same `gwr_method` and `kernel` from above.
-
-```{r gwr}
-## Run GWR
-gwr <- gwrSTE(gwr_method = "basic",
-              formula = formula,
-              m_sfe = msfe,
-              sample_id = "JBO022",
-              bw = bw,
-              kernel = "bisquare")
-
-```
-
-
-#### Print Summary stats
-```{r gwr_stats}
-gwr_stats(gwr)
-
-```
-
-#### Plot
-```{r gwr_plot1}
-
-
-```
-
-#### Plot
-```{r gwr_plot2}
-
-
-```
-
-#### Plot
-```{r gwr_plot3}
-
-
-```
-
-
 ## Spatial Autocorrelation
 
 When we are performing spatial analysis in research, we're looking to achieve one (or more) of mainly three things:
@@ -1703,6 +1604,119 @@ While Getis & Ord's *G* statistic is valuable for detecting clustering of simila
 #### Considerations for interpretation
 
 To interpret Getis & Ord's *G* results (similar to all previous SA statistics), firstly, we need to understand the biological context and underlying spatial processes. This is crucial for interpreting the detected clustering patterns. We should also consider the biological mechanisms driving the observed spatial relationships and how they relate to gene expression patterns. Furthermore, exploring sensitivity analyses by varying the neighbourhood size or spatial scale can help assess the robustness of results and identify optimal parameters for analysis (this is also useful for the other two SA statistics as well). Integrating Getis & Ord's *G* results with other spatial analyses, such as Moran's *I* or Geary's *C*, can provide a more comprehensive understanding of spatial patterns and their biological significance. Finally, visualising Getis & Ord's *G* results alongside spatial gene expression data using techniques like spatial heatmaps or spatially explicit plots can aid in interpreting clustering patterns and identifying biologically relevant spatial features.
+
+## Geographically Weighted Regression
+
+> This chapter is based on material from this source: <https://bookdown.org/lexcomber/GEOG5917/modelling-with-regression-and-gwr.html>. Many thanks to Professor of Geography Lex Comber for letting us use it.
+
+Regression of some kind underpins many statistical models. However often they make one massive assumption: that the relationships between the xk’s and y are the same everywhere. Regression models (and most other models) are aspatial and because they consider all of the data in the study area in one universal model, they are referred to as Global models. For example, in the models seen in this session so far the assumption is that the contributions made by the different variables in predicting the target variable are the same across the study area. In reality this assumption of spatial invariance is violated in many instances when geographic phenomena are considered.
+
+For these reasons, as geographers of the cell micro-cosmos….
+
+-   We do not expect things to be the **same** everywhere
+-   We expect to find **clusters**, **hotspots** etc
+-   We are interested in **how** and **where** processes, **relationships, and other phenomena** vary spatially\*\*
+
+In statistical terminology… We are interested in **spatial non-stationarity** in relationships and process **spatial heterogeneity**.
+
+What this means is that instead of just one general relationship for, for example, the association between changes in GeneA and GeneB in global model, we might expect that relationship (as described in the coefficient estimate for βk) to be different in different places. This is a core concept for geographical data analysis.
+
+This idea informs the technique known as Geographically Weighted Regression or GWR [@Brunsdon1996Oct]. If the relationships between the $x_{k}$’s and $y$ vary spatially, one might at least expect that the relationship between nearby sets of observations should be consistent.
+
+Recall that the equation for an Ordinary Least Squares (OLS) regression is: $$y_i = \beta_{0} + \sum_{m}^{k=1}\beta_{k}x_{ik} + \epsilon_i$$
+
+Suppose we assign a value of each regression coefficient to a location $(u,v)$ in space (e.g. $u$ is $x$ and $v$ is $y$ in cartesian space), so that we denote it $β_{k}(u,v)$. Thus we could estimate each $β_{k}(u,v)$ by calibrating a weighted regression model where $w_{i}$ was 1 if an observation was within some radius $h$ of $(u,v)$ and 0 otherwise.
+
+In this way, an entire surface of coefficients could be estimated. It may be imagined as being generated by a moving circular window, scanning across a map of the locations of the observations. However, 0/1 weighting is quite crude, and one might expect data from the periphery of the circular window to have less spatial influence than data near the middle.
+
+This is a *Geographically weighted* regression that examines how that relationships between $y$ and $x$ **vary spatially**: $$y = \beta_{0_(u_i, v_i)} + \sum_{m}^{k=1}\beta_{k}x_{ik_{(u_i, v_i)}} + \epsilon_{(u_i, v_i)}$$
+
+Thus, critical to the operation of GW models is a moving window or **kernel**, that downweights peripheral observations. The kernel moves through the study area and at each location computes a local model. It uses data under the kernel to construct a (local) model at that location with data points further away from the kernel centre weighted to that they contribute less to the solution. Hence the weighted element in the GW framework. Thus, the kernel defines the data and weights that are used to calibrate the model at each location. The weight, $w_{i}$, associated with each location $(u_{i},v_{i})$ is a decreasing function of $d_{i}$, the distance from the centre of the kernel to $(u_{i},v_{i})$:
+
+A typical kernel function for example is the bisquare kernel. For a given size or **bandwidth** $h$, this is defined by
+
+$$f(d) = \left\{ \begin{array}{cl}\left(1 - \left( \frac{d}{h} \right)^2 \right)^2 & \mbox{ if $d < h$}; \\ & \\ 0 & \mbox{ otherwise.} \end{array} \right.$$
+
+Here $h$ may be defined as a fixed value, or in an adaptive way. Gollini et al. [@Gollini2015Feb] provide a description of common kernels shape used in GW models. Generally larger values of $h$ result in a greater degree of spatial smoothing - having a larger window around $u$ in which cross tabulations have non-zero weighting. As $h→∞$ the coefficients converge to the global OLS model.
+
+### GWR
+
+Here we will essentially use a wrapper of the GWR functionalities from the `GWmodel` package to undertake a GWR of the liver data, replicating the OLS model, but this time allowing the coefficient estimates to vary over space.
+
+There are 2 basic steps to any GW approach:
+
+1.  Determine the optimal kernel bandwidth $h$ (i.e. how many data points - or which size window - to include in each local model). Here an AIC approach is used.
+2.  Fit the GWR model.
+
+> **NOTE:** The two genes selected below are merely used to illustrate how you can use run GWR.
+
+#### Set up the formula
+
+Here we will set up our formula. The formula includes the variables that we will be using for the regression.
+
+The formula is divided in two parts by the `~`. On the left-hand side we place the dependent (or response) variables and on the right-hand side we place the independent (or the predictor) variables.
+
+Let's assume a formula of type `geneA~geneB`. The dependent variable (geneA) is the one being predicted or explained by the independent variable (geneB). It represents the outcome or response variable that is influenced by changes in the independent variable. Conversely, the independent variable (geneB) is the predictor or explanatory variable, representing the factor that is manipulated or controlled in the analysis and is hypothesised to have an effect on the dependent variable (geneA).
+
+```{r gwr_form}
+## Build formula
+formula <- "ENSG00000091513~ENSG00000197971"
+
+## Alternative example:
+# formula <- "ENSG00000170476~ENSG00000111796+ENSG00000198851"
+
+```
+
+#### Select bandwidth
+
+The kernel size, also known as the bandwidth, holds significant importance as it determines the number of data points included in each local model. However, finding the optimal bandwidth involves evaluating different potential bandwidths and applying a measure of model fit. In the context of GWR in geography, two options are commonly used for this purpose which we also transferred to biology:
+
+1.  Leave-One-Out Cross Validation (CV): This method systematically removes each observation one at a time for a potential bandwidth, assessing how well the local model with that bandwidth predicts the value of each removed data point.
+2.  Akaike’s Information Criterion (AIC or corrected AIC, AICc): This criterion measures model parsimony, which balances model accuracy with complexity. A parsimonious model is one that offers explanatory power while being as simple as possible.
+
+When determining the optimal GWR bandwidth, AIC is preferred over CV because it considers model parsimony, helping to avoid overfitting GWR models. Consequently, bandwidths determined using AIC tend to be larger than those obtained using CV.
+
+> **NOTE:** to remember the different kernel types please refer to [Figure 1](#figure1) and [Figure 2](#figure2)
+
+```{r gwr_bw}
+## Find Bandwidth
+bw <- gwr_bwSTE(gwr_method = "basic",
+                formula = formula,
+                m_sfe = msfe,
+                sample_id = "JBO022",
+                kernel = "bisquare",
+                approach = "AIC")
+
+```
+
+#### Run GWR
+
+Make sure you provide `gwrSTE` with the same `gwr_method` and `kernel` from above.
+
+```{r gwr}
+## Run GWR
+gwr <- gwrSTE(gwr_method = "basic",
+              formula = formula,
+              m_sfe = msfe,
+              sample_id = "JBO022",
+              bw = bw,
+              kernel = "bisquare")
+
+```
+
+#### Print Summary stats
+
+```{r gwr_stats}
+gwr_stats(gwr)
+
+```
+
+#### Plot
+
+```{r gwr_plot1}
+
+
+```
 
 ## Putting it all together
 

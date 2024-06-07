@@ -296,7 +296,7 @@ plotFGWC_multiViolin <- function(fgwc) {
 #' @aliases plotFGWC_nmfFactorsMap
 #'
 #' @export
-plotFGWC_nmfFactorsMap <- function(nmf, m_sfe, sample_id) {
+plotFGWC_nmfFactorsMap <- function(nmf, m_sfe, sample_id = NULL) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
@@ -310,6 +310,108 @@ plotFGWC_nmfFactorsMap <- function(nmf, m_sfe, sample_id) {
     scale_fill_viridis_c() +
     labs(fill = "Factor\nScore") +
     theme_void()
+}
+
+
+#' Plot FGWC NMF Factors Heatmap
+#'
+#' This function generates a clustered heatmap of factor scores obtained from
+#' FGWC (Fuzzy Geographically Weighted Clustering) analysis. It allows for
+#' optional annotations based on clusters or annotations.
+#'
+#' @param fgwc An object of class `fgwc` containing the results of FGWC
+#' analysis.
+#' @param loc_annot A character string specifying the type of annotations to
+#' include in the heatmap. Possible values are:
+#'   \itemize{
+#'     \item `"annotation"`: Include only the annotation column.
+#'     \item `"cluster"`: Include only the cluster column.
+#'     \item `"both"`: Include both annotation and cluster columns.
+#'     \item `"none"`: Include no annotations.
+#'   }
+#'   Defaults to `"both"`.
+#' @param ... Arguments passed to `pheatmap`.
+#'
+#' @returns A heatmap plot of factor scores with optional annotations.
+#' @importFrom dplyr select contains all_of any_of mutate
+#' @importFrom pheatmap pheatmap
+#' @importFrom cols4all c4a
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming `fgwc_object` is a valid FGWC object
+#' plotFGWC_nmfFactorsHeatmap(fgwc_object, loc_annot = "both")
+#' plotFGWC_nmfFactorsHeatmap(fgwc_object, loc_annot = "annotation")
+#' plotFGWC_nmfFactorsHeatmap(fgwc_object, loc_annot = "none")
+#' }
+#'
+#' @export
+plotFGWC_nmfFactorsHeatmap <- function(fgwc,
+                                       loc_annot = c("annotation", "cluster",
+                                                     "both", "none"),
+                                       ...) {
+  ## Check fgwc argument is of class fgwc
+  .int_checkFGWCClass(fgwc)
+
+  ## Prepare data for heatmap
+  data_in <- .int_getFactorData(fgwc = fgwc)
+
+  ## Prepare location annotations
+  if (loc_annot != "none") {
+    annotations_and_colours <- .int_getAnnotsAndColours(fgwc = fgwc,
+                                                        loc_annot = loc_annot)
+  } else {
+    annotations_and_colours <- list(annotations = NA, colours = NA)
+  }
+
+  ## Create heatmap of Factor scores
+  pheatmap(data_in,
+           scale = "row",
+           cluster_rows = TRUE,
+           cluster_cols = TRUE,
+           annotation_row = annotations_and_colours$annotations,
+           annotation_colors = annotations_and_colours$colours,
+           fontsize_row = 3,
+           ...)
+}
+
+
+#' Plot FGWC NMF Metagene Heatmap
+#'
+#' This function generates a clustered heatmap of metagene signatures.
+#' Essentially is visualising the gene scores obtained from NMF for each
+#' signature.
+#'
+#' @param fgwc An object of class `fgwc` containing the results of FGWC
+#' analysis.
+#' @param ... Arguments passed to `pheatmap`.
+#'
+#' @returns A heatmap plot of factor scores with optional annotations.
+#' @importFrom dplyr select contains all_of any_of mutate
+#' @importFrom pheatmap pheatmap
+#' @importFrom cols4all c4a
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming `fgwc_object` is a valid FGWC object
+#' plotFGWC_nmfMetagenesHeatmap(fgwc_object)
+#' }
+#'
+#' @export
+plotFGWC_nmfMetagenesHeatmap <- function(fgwc, ...) {
+  ## Check fgwc argument is of class fgwc
+  .int_checkFGWCClass(fgwc)
+
+  ## Prepare data for heatmap
+  data_in <- .int_getFactorData(fgwc = fgwc)
+
+  ## Create heatmap of Metagene scores
+  pheatmap(data_in,
+           scale = "row",
+           cluster_rows = TRUE,
+           cluster_cols = TRUE,
+           fontsize_row = 3,
+           ...)
 }
 
 
@@ -393,7 +495,7 @@ plotFGWC_nmfFactorsMap <- function(nmf, m_sfe, sample_id) {
 #' @importFrom ggplot2 coord_fixed xlim ylim guides element_rect
 #' @importFrom ggplot2 geom_text annotate element_text
 #' @importFrom ggforce theme_no_axes geom_arc_bar
-#' @importFrom dplyr group_by count rename select slice_max ungroup
+#' @importFrom dplyr group_by count rename select slice_max ungroup contains
 #' @importFrom tidyr pivot_longer
 #' @importFrom scales percent
 #' @importFrom grid grid.newpage viewport
@@ -476,7 +578,7 @@ plotFGWC_pie <- function(fgwc,
 
   ## Get colours
   if (is.null(pieColours)) {
-    mainColours <- STExplorer::getColours(length(unique(data[[pies]])))
+    mainColours <- getColours(length(unique(data[[pies]])))
   } else {
     mainColours <- pieColours
   }
@@ -643,7 +745,7 @@ plotFGWC_pie <- function(fgwc,
     scale_fill_manual(values = mainColours) +
     xlim(r3 * c(-1, 1)) +
     ylim(r3 * c(-1, 1)) +
-    guides(fill = FALSE)
+    guides(fill = "none")
 
   # Add pie labels
   if ((labelposition == 1) & (is.null(donuts))) {
@@ -722,7 +824,7 @@ plotFGWC_pie <- function(fgwc,
       scale_fill_manual(values = subColours) +
       xlim(r3 * c(-1, 1)) +
       ylim(r3 * c(-1, 1)) +
-      guides(fill = FALSE)
+      guides(fill = "none")
 
     # Add donut labels
     if (labelposition == 1) {
@@ -816,7 +918,7 @@ plotFGWC_pie <- function(fgwc,
 #' markers_data <- read.csv("markers_data.csv") # Provide your markers data
 #' cluster_no <- 1 # Provide the cluster number for which heatmap is desired
 #'
-#' plotFGWC_heatmap(fgwc_result, m_sfe, sample_id, markers_data, cluster_no)
+#' plotFGWC_markersHeatmap(fgwc_result, m_sfe, sample_id, markers_data, cluster_no)
 #' }
 #'
 #' @seealso
@@ -829,13 +931,13 @@ plotFGWC_pie <- function(fgwc,
 #' @author Eleftherios (Lefteris) Zormpas
 #' @keywords clustering fuzzy-logic spatial heatmap visualization fgwc
 #' @family plotting functions
-#' @rdname plotFGWC_heatmap
-#' @aliases plotFGWC_heatmap
+#' @rdname plotFGWC_markersHeatmap
+#' @aliases plotFGWC_markersHeatmap
 #'
 #' @importFrom grDevices colorRampPalette
 #'
 #' @export
-plotFGWC_heatmap <- function(fgwc,
+plotFGWC_markersHeatmap <- function(fgwc,
                              m_sfe,
                              sample_id,
                              markers,
@@ -1683,3 +1785,135 @@ plotFGWC_subHeatmap <- function(heatmap,
   ## If no errors, the mappings are valid
   invisible(NULL)
 }
+
+
+#' Internal: Prepare data for the pie-doughnut chart
+#'
+#' This function prepares data for the pie-doughnut chart
+#'
+#' @param fgwc an object of class `fgwc`
+#' @param sfe an object of class `SpatialFeatureExperiment`
+#' @param pies pie mapping
+#' @param donut donut mapping
+#'
+#' @returns A data frame.
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getPieDonutData
+#'
+.int_getPieDonutData <- function(fgwc, sfe, pies, donuts) {
+  fgwc_finalData <- fgwc$finaldata %>%
+    rownames_to_column(var = "Barcode")
+
+  annot <- colData(sfe)["annotation"] %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "Barcode")
+
+  data <- left_join(fgwc_finalData, annot, by = "Barcode")
+
+  if ("factors" %in% c(pies, donuts)) {
+    data <- tidyr::pivot_longer(data,
+                                contains("Factor"),
+                                names_to = "factors",
+                                values_to = "factor_score") %>%
+      group_by(Barcode) %>%
+      dplyr::slice_max(order_by = factor_score) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(-tidyr::all_of(c("factor_score", "Barcode")))
+  }
+
+  data <- data %>%
+    dplyr::select(tidyr::all_of(c(pies, donuts)))
+}
+
+#' Internal: Check if an Object is of Class 'fgwc'
+#'
+#' This function checks if a given object is of class 'fgwc'.
+#'
+#' @param object The object to check.
+#' @returns A logical value indicating whether the object is of class 'fgwc'.
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_checkFGWCClass
+#'
+.int_checkFGWCClass <- function(object) {
+  if (!inherits(object, "fgwc")) {
+    stop("The `fgwc` argument must an object of class `fgwc` as generated by ",
+         "the `fgwc_STE` function.")
+  }
+}
+
+
+#' Internal: Extract Factor Data
+#'
+#' This function extracts factor data from FGWC output
+#'
+#' @param fgwc fgwc class object as generated by `fgwcSTE`
+#'
+#' @returns a data frame of NMF factors
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getFactorData
+#'
+.int_getFactorData <- function(fgwc) {
+  fgwc$finaldata %>%
+    dplyr::select(contains("Factor"))
+}
+
+
+#' Internal: Get Annotations and Colours
+#'
+#' This function returns annotations label and colours for the heatmap
+#'
+#' @param fgwc gwc class object as generated by `fgwcSTE`
+#' @param loc-annot which annotations to add
+#'
+#' @returns a list
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getAnnotsAndColours
+#'
+.int_getAnnotsAndColours <- function(fgwc, loc_annot) {
+  annotations <- fgwc$finaldata %>%
+    dplyr::select(dplyr::any_of(c("cluster", "annotation"))) %>%
+    dplyr::mutate(cluster = as.factor(cluster))
+
+  col_clust <- length(unique(annotations$cluster))
+  annot_colours <- list(cluster = getColours(col_clust))
+  names(annot_colours$cluster) <- unique(annotations$cluster)
+
+  if ("annotation" %in% colnames(annotations)) {
+    col_annot <- length(unique(annotations$annotation))
+    annot_colours[["annotation"]] <- c4a(palette = "carto.pastel", n = col_annot)
+    names(annot_colours$annotation) <- unique(annotations$annotation)
+  }
+
+  if (loc_annot %in% c("cluster", "annotation")) {
+    annotations <- annotations %>%
+      dplyr::select(all_of(loc_annot))
+    annot_colours <- annot_colours[[loc_annot]]
+  }
+
+  list(annotations = annotations, colours = annot_colours)
+}
+
+
+#' Internal: Extract Metagene Data
+#'
+#' This function extracts metagene data from FGWC output
+#'
+#' @param fgwc fgwc class object as generated by `fgwcSTE`
+#'
+#' @returns a data frame of NMF factors
+#'
+#' @importFrom dplyr rename_with
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getMetageneData
+#'
+.int_getMetageneData <- function(fgwc) {
+  n <- ncol(fgwc$metageneSignatures)
+  fgwc$metageneSignatures %>%
+    dplyr::rename_with(~ paste0("Factor", sapply(1:n, .int_addLeadingZero)))
+}
+
+
+

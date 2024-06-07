@@ -144,7 +144,6 @@ fgwc_nmfFactorNumber <- function(m_sfe,
 #' @family clustering functions
 #' @rdname fgwc_nmf
 #' @aliases fgwc_nmf
-#' @importFrom scater calculateNMF
 #' @importFrom dplyr select
 #'
 #' @export
@@ -164,13 +163,13 @@ fgwc_nmf <- function(m_sfe,
   nmf_input <- assay(sfe, assay)[rownames(sfe) %in% top_hvgs,]
 
   ## Run NMF
-  nmf <- scater::calculateNMF(x = nmf_input,
-                              ncomponents = ncomponents,
-                              ntop = ntop,
-                              subset_row = subset_row,
-                              scale = scale,
-                              seed = 1,
-                              ...)
+  nmf <- .int_calculate_nmf(x = nmf_input,
+                            ncomponents = ncomponents,
+                            ntop = ntop,
+                            subset_row = subset_row,
+                            scale = scale,
+                            seed = 1,
+                            ...)
   colnames(nmf) <- sprintf("Factor%02d", 1:ncol(nmf))
   rownames(nmf) <- colnames(sfe)
 
@@ -754,6 +753,12 @@ fgwcSTE <- function(m_sfe,
     fgwc <- do.call(naspaclust::abcfgwc, c(parameters, main_params))
   }
 
+  ## Add extra information in the fgwc output
+  fgwc$finaldata <- .int_addToFGWCout(fgwc = fgwc,
+                                      sfe = sfe,
+                                      geom_type = "hex")
+
+  fgwc$metageneSignatures <- attr(data, "basis")
 
   return(fgwc)
 }
@@ -762,6 +767,40 @@ fgwcSTE <- function(m_sfe,
 # ---------------------------------------------------------------------------- #
 #  ################# INTERNAL FUNCTIONS ASSOCIATED WITH FGWC ################
 # ---------------------------------------------------------------------------- #
+#' Internal: Add annotation and geom hex info to fgwc output
+#'
+#' Adding annotation and/or geom hex info allows easier plotting later.
+#'
+#' @param fgwc the fgwc output
+#' @param sfe the sfe object used as input for `fgwcSTE`
+#'
+#' @returns description an updated `fgwc$finaldata` data frame.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_addToFGWCout
+#'
+.int_addToFGWCout <- function(fgwc, sfe, geom_type) {
+  annot <- colData(sfe)["annotation"] %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "Barcode")
+
+  if (geom_type == "hex") {
+    geom <- "spotHex"
+  }
+
+  geoms <- colGeometry(sfe, geom) %>%
+    rownames_to_column(var = "Barcode")
+
+  finaldata <- fgwc$finaldata %>%
+    rownames_to_column(var = "Barcode") %>%
+    left_join(annot, by = "Barcode") %>%
+    left_join(geoms, by = "Barcode") %>%
+    column_to_rownames(var = "Barcode")
+
+  return(finaldata)
+}
+
+
 #' Internal Function: Apply Pseudocount
 #'
 #' This function adds a pseudocount to a numeric vector to prevent zero values.
@@ -770,7 +809,7 @@ fgwcSTE <- function(m_sfe,
 #' @param pseudocount A numeric value representing the pseudocount to be added
 #' (default is \code{1e-12}).
 #'
-#' @return A numeric vector with the pseudocount added.
+#' @returns A numeric vector with the pseudocount added.
 #'
 #' @details
 #' The pseudocount is used to avoid zero values that can lead to errors in
@@ -1253,3 +1292,75 @@ fgwcSTE <- function(m_sfe,
 
   return(elbow_point)
 }
+
+
+# ---------------------------------------------------------------------------- #
+#  ##################### NMF FUNCTION COPIED FROM SCATER ####################
+# ---------------------------------------------------------------------------- #
+## As of 7 Jun 2024, RcppML produces an error in C++. This error is found on
+## the latest RcppML update (current GitHub release) but it is not present in
+## the previous RcppML version (0.3.7). The scater package must be using the
+## latest version. I have installed the RcppML 0.3.7. My use of the package in
+## the fgwc_nmfFactorNumber function is not producing the error. I don't know
+## what is going on. Until this error is resolved, I will copy and modify scater's
+## calculateNMF function.
+
+#' Perform NMF on cell-level data
+#'
+#' Perform non-negative matrix factorization (NMF) for the cells, based on the data in a SingleCellExperiment object.
+#'
+#' @param x For \code{calculateNMF}, a numeric matrix of log-expression values where rows are features and columns are cells.
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.
+#'
+#' For \code{runNMF}, a \linkS4class{SingleCellExperiment} object.
+#' @param ... For the \code{calculateNMF} generic, additional arguments to pass to specific methods.
+#' For the ANY method, additional arguments to pass to \code{\link[Rtsne]{Rtsne}}.
+#' For the SummarizedExperiment and SingleCellExperiment methods, additional arguments to pass to the ANY method.
+#' @return
+#' For \code{calculateNMF}, a numeric matrix is returned containing the NMF coordinates for each cell (row) and dimension (column).
+#'
+#' For \code{runNMF}, a modified \code{x} is returned that contains the NMF coordinates in \code{\link{reducedDim}(x, name)}.
+#'
+#' In both cases, the matrix will have the attribute \code{"basis"} containing the gene-by-factor basis matrix.
+#'
+#' @details
+#' The function \code{\link[RcppML]{nmf}} is used internally to compute the NMF.
+#' Note that the algorithm is not deterministic, so different runs of the function will produce differing results.
+#' Users are advised to test multiple random seeds, and then use \code{\link{set.seed}} to set a random seed for replicable results.
+#'
+#' @seealso
+#' \code{\link[RcppML]{nmf}}, for the underlying calculations.
+#'
+#' \code{\link{plotNMF}}, to quickly visualize the results.
+#'
+#' @author Aaron Lun
+#'
+
+#' @importFrom BiocNeighbors KmknnParam findKNN
+#' @importFrom BiocParallel SerialParam
+.int_calculate_nmf <- function(x, ncomponents = 2, ntop = 500,
+                               subset_row = NULL, scale=FALSE, transposed=FALSE, seed=1, ...)
+{
+  if (!transposed) {
+    x <- scater:::.get_mat_for_reddim(x, subset_row=subset_row, ntop=ntop, scale=scale)
+  }
+  x <- t(as.matrix(x))
+
+  args <- list(k=ncomponents, verbose=FALSE, seed=seed, ...)
+  nmf_out <- do.call(RcppML::nmf, c(list(x), args))
+
+  # RcppML doesn't use transposed data
+  nmf_x <- t(nmf_out$h)
+  rownames(nmf_x) <- colnames(x)
+  colnames(nmf_x) <- paste0("NMF", seq_len(ncol(nmf_x)))
+  nmf_basis <- nmf_out$w
+  rownames(nmf_basis) <- rownames(x)
+  colnames(nmf_basis) <- paste0("NMF", seq_len(ncol(nmf_basis)))
+  attr(nmf_x, "basis") <- nmf_basis
+
+  nmf_x
+}
+
+
+
+

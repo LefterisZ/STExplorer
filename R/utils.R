@@ -404,3 +404,20 @@ getGradients <- function(colours, steps) {
   # Return the gradient steps, excluding the first and last
   return(unlist(gradient_steps)[2:(steps + 1)])
 }
+
+
+#' Internal: Format with leading zero
+#'
+#' This function appends the number `0` only for the numbers 1 to 9.
+#'
+#' @param x the number
+#' @rdname dot-int_addLeadingZero
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+.int_addLeadingZero <- function(x) {
+  if (x < 10) {
+    return(paste0("0", x))
+  } else {
+    return(as.character(x))
+  }
+}

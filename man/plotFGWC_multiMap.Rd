@@ -45,7 +45,7 @@ plotFGWC_multi(fgwc_result, m_sfe, sample_id)
 \code{\link{plotFGWC_heatmap}}
 
 Other plotting functions: 
-\code{\link{plotFGWC_heatmap}()},
+\code{\link{plotFGWC_markersHeatmap}()},
 \code{\link{plotFGWC_multiViolin}()},
 \code{\link{plotFGWC_nmfFactorsMap}()},
 \code{\link{plotFGWC_singleMap}()}
