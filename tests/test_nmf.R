@@ -1,10 +1,16 @@
+# Prepare lists ----
 samples <- names(msfe@sfe_data)
 
 best_k_nmf <- list()
 sfe_nmf_list <- list()
 best_k_fgwc <- list()
 fgwc_param_list <- list()
+fgwc_list <- list()
 
+marker_heatmap_list <- list()
+subHeatmap_list <- list()
+
+# Find optimum factor number ----
 for (s in samples) {
   message("# ---------------------- #\n",
           "Working on sample: ", s)
@@ -28,6 +34,7 @@ for (s in samples) {
   rm(result)
 }
 
+# Calculate NMF ----
 for (s in samples) {
   message("# ---------------------- #\n",
           "Working on sample: ", s)
@@ -35,10 +42,13 @@ for (s in samples) {
   sfe_nmf_list[[s]] <- fgwc_nmf(m_sfe = msfe,
                                 sample_id = s,
                                 top_hvgs = top_hvgs[[s]],
-                                ncomponents = best_k_nmf$k)
+                                ncomponents = best_k_nmf[[s]][["k"]])
 }
 
+# Find best k for clustering ----
 for (s in samples) {
+  message("# ---------------------- #\n",
+          "Working on sample: ", s)
   ## Find best number of clusters
   fgwc_param_list[[s]] <- fgwc_params(algorithm = "classic", ncluster = 5)
 
@@ -46,25 +56,291 @@ for (s in samples) {
                                         k_range = 2:10,
                                         index_type = "FPC",
                                         elbow_method = "knee",
-                                        m_sfe = sfe,
+                                        m_sfe = msfe,
+                                        sample_id = s,
                                         algorithm = "classic",
-                                        parameters = fgwc_param)
+                                        parameters = fgwc_param_list[[s]])
 
   ## update the parameters input
   fgwc_param_list[[s]] <- fgwc_params(algorithm = "classic",
                                       ncluster = best_k_fgwc[[s]])
 }
 
+# Run FGWC ----
 for (s in samples) {
-  fgwc <- fgwcSTE(m_sfe = msfe,
-                  sample_id = s,
-                  data = sfe_nmf_list[[s]],
-                  dMetric = "euclidean",
-                  algorithm = "classic",
-                  parameters = fgwc_param_list[[s]])
+  message("# ---------------------- #\n",
+          "Working on sample: ", s)
+  ## Run FGWC
+  fgwc_list[[s]] <- fgwcSTE(m_sfe = msfe,
+                            sample_id = s,
+                            data = sfe_nmf_list[[s]],
+                            dMetric = "euclidean",
+                            algorithm = "classic",
+                            parameters = fgwc_param_list[[s]])
 }
 
+# Plot single clusters ----
+for (s in samples) {
+  message("# ---------------------- #\n",
+          "Working on sample: ", s)
+  ## Plot single clusters
+  p1 <- plotFGWC_singleMap(fgwc = fgwc_list[[s]],
+                           m_sfe = msfe,
+                           sample_id = s)
 
+  p2 <- plotQC_spotsAnnotation(msfe,
+                               sample_id = s,
+                               type = "hex")
+
+  print(p1 + p2)
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_single_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+         device = "svg",
+         width = grDevices::dev.size(units = "in")[1],
+         height = grDevices::dev.size(units = "in")[2],
+         units = "in",
+         dpi = 300)
+}
+
+# Plot multi clusters ----
+for (s in samples) {
+  message("# ---------------------- #\n",
+          "Working on sample: ", s)
+  ## Plot multi clusters
+  p1 <- plotFGWC_multiMap(fgwc = fgwc_list[[s]],
+                          m_sfe = msfe,
+                          sample_id = s)
+
+  print(p1)
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_multi_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot memberships in violins ----
+for (s in samples) {
+  ## Plot memberships in violins
+  p1 <- plotFGWC_multiViolin(fgwc = fgwc_list[[s]],
+                             m_sfe = msfe,
+                             sample_id = s)
+
+  print(p1)
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_multiViolin_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot FGWC pie-doughnuts ----
+for (s in samples) {
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+
+  ## Matching FGWC clusters and annotation of locations
+  plotFGWC_pie(fgwc = fgwc_list[[s]],
+               m_sfe = msfe,
+               sample_id = s,
+               mapping = aes(pie = cluster, donut = annotation))
+  ggplot2::ggsave(paste0(folder, s, "_pieClustAnn_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+
+  ## Matching FGWC clusters and NMF factors
+  plotFGWC_pie(fgwc = fgwc_list[[s]],
+               m_sfe = msfe,
+               sample_id = s,
+               mapping = aes(pie = cluster, donut = factors))
+  ggplot2::ggsave(paste0(folder, s, "_pieClustFact_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot map of factor scores ----
+for (s in samples) {
+  ## Plot a map of the NMF factor scores for each location
+  p1 <- plotFGWC_nmfFactorsMap(nmf = sfe_nmf_list[[s]],
+                               m_sfe = msfe,
+                               sample_id = s)
+
+  print(p1)
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_factorsMap_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot heatmap of factor scores ----
+for (s in samples) {
+  ## Plot a factor heatmap alongside spot annotations and/or FGWC clusters
+  plotFGWC_nmfFactorsHeatmap(fgwc = fgwc_list[[s]],
+                             loc_annot = "both",
+                             order_rows = "cluster")
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_factorsHeatMap_NMF-", ncomp,
+                         "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot heatmap of Metagene scores ----
+for (s in samples) {
+  ## Plot a map of the NMF factor scores for each location
+  plotFGWC_nmfMetagenesHeatmap(fgwc = fgwc_list[[s]])
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_metaGenesHeatMap_NMF-", ncomp,
+                         "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot marker gene heatmap ----
+for (s in samples) {
+  ## Load the cell markers as a named list
+  # markers <- list(sample1 = markers_sample1,
+  #                 sample2 = markers_sample2)
+
+  cluster_no <- 2
+
+  ## Plot the heatmap
+  heatmap <- plotFGWC_markersHeatmap(fgwc = fgwc_list[[s]],
+                                     m_sfe = msfe,
+                                     sample_id = s,
+                                     markers = markers[[s]],
+                                     cluster_no = cluster_no,
+                                     cutree_cols = 5)
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_markersHeatMap", cluster_no,
+                         "_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot subcluster map ----
+for (s in samples) {
+  clust <- 3
+  ## Plot the subclusters
+  plotFGWC_subClust(heatmap = marker_heatmap_list[[s]],
+                    k = 5,
+                    clust = clust,
+                    m_sfe = msfe,
+                    sample_id = s)
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_subClust", clust,
+                         "_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
+# Plot subcluster heatmap ----
+for (s in samples) {
+  clust <- 3
+  cluster_no <- 4
+  ## Only plot the sub-cluster heatmap
+  plotFGWC_subHeatmap(heatmap = marker_heatmap_list[[s]],
+                      k = 5,
+                      markers = markers[[s]],
+                      m_sfe = msfe,
+                      sample_id = s,
+                      cluster_no = cluster_no)
+
+  ## Save the heatmap as an object
+  subHeatmap_list[[s]] <- plotFGWC_subHeatmap(heatmap = marker_heatmap_list[[s]],
+                                              k = 5,
+                                              markers = markers[[s]],
+                                              m_sfe = msfe,
+                                              sample_id = s,
+                                              cluster_no = cluster_no)
+
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+  ggplot2::ggsave(paste0(folder, s, "_subClustHeatmap_Clust", clust, "subClust", cluster_no,
+                         "_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
 
 # ---------------------------------------------------------------------------- #
 #' Plot FGWC NMF Factors Heatmap
@@ -208,8 +484,16 @@ plotFGWC_nmfFactorsHeatmap <- function(fgwc,
   }
   x <- t(as.matrix(x))
 
-  args <- list(k=ncomponents, verbose=FALSE, seed=seed)
-  nmf_out <- do.call(RcppML::nmf, c(list(x), args))
+  # args <- list(k=ncomponents, verbose=FALSE, seed=seed)
+  # nmf_out <- do.call(RcppML::nmf, c(list(x), args))
+
+  nmf_out <- RcppML::nmf(A = x,
+                         k = ncomponents,
+                         verbose = FALSE,
+                         #n.threads = n_cores,
+                         #verbose = 0,
+                         maxit = 250,
+                         seed = seed)
 
   # RcppML doesn't use transposed data
   nmf_x <- t(nmf_out$h)
@@ -222,3 +506,7 @@ plotFGWC_nmfFactorsHeatmap <- function(fgwc,
 
   nmf_x
 }
+
+
+# ---------------------------------------------------------------------------- #
+nmf_input <- assay(sfe, "logcounts")[rownames(sfe) %in% top_hvgs[["V1_2"]],]

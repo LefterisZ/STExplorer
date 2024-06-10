@@ -894,6 +894,13 @@ plotFGWC_nmfFactorsHeatmap(fgwc = fgwc,
 
 ```
 
+Another important piece of information that can be retrieved from the NMF are the metagene signatures. Scores of each gene in each factor.
+
+We can plot this information (or we can save it in an object since it is a `pheatmap` object)
+
+```{r fgwc_nmf03}
+plotFGWC_nmfMetagenesHeatmap(fgwc = fgwc)
+```
 ### Plot a heatmap of established biomarkers
 
 For this plot to be generated, it required from the user to provide a data frame (table) with four (4) columns that includes the below information and the specific column names:
@@ -912,7 +919,7 @@ If no subtype exists, add an empty character string using: `""`.
 # markers <- data(markers)
 
 ## Plot the heatmap
-heatmap <- plotFGWC_heatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 2, cutree_cols = 5)
+heatmap <- plotFGWC_markersHeatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 2, cutree_cols = 5)
 
 ```
 
@@ -933,10 +940,10 @@ To understand the composition of each subcluster we can plot a heatmap using the
 
 ```{r  fgwc_plot-subClust-heatmap}
 ## Only plot the sub-cluster heatmap
-plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
+plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO022", cluster_no = 4)
 
 ## Save the heatmap as an object
-subHeatmap <- plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO019", cluster_no = 4)
+subHeatmap <- plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO022", cluster_no = 4)
 ```
 
 ### References

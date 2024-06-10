@@ -4,10 +4,14 @@
 \alias{plotFGWC_multiViolin}
 \title{Plot Membership percentages from FGWC per annotation or winning cluster}
 \usage{
-plotFGWC_multiViolin(fgwc)
+plotFGWC_multiViolin(fgwc, m_sfe, sample_id = NULL)
 }
 \arguments{
 \item{fgwc}{The result of FGWC clustering.}
+
+\item{m_sfe}{The spatial feature experiment (SFE) or metaSFE object.}
+
+\item{sample_id}{The sample ID.}
 }
 \value{
 A ggplot object.

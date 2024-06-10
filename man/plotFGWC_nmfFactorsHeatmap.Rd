@@ -7,6 +7,7 @@
 plotFGWC_nmfFactorsHeatmap(
   fgwc,
   loc_annot = c("annotation", "cluster", "both", "none"),
+  order_rows = c("annotation", "cluster", "none"),
   ...
 )
 }
@@ -23,6 +24,15 @@ include in the heatmap. Possible values are:
 \item \code{"none"}: Include no annotations.
 }
 Defaults to \code{"both"}.}
+
+\item{order_rows}{order rows based on annotation or cluster. Possible values
+are:
+\itemize{
+\item \code{"annotation"}: Order by the annotation column (alphabetical).
+\item \code{"cluster"}: Order by the cluster column (alphabetical).
+\item \code{"none"}: No ordering annotations (rows are clustered then).
+}
+Defaults to \code{"none"}.}
 
 \item{...}{Arguments passed to \code{pheatmap}.}
 }

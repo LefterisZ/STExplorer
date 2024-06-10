@@ -100,7 +100,7 @@ plotQC_spots <- function(sfe,
 #' This function plots the quality control of spots in a
 #' SpatialFeatureExperiment, including annotation information.
 #'
-#' @param sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment object.
 #' @param type Character vector specifying the spot type, either "spot" or
 #' "hex".
 #' @param fill_args List of arguments to customize the fill scale. Default is
@@ -147,15 +147,15 @@ plotQC_spots <- function(sfe,
 #' }
 #'
 #' @export
-plotQC_spotsAnnotation <- function(sfe,
+plotQC_spotsAnnotation <- function(m_sfe,
+                                   sample_id = NULL,
                                    type = c("spot", "hex"),
                                    fill_args = list(),
-                                   sample_id = NULL,
                                    colours = NULL,
                                    ...) {
 
-  ## Check arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check valid type argument
   type <- match.arg(type)

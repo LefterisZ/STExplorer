@@ -145,6 +145,7 @@ fgwc_nmfFactorNumber <- function(m_sfe,
 #' @rdname fgwc_nmf
 #' @aliases fgwc_nmf
 #' @importFrom dplyr select
+#' @importFrom RcppML nmf
 #'
 #' @export
 fgwc_nmf <- function(m_sfe,
@@ -170,6 +171,14 @@ fgwc_nmf <- function(m_sfe,
                             scale = scale,
                             seed = 1,
                             ...)
+  # nmf <- scater::calculateNMF(x = nmf_input,
+  #                           ncomponents = ncomponents,
+  #                           ntop = ntop,
+  #                           subset_row = subset_row,
+  #                           scale = scale,
+  #                           seed = 1,
+  #                           ...)
+
   colnames(nmf) <- sprintf("Factor%02d", 1:ncol(nmf))
   rownames(nmf) <- colnames(sfe)
 
@@ -265,7 +274,7 @@ classic_params <- function(ncluster,
                            distance = "manhattan",
                            order = 1,
                            alpha = 0.5,
-                           a = 2,
+                           a = 1.8,
                            b = 1,
                            max.iter = 500,
                            error = 1e-5,
@@ -1346,8 +1355,15 @@ fgwcSTE <- function(m_sfe,
   }
   x <- t(as.matrix(x))
 
-  args <- list(k=ncomponents, verbose=FALSE, seed=seed, ...)
-  nmf_out <- do.call(RcppML::nmf, c(list(x), args))
+  # args <- list(k=ncomponents, verbose=FALSE, seed=seed, ...)
+  # nmf_out <- do.call(RcppML::nmf, c(list(x), args))
+  nmf_out <- RcppML::nmf(A = x,
+                         k = ncomponents,
+                         verbose = FALSE,
+                         #n.threads = n_cores,
+                         #verbose = 0,
+                         maxit = 250,
+                         seed = seed)
 
   # RcppML doesn't use transposed data
   nmf_x <- t(nmf_out$h)

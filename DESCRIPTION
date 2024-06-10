@@ -16,7 +16,8 @@ URL: https://github.com/LefterisZ/STExplorer
 BugReports: https://github.com/LefterisZ/STExplorer/issues
 Depends: 
     R (>= 4.0.0),
-    SpatialFeatureExperiment
+    SpatialFeatureExperiment,
+    RcppML (== 0.3.7)
 Imports: 
     cols4all,
     ggplot2,
@@ -59,7 +60,9 @@ Imports:
     naspaclust,
     parallelly,
     tidyr,
-    ggExtra
+    ggExtra,
+    RcppML,
+    patchwork
 License: GPL (>= 3)
 Suggests: 
     BiocStyle,

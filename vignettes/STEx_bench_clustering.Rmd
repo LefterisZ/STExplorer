@@ -1287,7 +1287,7 @@ for (sID in sIDs) {
                       algorithm = "classic", 
                       parameters = fgwc_param)
       # plot single
-      STExplorer::plotFGWC_single(fgwc = fgwc, m_sfe = sfe, sample_id = sID) + 
+      STExplorer::plotFGWC_singleMap(fgwc = fgwc, m_sfe = sfe, sample_id = sID) + 
         theme(legend.position = "none") + 
         labs(title = paste0("nCl:", ncluster, "  a:", a, "  m:", m))
       ggsave(paste0(folder, sID, "_single_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),
@@ -1297,7 +1297,7 @@ for (sID in sIDs) {
              units = "in",
              dpi = 300)
       # plot multi
-      STExplorer::plotFGWC_multi(fgwc = fgwc, m_sfe = sfe, sample_id = sID) + 
+      STExplorer::plotFGWC_multiMap(fgwc = fgwc, m_sfe = sfe, sample_id = sID) + 
         theme(legend.position = "none")  + 
         labs(title = paste0("nCl:", ncluster, "  a:", a, "  m:", m))
       ggsave(paste0(folder, sID, "_multi_NMF-", ncomp, "_clust-", ncluster, "_a-", a, "_m-", m, ".svg"),

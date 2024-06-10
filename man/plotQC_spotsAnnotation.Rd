@@ -5,26 +5,26 @@
 \title{Plot Quality Control of Spots with Annotation in a SpatialFeatureExperiment}
 \usage{
 plotQC_spotsAnnotation(
-  sfe,
+  m_sfe,
+  sample_id = NULL,
   type = c("spot", "hex"),
   fill_args = list(),
-  sample_id = NULL,
   colours = NULL,
   ...
 )
 }
 \arguments{
-\item{sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment object.}
+
+\item{sample_id}{Character string, TRUE, or NULL specifying sample/image
+identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
+the first available entry.}
 
 \item{type}{Character vector specifying the spot type, either "spot" or
 "hex".}
 
 \item{fill_args}{List of arguments to customize the fill scale. Default is
 an empty list.}
-
-\item{sample_id}{Character string, TRUE, or NULL specifying sample/image
-identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
-the first available entry.}
 
 \item{colours}{Vector of colours for annotation. Default is NULL, which uses
 default colours.}

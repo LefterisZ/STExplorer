@@ -18,7 +18,7 @@ classic_params(
   distance = "manhattan",
   order = 1,
   alpha = 0.5,
-  a = 2,
+  a = 1.8,
   b = 1,
   max.iter = 500,
   error = 1e-05,
