@@ -156,6 +156,44 @@ for (s in samples) {
                   dpi = 300)
 }
 
+# Plot memberships in heatmap ----
+for (s in samples) {
+  folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")
+  ncomp = ncol(fgwc_list[[s]]$membership)
+  ncluster = fgwc_list[[s]]$call$ncluster
+  a = fgwc_list[[s]]$call$a
+  m = fgwc_list[[s]]$call$m
+
+  ## Plot memberships in a heatmap
+  plotFGWC_multiHeatmap(fgwc = fgwc_list[[s]],
+                        loc_annot = "both",
+                        order_rows = "cluster")
+
+  ggplot2::ggsave(paste0(folder, s, "_multiHeatmap_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+
+  ## Plot memberships in a heatmap for selected annotations
+  subset_row <- colData(msfe@sfe_data[[s]])$annotation == "Exclude"
+
+  plotFGWC_multiHeatmap(fgwc = fgwc_list[[s]],
+                        loc_annot = "both",
+                        order_rows = "none",
+                        subset_row = subset_row)
+
+  ggplot2::ggsave(paste0(folder, s, "_multiHeatmapSubset_NMF-", ncomp, "_clust-",
+                         ncluster, "_a-", a, "_m-", m, ".svg"),
+                  device = "svg",
+                  width = grDevices::dev.size(units = "in")[1],
+                  height = grDevices::dev.size(units = "in")[2],
+                  units = "in",
+                  dpi = 300)
+}
+
 # Plot FGWC pie-doughnuts ----
 for (s in samples) {
   folder <- paste0("./data/graphics_out/benchmarking/FGWC_in-STExplorer/clustering/", s, "/")

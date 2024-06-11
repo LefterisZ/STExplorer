@@ -841,10 +841,18 @@ plotFGWC_multiMap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
+The membership percentages can be plotted as a heatmap too with optional selection for specific annotation or winning cluster.
+
+```{r fgwc_plot-multi}
+plotFGWC_multiHeatmap(fgwc = fgwc,
+                      loc_annot = "both")
+
+```
+
 We can also plot membership percentages from FGWC per annotation or winning cluster. This can be helpful to identify if any annotation group is connected more closely to a specific FGWC cluster.
 
 ```{r fgwc_plot-multi-violin}
-plotFGWC_multiViolin(fgwc = fgwc)
+plotFGWC_multiViolin(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
 
 ```
 
@@ -901,6 +909,7 @@ We can plot this information (or we can save it in an object since it is a `phea
 ```{r fgwc_nmf03}
 plotFGWC_nmfMetagenesHeatmap(fgwc = fgwc)
 ```
+
 ### Plot a heatmap of established biomarkers
 
 For this plot to be generated, it required from the user to provide a data frame (table) with four (4) columns that includes the below information and the specific column names:
@@ -912,7 +921,9 @@ For this plot to be generated, it required from the user to provide a data frame
 
 If no subtype exists, add an empty character string using: `""`.
 
-**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. **NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype` marker genes data frame: `marker_genes$Subtype <- ""`
+**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. 
+
+**NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype` marker genes data frame: `marker_genes$Subtype <- ""`
 
 ```{r fgwc_plot-heatmap}
 ## Load the liver markers example dataset

@@ -199,6 +199,126 @@ plotGeneExpression <- function(m_sfe,
 
 }
 
+
+#' Plot a Heatmap of Gene Expression Data
+#'
+#' This function plots a heatmap using the `pheatmap` package, providing
+#' options to subset and annotate the data.
+#'
+#' @param m_sfe The \code{SpatialFeatureExperiment} or
+#' \code{MetaSpatialFeatureExperiment} object containing spatial expression
+#' data.
+#' @param sample_id A character string indicating the name of the sample. It is
+#' required when the `m_sfe` argument is provided with a MetaSFE object.
+#' Defaults to `NULL` which selects the first sample from the `m_sfe` object.
+#' @param subset_col subset cols (locations) using a boolean vector of length
+#' equal to the number of locations.
+#' @param subset_row subset rows (genes) using a boolean vector of length
+#' equal to the number of genes.
+#' @param loc_annot a named list of annotations for the columns (locations). If
+#' left empty, the function looks if there is an `annotation` column
+#' in the `colData`. If there is not, then, no annotations are added.
+#' @param order_col order the columns (locations) based on the alphabetical
+#' order of the values provided in the `loc_annot` argument. The value needs to
+#' be a character string of the name of the annotation to be used for ordering.
+#' This name MUST match the names in the named list provided in the `loc_annot`
+#' argument. Defaults to `NULL` which leads to columns being clustered
+#' by `pheatmap`.
+#' @param scale character indicating if the values should be centred and scaled
+#' in either the row direction or the column direction, or none. Corresponding
+#' values are "row", "column" and "none". (this is a `pheatmap` parameter)
+#' @param ... Additional arguments passed to `pheatmap`.
+#'
+#' @returns Plots a heatmap using `pheatmap`. It can be saved as a `pheatmap`
+#' object.
+#'
+#' @details
+#' The function assumes that the annotations provided in the `loc_annot`
+#' argument are in the same order as the locations within the `SFE` object.
+#' Please make sure this is the case.
+#'
+#' The named list provided in the `loc_annot` argument MUST have the values as
+#' vectors (i.e., `list(annot = vector_of_annotations)`). The
+#' `vector_of_annotations` in the above example MUST have the same length as
+#' the number of locations in the `SFE` object.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname plotHeatmap
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming `sfe` is a valid SFE object
+#' # Assuming there is also cluster information from running `fgwc_STE`
+#'
+#' # Preparing the annotations
+#' loc_annots <- list(cluster = fgwc$cluster,
+#'                    annotation = colData(sfe)$annotation)
+#' # The values provided in the list MUST be vectors.
+#'
+#' # Preparing to order the columns based on cluster number
+#' order_cols <- "cluster"
+#'
+#' plotHeatmap(sfe,
+#'             loc_annot = loc_annots,
+#'             order_col = order_cols)
+#' }
+#'
+#' @export
+plotHeatmap <- function(m_sfe,
+                        sample_id = NULL,
+                        assay = "logcounts",
+                        subset_col = NULL,
+                        subset_row = NULL,
+                        loc_annot = list(),
+                        order_col = NULL,
+                        scale = "row",
+                        ...) {
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Prepare heatmap data
+  data_in <- .int_getGeneHeatmapData(sfe = sfe,
+                                     assay = assay,
+                                     subset_row = subset_row,
+                                     subset_col = subset_col)
+
+  ## Prepare location annotations
+  if (loc_annot != "none") {
+    annots_and_colours <- .int_getAnnotsAndColoursSFE(sfe = sfe,
+                                                      loc_annot = loc_annot,
+                                                      order_col = order_col)
+  } else {
+    annotations_and_colours <- list(annotations = NA, colours = NA)
+  }
+
+  ## Order data input by annotation or cluster
+  if (is.null(order_col)) {
+    cluster_cols = TRUE
+  } else {
+    data_in <- data_in[,rownames(annotations_and_colours$annotations)]
+    cluster_cols = FALSE
+  }
+
+  ## Add labels
+  show_colnames <- ifelse(ncol(data_in) <= 20, TRUE, FALSE)
+  show_rownames <- ifelse(nrow(data_in) <= 50, TRUE, FALSE)
+
+  ## Add custom colours
+  colour <- rev(cols4all::c4a(palette = "brewer.br_bg", n = 9))
+
+  ## Create heatmap of Factor scores
+  pheatmap(data_in,
+           color = colour,
+           scale = scale,
+           cluster_rows = TRUE,
+           cluster_cols = cluster_cols,
+           show_rownames = show_rownames,
+           show_colnames = show_colnames,
+           annotation_col = annots_and_colours$annotations,
+           annotation_colors = annots_and_colours$colours,
+           fontsize_row = 3,
+           ...)
+}
 # ---------------------------------------------------------------------------- #
 #  ############# INTERNAL FUNCTIONS ASSOCIATED WITH MISC PLOTS ##############
 # ---------------------------------------------------------------------------- #
@@ -388,3 +508,111 @@ plotGeneExpression <- function(m_sfe,
 
   return(out)
 }
+
+
+#' Internal: Extract Membership Data
+#'
+#' This function extracts membership data from FGWC output
+#'
+#' @param fgwc fgwc class object as generated by `fgwcSTE`
+#' @param subset_col subset cols (locations) using a boolean vector of length
+#' equal to the number of locations.
+#' @param subset_row subset rows (genes) using a boolean vector of length
+#' equal to the number of genes.
+#'
+#' @returns a data frame of cluster membership %
+#'
+#' @importFrom tidyr drop_na
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getGeneHeatmapData
+#'
+.int_getGeneHeatmapData <- function(sfe, assay, subset_row, subset_col) {
+  df <- SummarizedExperiment::assay(sfe, assay)
+
+  if (!is.null(subset_row)) {
+    df <- df[subset_row,]
+  }
+  if (!is.null(subset_col)) {
+    df <- df[,subset_col]
+  }
+
+  return(df)
+}
+
+
+#' Internal: Get Annotations and Colours
+#'
+#' This function returns annotations label and colours for the heatmap
+#'
+#' @param fgwc gwc class object as generated by `fgwcSTE`
+#' @param loc-annot which annotations to add
+#' @param order_rows order rows based on annotation or cluster
+#'
+#' @returns a list
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getAnnotsAndColours
+#'
+.int_getAnnotsAndColoursSFE <- function(sfe, loc_annot, order_col) {
+  ## Check if loc_annot is empty
+  if (isEmpty(loc_annot)) {
+    if ("annotation" %in% colnames(colData(sfe))) {
+      annotations <- colData(sfe)["annotation"]
+    } else {
+      annotations <- list()
+    }
+  } else {
+    annotations <- as.data.frame(loc_annot)
+    rownames(annotations) <- rownames(colData(sfe))
+  }
+
+  if (!is.null(order_col)) {
+    annotations <- dplyr::arrange(annotations, .data[[order_col]])
+  }
+
+  annot_colours <- lapply(annotations, .int_fetchAnnotColours)
+
+  list(annotations = annotations, colours = annot_colours)
+}
+
+
+#' Internal: Get Colours
+#'
+#' This function returns colours for the annotations. It is intended to work in
+#' an `lapply` setup.
+#'
+#' @param annot annotations vector
+#'
+#' @returns a named vector of colours with annotation labels as names.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_fetchAnnotColours
+#'
+.int_fetchAnnotColours <- function(annot) {
+  ## A list of colours
+  colour_list <- c("#1F78C8", "#FF0000", "#33A02C", "#6A33C2", "#FF7F00",
+                   "#565656", "#FFD900", "#A6CEE3", "#FB6496", "#B2DF8A",
+                   "#CAB2D6", "#FDBF6F", "#999999", "#EEE685", "#C8308C",
+                   "#FFFFFF", "#720055", "#0000FF", "#36648B", "#00E2E5",
+                   "#8B3B00", "#A52A3C", "#FF83FA", "#0000FF", "#00FF00",
+                   "#000033", "#201A01", "#005300", "#FFC000", "#009FFF",
+                   "#00FFBE", "#1F9698", "#B1CC71", "#F1085C", "#FE8F42",
+                   "#766C95", "#02AD24", "#C8FF00", "#886C00", "#FFB79F")
+  ## Fetch unique annotation labels
+  unique_annots <- unique(annot)
+  ## Calculate the number of colours required
+  colour_number <- length(unique_annots)
+  ## Get colours
+  annotation_colours <- colour_list[1:colour_number]
+  ## Match colours to annotation labels
+  names(annotation_colours) <- unique_annots
+  ## Return named character string
+  return(annotation_colours)
+}
+
+
+
+
+
+

@@ -34,9 +34,9 @@ is going to be the same with colour for 50\% in map 3.
 \examples{
 \dontrun{
 # Example usage:
-fgwc_result <- fgwc_nmf(m_sfe, sample_id, top_hvgs, ncomponents = 2,
-ntop = 600)
-plotFGWC_multi(fgwc_result, m_sfe, sample_id)
+fgwc_result <- fgwc_STE(msfe, sample_id, data = sfe_nmf_data, top_hvgs,
+                        ncomponents = 2, ntop = 600)
+plotFGWC_multiMap(fgwc_result, m_sfe, sample_id)
 }
 
 }

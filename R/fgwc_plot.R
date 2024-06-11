@@ -156,9 +156,9 @@ plotFGWC_singleMap <- function(fgwc,
 #' @examples
 #' \dontrun{
 #' # Example usage:
-#' fgwc_result <- fgwc_nmf(m_sfe, sample_id, top_hvgs, ncomponents = 2,
-#' ntop = 600)
-#' plotFGWC_multi(fgwc_result, m_sfe, sample_id)
+#' fgwc_result <- fgwc_STE(msfe, sample_id, data = sfe_nmf_data, top_hvgs,
+#'                         ncomponents = 2, ntop = 600)
+#' plotFGWC_multiMap(fgwc_result, m_sfe, sample_id)
 #' }
 #'
 #' @seealso
@@ -273,6 +273,106 @@ plotFGWC_multiViolin <- function(fgwc, m_sfe, sample_id = NULL) {
 }
 
 
+#' Plot FGWC Membership percentages Heatmap
+#'
+#' This function generates a clustered heatmap of membership % obtained from
+#' FGWC (Fuzzy Geographically Weighted Clustering) analysis. It allows for
+#' optional annotations based on clusters or annotations.
+#'
+#' @param fgwc An object of class `fgwc` containing the results of FGWC
+#' analysis.
+#' @param loc_annot A character string specifying the type of annotations to
+#' include in the heatmap. Possible values are:
+#'   \itemize{
+#'     \item `"annotation"`: Include only the annotation column.
+#'     \item `"cluster"`: Include only the cluster column.
+#'     \item `"both"`: Include both annotation and cluster columns.
+#'     \item `"none"`: Include no annotations.
+#'   }
+#'   Defaults to `"both"`.
+#'
+#' @param order_rows order rows based on annotation or cluster. Possible values
+#' are:
+#'   \itemize{
+#'     \item `"annotation"`: Order by the annotation column (alphabetical).
+#'     \item `"cluster"`: Order by the cluster column (alphabetical).
+#'     \item `"none"`: No ordering annotations (rows are clustered then).
+#'   }
+#'   Defaults to `"none"`.
+#' @param subset_row subset rows (locations) using a boolean vector of length
+#' equal to the number of locations.
+#' @param ... Arguments passed to `pheatmap`.
+#'
+#' @returns A heatmap plot of cluster membership % with optional annotations.
+#' @importFrom dplyr select contains all_of any_of mutate
+#' @importFrom pheatmap pheatmap
+#' @importFrom cols4all c4a
+#'
+#' @author Eleftherios (Lefteris) Zormpas=
+#' @rdname plotFGWC_multiHeatmap
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming `fgwc_object` is a valid FGWC object
+#' plotFGWC_multiHeatmap(fgwc_object, loc_annot = "both")
+#' plotFGWC_multiHeatmap(fgwc_object, loc_annot = "annotation")
+#' plotFGWC_multiHeatmap(fgwc_object, loc_annot = "none")
+#' }
+#'
+#' @export
+plotFGWC_multiHeatmap <- function(fgwc,
+                                  loc_annot = c("annotation", "cluster",
+                                                "both", "none"),
+                                  order_rows = c("annotation", "cluster",
+                                                 "none"),
+                                  subset_row = NULL,
+                                  ...) {
+  ## Check fgwc argument is of class fgwc
+  .int_checkFGWCClass(fgwc)
+
+  ## Assign arguments to default if not provided
+  if (missing(loc_annot)) {
+    loc_annot <- "both"
+  }
+  if (missing(order_rows)) {
+    order_rows <- "none"
+  }
+  scale <- "none" # not yet sure whether the user needs to have power over that
+  colour <- rev(cols4all::c4a(palette = "viridis.viridis", n = 9))
+
+  ## Prepare data for heatmap
+  data_in <- .int_getMembershipData(fgwc = fgwc, subset_row = subset_row)
+
+  ## Prepare location annotations
+  if (loc_annot != "none") {
+    annotations_and_colours <- .int_getAnnotsAndColours(fgwc = fgwc,
+                                                        loc_annot = loc_annot,
+                                                        order_rows = order_rows)
+  } else {
+    annotations_and_colours <- list(annotations = NA, colours = NA)
+  }
+
+  ## Order data input by annotation or cluster
+  if (order_rows == "none") {
+    cluster_rows = TRUE
+  } else {
+    data_in <- data_in[rownames(annotations_and_colours$annotations), ]
+    cluster_rows = FALSE
+  }
+
+  ## Create heatmap of Factor scores
+  pheatmap(data_in,
+           color = colour,
+           scale = scale,
+           cluster_rows = cluster_rows,
+           cluster_cols = TRUE,
+           annotation_row = annotations_and_colours$annotations,
+           annotation_colors = annotations_and_colours$colours,
+           fontsize_row = 3,
+           ...)
+}
+
+
 #' Plot NMF Factors as a Map
 #'
 #' This function plots the Non-Negative Matrix Factorization (NMF) factors as a map.
@@ -343,12 +443,17 @@ plotFGWC_nmfFactorsMap <- function(nmf, m_sfe, sample_id = NULL) {
 #'     \item `"none"`: No ordering annotations (rows are clustered then).
 #'   }
 #'   Defaults to `"none"`.
+#' @param subset_row subset rows (locations) using a boolean vector of length
+#' equal to the number of locations.
 #' @param ... Arguments passed to `pheatmap`.
 #'
 #' @returns A heatmap plot of factor scores with optional annotations.
 #' @importFrom dplyr select contains all_of any_of mutate
 #' @importFrom pheatmap pheatmap
 #' @importFrom cols4all c4a
+#'
+#' @author Eleftherios (Lefteris) Zormpas=
+#' @rdname plotFGWC_nmfFactorsHeatmap
 #'
 #' @examples
 #' \dontrun{
@@ -364,27 +469,36 @@ plotFGWC_nmfFactorsHeatmap <- function(fgwc,
                                                      "both", "none"),
                                        order_rows = c("annotation", "cluster",
                                                       "none"),
+                                       subset_row = NULL,
                                        ...) {
   ## Check fgwc argument is of class fgwc
   .int_checkFGWCClass(fgwc)
 
+  ## Assign arguments to default if not provided
+  if (missing(loc_annot)) {
+    loc_annot <- "both"
+  }
+  if (missing(order_rows)) {
+    order_rows <- "none"
+  }
+
   ## Prepare data for heatmap
-  data_in <- .int_getFactorData(fgwc = fgwc)
+  data_in <- .int_getFactorData(fgwc = fgwc, subset_row = subset_row)
 
   ## Prepare location annotations
   if (loc_annot != "none") {
-    annotations_and_colours <- .int_getAnnotsAndColours(fgwc = fgwc,
-                                                        loc_annot = loc_annot,
-                                                        order_rows = order_rows)
+    annots_and_colours <- .int_getAnnotsAndColoursFGWC(fgwc = fgwc,
+                                                       loc_annot = loc_annot,
+                                                       order_rows = order_rows)
   } else {
-    annotations_and_colours <- list(annotations = NA, colours = NA)
+    annots_and_colours <- list(annotations = NA, colours = NA)
   }
 
   ## Order data input by annotation or cluster
   if (order_rows == "none") {
     cluster_rows = TRUE
   } else {
-    data_in <- data_in[rownames(annotations_and_colours$annotations), ]
+    data_in <- data_in[rownames(annots_and_colours$annotations), ]
     cluster_rows = FALSE
   }
 
@@ -393,8 +507,8 @@ plotFGWC_nmfFactorsHeatmap <- function(fgwc,
            scale = "row",
            cluster_rows = cluster_rows,
            cluster_cols = TRUE,
-           annotation_row = annotations_and_colours$annotations,
-           annotation_colors = annotations_and_colours$colours,
+           annotation_row = annots_and_colours$annotations,
+           annotation_colors = annots_and_colours$colours,
            fontsize_row = 3,
            ...)
 }
@@ -1360,6 +1474,40 @@ plotFGWC_subHeatmap <- function(heatmap,
 }
 
 
+#' Internal: Extract Membership Data
+#'
+#' This function extracts membership data from FGWC output
+#'
+#' @param fgwc fgwc class object as generated by `fgwcSTE`
+#' @param subset_row subset rows (locations) using a boolean vector of length
+#' equal to the number of locations.
+#'
+#' @returns a data frame of cluster membership %
+#'
+#' @importFrom tidyr drop_na
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getMembershipData
+#'
+.int_getMembershipData <- function(fgwc, subset_row) {
+  df <- fgwc$membership %>%
+    as.data.frame()
+
+  colnames(df) <- sprintf("Cluster%0d", 1:ncol(df))
+  rownames(df) <- rownames(fgwc$finaldata)
+
+  if (!is.null(subset_row)) {
+    df <- df[subset_row,]
+
+    ## in case there are NAs in the annotation
+    df <- df %>%
+      tidyr::drop_na()
+  }
+
+  return(df)
+}
+
+
 #' Internal Function: generate data for NMF factor scores
 #'
 #' This function generates data suitable for plotting FFGWC results as violins.
@@ -1875,15 +2023,27 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' This function extracts factor data from FGWC output
 #'
 #' @param fgwc fgwc class object as generated by `fgwcSTE`
+#' @param subset_row subset rows (locations) using a boolean vector of length
+#' equal to the number of locations.
 #'
 #' @returns a data frame of NMF factors
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #' @rdname dot-int_getFactorData
 #'
-.int_getFactorData <- function(fgwc) {
-  fgwc$finaldata %>%
+.int_getFactorData <- function(fgwc, subset_row) {
+  df <- fgwc$finaldata %>%
     dplyr::select(contains("Factor"))
+
+  if (!is.null(subset_row)) {
+    df <- df[subset_row,]
+
+    ## in case there are NAs in the annotation
+    df <- df %>%
+      tidyr::drop_na()
+  }
+
+  return(df)
 }
 
 
@@ -1898,9 +2058,9 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' @returns a list
 #'
 #' @author Eleftherios (Lefteris) Zormpas
-#' @rdname dot-int_getAnnotsAndColours
+#' @rdname dot-int_getAnnotsAndColoursFGWC
 #'
-.int_getAnnotsAndColours <- function(fgwc, loc_annot, order_rows) {
+.int_getAnnotsAndColoursFGWC <- function(fgwc, loc_annot, order_rows) {
   annotations <- fgwc$finaldata %>%
     dplyr::select(dplyr::any_of(c("cluster", "annotation"))) %>%
     dplyr::mutate(cluster = as.factor(cluster))
