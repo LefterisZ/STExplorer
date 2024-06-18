@@ -7,7 +7,7 @@
 plotQC_tissueImg(
   sfe,
   res = c("lowres", "hires", "fullres"),
-  type = c("spot", "hex", "none"),
+  type = c("spot", "hex", "cntd", "none"),
   sample_id = NULL,
   fill_args = list(),
   annotate = FALSE,

@@ -5,8 +5,8 @@
 #' customization.
 #'
 #' @param sfe A SpatialFeatureExperiment object.
-#' @param type Character vector specifying the spot type, either "spot" or
-#' "hex".
+#' @param type Character vector specifying the spot type, either "spot", "cntd"
+#' or "hex".
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
 #' identifier(s). TRUE  equivalent to all samples/images, and NULL specifies
 #' the first available entry.
@@ -22,9 +22,10 @@
 #' @details
 #' This function plots the quality control of spots in a
 #' SpatialFeatureExperiment. It provides options for different spot types
-#' (spot or hex) and customisation. The in_tissue argument controls whether to
-#' consider only spots in tissue. The colours argument allows users to
-#' customise spot colours, and y_reverse can be used to reverse the y-axis.
+#' (spot or hexagon or centroid) and customisation. The in_tissue argument
+#' controls whether to consider only spots in tissue. The colours argument
+#' allows users to customise spot colours, and y_reverse can be used to reverse
+#' the y-axis.
 #'
 #' @seealso
 #' Explore the related internal functions: \code{\link{.int_getSmplIDs}},
@@ -45,7 +46,7 @@
 #'
 #' @export
 plotQC_spots <- function(sfe,
-                         type = c("spot", "hex"),
+                         type = c("spot", "hex", "cntd"),
                          sample_id = NULL,
                          in_tissue = TRUE,
                          colours = NULL,
@@ -60,6 +61,12 @@ plotQC_spots <- function(sfe,
   if (type == "hex") {
     stopifnot("spotHex" %in% names(colGeometries(sfe)))
   }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+  }
 
   ## Get the number of unique samples
   ids <- .int_getSmplIDs(sfe = sfe, sample_id = sample_id)
@@ -72,6 +79,9 @@ plotQC_spots <- function(sfe,
   } else if (type == "hex") {
     p <- .int_plotHex(sfe = sfe, in_tissue = in_tissue,
                       n_samples = n_samples, colours = colours, ids = ids)
+  } else if (type == "cntd") {
+    p <- .int_plotCntd(sfe = sfe, in_tissue = in_tissue,
+                       n_samples = n_samples, colours = colours, ids = ids)
   }
 
   ## Add facet_wrap if there are multiple samples
@@ -101,8 +111,8 @@ plotQC_spots <- function(sfe,
 #' SpatialFeatureExperiment, including annotation information.
 #'
 #' @param m_sfe A SpatialFeatureExperiment object.
-#' @param type Character vector specifying the spot type, either "spot" or
-#' "hex".
+#' @param type Character vector specifying the spot type, either "spot", "cntd
+#' or "hex".
 #' @param fill_args List of arguments to customize the fill scale. Default is
 #' an empty list.
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
@@ -120,8 +130,8 @@ plotQC_spots <- function(sfe,
 #' This function plots the quality control of spots in a
 #' SpatialFeatureExperiment, including annotation information.
 #'
-#' Users can specify the spot type (spot or hex) and customize the fill scale
-#' for annotation.
+#' Users can specify the spot type (spots, centroids, or hexagons) and
+#' customise the fill scale for annotation.
 #'
 #' The colours argument allows users to customize annotation colours, and
 #' additional arguments (...) can be passed to the underlying plotting
@@ -149,7 +159,7 @@ plotQC_spots <- function(sfe,
 #' @export
 plotQC_spotsAnnotation <- function(m_sfe,
                                    sample_id = NULL,
-                                   type = c("spot", "hex"),
+                                   type = c("spot", "hex", "cntd"),
                                    fill_args = list(),
                                    colours = NULL,
                                    ...) {
@@ -161,6 +171,12 @@ plotQC_spotsAnnotation <- function(m_sfe,
   type <- match.arg(type)
   if (type == "hex") {
     stopifnot("spotHex" %in% names(colGeometries(sfe)))
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
   }
 
   ## Get the number of unique samples
@@ -266,7 +282,7 @@ plotQC_spotsAnnotation <- function(m_sfe,
 #' @export
 plotQC_tissueImg <- function(sfe,
                              res = c("lowres", "hires", "fullres"),
-                             type = c("spot", "hex", "none"),
+                             type = c("spot", "hex", "cntd", "none"),
                              sample_id = NULL,
                              fill_args = list(),
                              annotate = FALSE,
@@ -282,6 +298,12 @@ plotQC_tissueImg <- function(sfe,
   res <- match.arg(res)
   if (type == "hex") {
     stopifnot("spotHex" %in% names(colGeometries(sfe)))
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
   }
 
   ## Fetch image data and transform to raster
@@ -569,8 +591,8 @@ plotQC_scat <- function(sfe,
 #'              data.
 #' @param sample_id A character string specifying the sample ID for
 #'                  analysis. If NULL the first sample is selected.
-#' @param type Character vector specifying the spot type, either "spot" or
-#'             "hex".
+#' @param type Character vector specifying the spot type, either "spot", "cntd"
+#'             or "hex".
 #' @param metric Character vector specifying the metric, either "libsize",
 #'               "mito", "detected", or custom. If custom is selected then you
 #'               have to provide the `metric_name` and `metric_lab` arguments
@@ -625,7 +647,7 @@ plotQC_map <- function(m_sfe,
                        metric = c("libsize", "mito",
                                   "detected", "cellCount", "custom"),
                        sample_id = NULL,
-                       type = c("spot", "hex"),
+                       type = c("spot", "hex", "cntd"),
                        colours = c("viridis", "custom"),
                        col_args = list(),
                        metric_name = NULL,
@@ -641,10 +663,15 @@ plotQC_map <- function(m_sfe,
   if (type == "hex") {
     stopifnot("spotHex" %in% names(colGeometries(sfe)))
     type <- "spotHex"
-  } else if (type == "spot") {
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
     type <- "spotPoly"
   }
-
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "spotCntd"
+  }
   ## Check valid metric argument
   metric <- match.arg(metric)
 
@@ -679,16 +706,33 @@ plotQC_map <- function(m_sfe,
   }
 
   ## Generate plot
-  p <- ggplot(data) + ggplot2::geom_sf(aes(geometry = geometry, fill = fill))
+  if (type %in% c("spotPoly", "spotHex")) {
+    p <- ggplot(data) + ggplot2::geom_sf(aes(geometry = geometry,
+                                             fill = fill)) +
+      ggplot2::labs(fill = lab_fill)
+  } else {
+    p <- ggplot(data) + ggplot2::geom_sf(aes(geometry = geometry,
+                                             colour = fill),
+                                         size = 0.5) +
+      ggplot2::labs(colour = lab_fill)
+  }
 
   if (colours == "viridis") {
-    p <- p + do.call(scale_fill_viridis_c, c(list(), col_args))
+    if (type == "spotCntd") {
+      p <- p + do.call(scale_colour_viridis_c, c(list(), col_args))
+    } else {
+      p <- p + do.call(scale_fill_viridis_c, c(list(), col_args))
+    }
+
   } else if (colours == "custom") {
-    p <- p + do.call(scale_fill_gradientn, c(list(), col_args))
+    if (type == "spotCntd") {
+      p <- p + do.call(scale_colour_gradientn, c(list(), col_args))
+    } else {
+      p <- p + do.call(scale_fill_gradientn, c(list(), col_args))
+    }
   }
 
    p +
-     ggplot2::labs(fill = lab_fill) +
      ggplot2::coord_sf() +
      ggplot2::theme_void()
 }
@@ -909,7 +953,7 @@ plotQC_sizeFactors <- function(sfe,
 #'
 #' @details This function combines sample metadata with spatial coordinates and
 #' creates a plot using ggplot2.
-#' The plot can be customized based on the input parameters.
+#' The plot can be customised based on the input parameters.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -953,6 +997,77 @@ plotQC_sizeFactors <- function(sfe,
     ggplot2::theme(legend.position = "right") +
     ggplot2::labs(title = "Spatial coordinates",
                   fill = fill)
+
+  ## Add geom_sf
+  ## - for an unknown reason, when the geom_sf() is added inside the above it
+  ##   throws an error
+  p <- p + do.call(geom_sf, c(list(data = data, lwd = 0), geomSF_args))
+
+  return(p)
+}
+
+
+#' Internal Function: .int_plotCntd
+#'
+#' Generates a ggplot2 plot of spatial coordinates for spots with
+#' optional colour customisation.
+#'
+#' @param sfe A SpatialFeatureExperiment object.
+#' @param in_tissue Logical. If TRUE, plot only in-tissue spots; if FALSE,
+#' plot all spots.
+#' @param n_samples Number of samples in the dataset.
+#' @param colours Vector of colours for filling the spots. If NULL, default
+#' colours are used.
+#' @param ids Vector of sample IDs to include in the plot.
+#'
+#' @return Returns a ggplot2 plot object.
+#'
+#' @details This function combines sample metadata with spatial coordinates and
+#' creates a plot using ggplot2.
+#' The plot can be customised based on the input parameters.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @keywords internal
+#'
+#' @rdname dot-int_plotCntd
+#'
+.int_plotCntd <- function(sfe, in_tissue, n_samples, colours, ids) {
+  ## Put together the data
+  data <- data.frame(sample_id = colData(sfe)$sample_id,
+                     in_tissue = colData(sfe)$in_tissue,
+                     geometry = colGeometries(sfe)$spotCntd$geometry) %>%
+    dplyr::filter(.data$sample_id %in% ids)
+
+  ## Select arguments and data for in-tissue spots plot only or all spots
+  if (in_tissue) {
+    data <- data[data$in_tissue, ]
+    colour <- "Sample ID"
+    geomSF_args <- list(aes(geometry = data$geometry, colour = data$sample_id))
+    if (is.null(colours)) {
+      colours <- getColours(n_samples)
+    } else {
+      colours <- colours
+    }
+
+  } else {
+    colour <- "In tissue"
+    geomSF_args <- list(aes(geometry = data$geometry, colour = data$in_tissue))
+    if (is.null(colours)) {
+      colours <- c("#1F78C8", "#FF0000")
+    } else {
+      colours <- colours
+    }
+  }
+
+  ## Create the ggplot object
+  p <- ggplot2::ggplot() +
+    ggplot2::scale_colour_manual(values = colours) +
+    ggplot2::coord_fixed() +
+    ggplot2::theme_void() +
+    ggplot2::theme(legend.position = "right") +
+    ggplot2::labs(title = "Spatial coordinates",
+                  colour = colour)
 
   ## Add geom_sf
   ## - for an unknown reason, when the geom_sf() is added inside the above it

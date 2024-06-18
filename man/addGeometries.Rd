@@ -9,6 +9,7 @@ addGeometries(
   samples,
   sample_id,
   res = c("lowres", "hires", "fullres"),
+  geoms = c("centroids", "hexagons", "both"),
   flipped = FALSE,
   barcodes = "all"
 )
@@ -27,6 +28,11 @@ the names of samples are not null (!is.null(names(samples))).}
 
 \item{res}{The desired resolution. Can take one of "lowres", "hires",
 or "fullres".}
+
+\item{geoms}{A character string specifying the geometry types to be
+generated. It has to be one of \code{centroids}, \code{hexagons}, or \code{both}. If left
+empty, defaults to \code{both}. We suggest you leave it empty unless you are
+analysing Curio Seeker (Slide-seq) data.}
 
 \item{flipped}{Default is FALSE. This argument is important for 10X Visium
 data. See details below.}

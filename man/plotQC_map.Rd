@@ -8,7 +8,7 @@ plotQC_map(
   m_sfe,
   metric = c("libsize", "mito", "detected", "cellCount", "custom"),
   sample_id = NULL,
-  type = c("spot", "hex"),
+  type = c("spot", "hex", "cntd"),
   colours = c("viridis", "custom"),
   col_args = list(),
   metric_name = NULL,
@@ -29,8 +29,8 @@ too.}
 \item{sample_id}{A character string specifying the sample ID for
 analysis. If NULL the first sample is selected.}
 
-\item{type}{Character vector specifying the spot type, either "spot" or
-"hex".}
+\item{type}{Character vector specifying the spot type, either "spot", "cntd"
+or "hex".}
 
 \item{colours}{One of "viridis" or "custom". Select between Viridis' package
 colour schemes and custom colours provided by you. IMPORTANT:

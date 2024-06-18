@@ -251,7 +251,7 @@ de_markers <- FindMarkers(seu, ident.1 = 5, ident.2 = 6)
 ```
 
 
-## Analysis: FGWC - Seurat input
+## Analysis: scran
 ```{r stexplorer-load}
 library(STExplorer)
 library(SummarizedExperiment)
@@ -490,7 +490,7 @@ foreach(ncomp = 1:length(sfe_nmf_seuIn)) %dopar% {
 }
 ```
 
-## Analysis: FGWC - STExplorer input
+## Analysis: STExplorer
 ```{r stexplorer-load}
 library(STExplorer)
 library(readr)

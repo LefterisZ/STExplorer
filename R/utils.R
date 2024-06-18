@@ -280,6 +280,155 @@ getGradients <- function(colours, steps) {
 }
 
 
+#' Read data from a Curio Seeker (Slide-seq) experiment
+#'
+#' Reads spatial transcriptomics data from specified directory paths and
+#' formats it into a `SpatialFeatureExperiment` object. This function supports
+#' data in AnnData, Seurat, or CSV formats.
+#'
+#' @param samples A character vector specifying one or more directories, each
+#'        corresponding to a 10x Genomics Visium sample. These directories
+#'        should contain the count data files in one of the supported formats
+#'        (AnnData, Seurat, CSV). If the `samples` parameter is named, those
+#'        names will be used as sample identifiers.
+#' @param sample_id A character vector specifying unique sample identifiers,
+#'        one for each directory specified via `samples`. This parameter is
+#'        ignored if `samples` is a named vector.
+#' @param fileType A character string specifying the type of format to read
+#'        count data from. Possible values are "AnnData", "Seurat", and "CSV".
+#'        Defaults to the first element of the vector ("AnnData", "Seurat",
+#'        "CSV"). More info in the details section below.
+#'
+#' @details
+#' The function processes directories specified in the `samples` parameter, each
+#' expected to represent a sample in the spatial transcriptomics experiment.
+#' Based on the `fileType` parameter, the function looks for specific data
+#' files:
+#' \itemize{
+#'   \item \strong{AnnData}: Looks for `.h5ad` files containing the count
+#'         matrix, feature data, and spatial coordinates.
+#'   \item \strong{Seurat}: Expects `.rds` files which are R serialised objects
+#'         of Seurat objects containing similar data as above.
+#'   \item \strong{CSV}: Reads raw CSV files for counts, and TSV
+#'         files for barcodes and features, along with a CSV for spatial
+#'         coordinates. The counts csv MUST include `counts.csv` in its name.
+#' }
+#'
+#' For `AnnData` format, the function  uses the `anndata` package to load the
+#' data.
+#'
+#' For `Seurat` format, it expects a Seurat object with counts in
+#' `obj@assays$RNA@counts`, and spatial coordinates in
+#' `obj@images$slice1@coordinates`.
+#'
+#' For `CSV` format, it expects files that contain a `counts.csv` in their name
+#' for the counts matrix, `barcodes.tsv` for barcode names, `genes.tsv` for
+#' feature names, and `MatchedBeadLocation.csv` for spatial coordinates.
+#'
+#' @return A `SpatialFeatureExperiment` object containing the spatial
+#'         transcriptomics data with counts, spatial coordinates, and feature
+#'         data.
+#'
+#' @importFrom dplyr mutate
+#' @importFrom tibble rownames_to_column
+#' @importFrom utils read.csv
+#' @importFrom SpatialFeatureExperiment SpatialFeatureExperiment
+#' @importFrom anndata read_h5ad
+#' @importFrom Matrix as.matrix
+#'
+#' @examples
+#' \dontrun{
+#'   sfe <- readCurioSeeker(samples = c("sample1/", "sample2/"),
+#'                          sample_id = c("sample1", "sample2"),
+#'                          fileType = "AnnData")
+#' }
+#'
+#' @export
+#' @param samples a character vector specifying one or more directories, each
+#' corresponding to a 10x Genomics Visium sample (see Details); if provided,
+#' names will be used as sample identifiers
+#' @param sample_id character string specifying unique sample identifiers, one
+#' for each directory specified via samples; ignored if !is.null(names(samples))
+#' @param fileType character string specifying the type of format to read count
+#' data from. One of (AnnData, Seurat, CSV).
+#'
+readCurioSeeker <- function(samples,
+                            sample_id,
+                            fileType = c("AnnData", "Seurat", "CSV")) {
+  if (fileType == "AnnData") {
+    filePath <- .int_findFileWithRegex(directory = samples,
+                                       pattern = "anndata|h5ad")
+    obj <- anndata::read_h5ad(filename = filePath)
+
+    ## Format counts table
+    counts <- obj$X %>% Matrix::as.matrix(sparse = TRUE) %>%
+      t() %>%
+      as(Class = "dgCMatrix")
+
+    ## Load coordinates
+    coords <- obj$obsm$X_spatial %>%
+      as.data.frame() %>%
+      dplyr::mutate("Barcode" = rownames(obj))
+    colnames(coords) <- c("x", "y", "Barcode")
+
+    ## Create rowData
+    rowData <- data.frame(symbol = colnames(obj))
+
+  } else if (fileType == "Seurat") {
+    filePath <- .int_findFileWithRegex(directory = samples,
+                                       pattern = "seurat|rds")
+    obj <- readRDS(filePath)
+
+    ## Format counts table
+    counts <- obj@assays$RNA@counts
+
+    ## Load coordinates
+    coords <- obj@images$slice1@coordinates %>%
+      rownames_to_column(var = "Barcode")
+
+    ## Create rowData
+    rowData <- data.frame(symbol = rownames(obj))
+
+  } else if (fileType == "CSV") {
+    filePath <- .int_findFileWithRegex(directory = samples,
+                                       pattern = "counts.csv")
+    filePath_barcodes <- .int_findFileWithRegex(directory = samples,
+                                                pattern = "barcodes.tsv")
+    filePath_features <- .int_findFileWithRegex(directory = samples,
+                                                pattern = "genes.tsv")
+    filePath_coords <- .int_findFileWithRegex(directory = samples,
+                                              pattern = "MatchedBeadLocation.csv")
+
+    ## Load and format counts table
+    barcodes <- read.table(filePath_barcodes)[,1]
+    features <- read.table(filePath_features)[,1]
+    counts <- read.csv(filePath, header = TRUE)
+    count_dims <- dim(counts)
+    if (count_dims[1] == length(barcodes)) {
+      counts <- t(counts)
+    }
+    rownames(counts) <- features
+    colnames(counts) <- barcodes
+
+    ## Load coordinates
+    coords <- read.csv(filePath_coords, header = TRUE)
+    colnames(coords) <- c("Barcode", "x", "y")
+
+    ## Create rowData
+    rowData <- data.frame(symbol = features)
+  }
+
+  sfe_out <- SpatialFeatureExperiment(list(counts = counts),
+                                      colData = coords,
+                                      rowData = rowData,
+                                      sample_id = sample_id,
+                                      spatialCoordsNames = c("x", "y"),
+                                      spotDiameter = NA_real_,
+                                      annotGeometryType = "POINT")
+
+  return(sfe_out)
+}
+
 # ---------------------------------------------------------------------------- #
 #  ########## INTERNAL FUNCTIONS ASSOCIATED WITH DISTANCE MATRIX ############
 # ---------------------------------------------------------------------------- #
@@ -419,5 +568,36 @@ getGradients <- function(colours, steps) {
     return(paste0("0", x))
   } else {
     return(as.character(x))
+  }
+}
+
+
+#' Internal: Find a file in a directory using regex
+#'
+#' This function returns the pathway for a file using regex
+#'
+#' @param directory character string. The directory.
+#' @param pattern character string. The regex pattern.
+#'
+#' @rdname dot-int_findFileWithRegex
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+.int_findFileWithRegex <- function(directory, pattern) {
+  # List all files in the directory
+  files <- list.files(directory, full.names = TRUE)
+
+  # Use grep to filter files that match the regex pattern
+  matched_files <- grep(pattern, files, value = TRUE)
+
+  # Check if any files matched
+  if (length(matched_files) > 0) {
+    # Normalize the path (optional, depending on your needs)
+    matched_files <- normalizePath(matched_files)
+    # Return the first matched file path
+    return(matched_files[1])
+  } else {
+    # No file matched the pattern
+    message("No file matching the pattern found.")
+    return(NULL)
   }
 }

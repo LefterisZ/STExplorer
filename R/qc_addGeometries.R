@@ -17,6 +17,11 @@
 #' one for each directory specified via samples. This parameter is ignored if
 #' the names of samples are not null (!is.null(names(samples))).
 #'
+#' @param geoms A character string specifying the geometry types to be
+#' generated. It has to be one of `centroids`, `hexagons`, or `both`. If left
+#' empty, defaults to `both`. We suggest you leave it empty unless you are
+#' analysing Curio Seeker (Slide-seq) data.
+#'
 #' @param res The desired resolution. Can take one of "lowres", "hires",
 #' or "fullres".
 #'
@@ -69,6 +74,7 @@ addGeometries <- function(m_sfe,
                           samples,
                           sample_id,
                           res = c("lowres", "hires", "fullres"),
+                          geoms = c("centroids", "hexagons", "both"),
                           flipped = FALSE,
                           barcodes = "all") {
   ## Check SFE or MSFE?
@@ -76,26 +82,48 @@ addGeometries <- function(m_sfe,
 
   ## Check arguments
   res <- match.arg(res)
+  if (missing(geoms)) {
+    geoms <- "both"
+  }
+
+  ## Determine which geoms to calculate based on the geoms argument
+  if (geoms == "centroids") {
+    doCentroids <- TRUE
+    doHexagons <- FALSE
+  } else if (geoms == "hexagons") {
+    doCentroids <- FALSE
+    doHexagons <- TRUE
+  } else if (geoms == "both") {
+    doCentroids <- TRUE
+    doHexagons <- TRUE
+  } else {
+    stop("Invalid parameter value. Please use 'centroids',",
+         " 'hexagons', or 'both'.")
+  }
 
   ## Add Centroids
-  sfe <- add.spotCntd(sfe,
-                      sample_id = sample_id)
+  if (doCentroids) {
+    sfe <- add.spotCntd(sfe,
+                        sample_id = sample_id)
+  }
 
-  ## Get/ calculate spot diameter
-  sfe <- spot.diameter(sfe = sfe,
+  if (doHexagons) {
+    ## Get/ calculate spot diameter
+    sfe <- spot.diameter(sfe = sfe,
+                         samples = samples,
+                         sample_id = sample_id,
+                         res = res)
+
+    ## Add Hexagons
+    # NOTE: need to change the way hexagons are generated to accommodate
+    #       instances where a user has an already pre-processed sfe object.
+    sfe <- add.spotHex(sfe = sfe,
                        samples = samples,
                        sample_id = sample_id,
-                       res = res)
-
-  ## Add Hexagons
-  # NOTE: need to change the way hexagons are generated to accommodate
-  #       instances where a user has an already pre-processed sfe object.
-  sfe <- add.spotHex(sfe = sfe,
-                     samples = samples,
-                     sample_id = sample_id,
-                     res = res,
-                     flipped = flipped,
-                     barcodes = barcodes)
+                       res = res,
+                       flipped = flipped,
+                       barcodes = barcodes)
+  }
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)

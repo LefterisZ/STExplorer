@@ -7,7 +7,7 @@
 plotQC_spotsAnnotation(
   m_sfe,
   sample_id = NULL,
-  type = c("spot", "hex"),
+  type = c("spot", "hex", "cntd"),
   fill_args = list(),
   colours = NULL,
   ...
@@ -20,8 +20,8 @@ plotQC_spotsAnnotation(
 identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
 the first available entry.}
 
-\item{type}{Character vector specifying the spot type, either "spot" or
-"hex".}
+\item{type}{Character vector specifying the spot type, either "spot", "cntd
+or "hex".}
 
 \item{fill_args}{List of arguments to customize the fill scale. Default is
 an empty list.}
@@ -44,8 +44,8 @@ SpatialFeatureExperiment, including annotation information.
 This function plots the quality control of spots in a
 SpatialFeatureExperiment, including annotation information.
 
-Users can specify the spot type (spot or hex) and customize the fill scale
-for annotation.
+Users can specify the spot type (spots, centroids, or hexagons) and
+customise the fill scale for annotation.
 
 The colours argument allows users to customize annotation colours, and
 additional arguments (...) can be passed to the underlying plotting

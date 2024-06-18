@@ -6,7 +6,7 @@
 \usage{
 plotQC_spots(
   sfe,
-  type = c("spot", "hex"),
+  type = c("spot", "hex", "cntd"),
   sample_id = NULL,
   in_tissue = TRUE,
   colours = NULL,
@@ -16,8 +16,8 @@ plotQC_spots(
 \arguments{
 \item{sfe}{A SpatialFeatureExperiment object.}
 
-\item{type}{Character vector specifying the spot type, either "spot" or
-"hex".}
+\item{type}{Character vector specifying the spot type, either "spot", "cntd"
+or "hex".}
 
 \item{sample_id}{Character string, TRUE, or NULL specifying sample/image
 identifier(s). TRUE  equivalent to all samples/images, and NULL specifies
@@ -43,9 +43,10 @@ customization.
 \details{
 This function plots the quality control of spots in a
 SpatialFeatureExperiment. It provides options for different spot types
-(spot or hex) and customisation. The in_tissue argument controls whether to
-consider only spots in tissue. The colours argument allows users to
-customise spot colours, and y_reverse can be used to reverse the y-axis.
+(spot or hexagon or centroid) and customisation. The in_tissue argument
+controls whether to consider only spots in tissue. The colours argument
+allows users to customise spot colours, and y_reverse can be used to reverse
+the y-axis.
 }
 \examples{
 # Example usage:

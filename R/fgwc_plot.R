@@ -541,7 +541,7 @@ plotFGWC_nmfMetagenesHeatmap <- function(fgwc, ...) {
   .int_checkFGWCClass(fgwc)
 
   ## Prepare data for heatmap
-  data_in <- .int_getFactorData(fgwc = fgwc)
+  data_in <- .int_getMetageneData(fgwc = fgwc)
 
   ## Create heatmap of Metagene scores
   pheatmap(data_in,
@@ -2037,11 +2037,11 @@ plotFGWC_subHeatmap <- function(heatmap,
 
   if (!is.null(subset_row)) {
     df <- df[subset_row,]
-
-    ## in case there are NAs in the annotation
-    df <- df %>%
-      tidyr::drop_na()
   }
+
+  ## in case there are NAs in the annotation
+  df <- df %>%
+    tidyr::drop_na()
 
   return(df)
 }
