@@ -152,15 +152,27 @@ computeLibSizeFactors.MetaSpatialFeatureExperiment <-
 #' one for each directory specified via samples. This parameter is ignored if
 #' the names of samples are not null (!is.null(names(samples))).
 #' @param method The normalisation method to be applied. Currently, only "log"
-#' transformation is supported.
+#' and "log2_t" transformations are supported. More in details.
+#' @param assay.type Character string. The counts assay name to use. Defaults
+#' to "counts"
 #' @param ... Additional arguments to be passed to the normalisation function.
 #'
 #' @return A normalised SpatialFeatureExperiment object.
 #'
 #' @details The function normalises counts in a spatial transcriptomics
-#' experiment using specified methods. Currently, only the "log" transformation
-#' method is supported. Additional arguments can be passed to the underlying
-#' normalisation function.
+#' experiment using specified methods. Currently, only the "log" and "log2_t"
+#' transformation methods are supported. Additional arguments can be passed to
+#' the underlying normalisation function.
+#'
+#' "log" is using `scater::logNormCounts` which normalises for library size and
+#' log2-transforms the gene counts.
+#'
+#' "log2_t" is NOT normalising for library sizes but simply log2-transforms the
+#' gene counts using the log2(counts + 1) formula. This was implemented after
+#' Bhuva, et al., 2024, published that library size confounds biology in
+#' spatial transcriptomics data. (https://doi.org/10.1186/s13059-024-03241-7).
+#' We suggest to use it when you are trying to identify spatial domains. Use
+#' the "log" method when trying to find differences between clusters or domains.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
@@ -178,7 +190,8 @@ computeLibSizeFactors.MetaSpatialFeatureExperiment <-
 #' @export
 normaliseCounts <- function(m_sfe,
                             sample_id,
-                            method = c("log"),
+                            method = c("log", "log2_t"),
+                            assay.type = "counts",
                             ...) {
   UseMethod("normaliseCounts")
 }
@@ -186,7 +199,9 @@ normaliseCounts <- function(m_sfe,
 #' @rdname normaliseCounts
 #' @export
 normaliseCounts.SpatialFeatureExperiment <- function(m_sfe,
-                                                     method = c("log"),
+                                                     method = c("log",
+                                                                "log2_t"),
+                                                     assay.type = "counts",
                                                      ...) {
   ## Check valid method argument
   if (missing(method)) {
@@ -196,7 +211,10 @@ normaliseCounts.SpatialFeatureExperiment <- function(m_sfe,
   }
 
   if (method == "log") {
-    m_sfe <- scater::logNormCounts(m_sfe, ...)
+    m_sfe <- scater::logNormCounts(m_sfe, assay.type = assay.type, ...)
+
+  } else if (method == "log2_t") {
+    m_sfe <- .int_logTransformCounts(m_sfe, assay.type = assay.type)
   }
 
   return(m_sfe)
@@ -205,7 +223,9 @@ normaliseCounts.SpatialFeatureExperiment <- function(m_sfe,
 #' @rdname normaliseCounts
 #' @export
 normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
-                                                         method = c("log"),
+                                                         method = c("log",
+                                                                    "log2_t"),
+                                                         assay.type = "counts",
                                                          ...) {
   ## Check valid method argument
   if (missing(method)) {
@@ -215,7 +235,14 @@ normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
   }
 
   if (method == "log") {
-    m_sfe@sfe_data <- lapply(msfe@sfe_data, scater::logNormCounts, ...)
+    m_sfe@sfe_data <- lapply(msfe@sfe_data,
+                             scater::logNormCounts,
+                             assay.type = assay.type, ...)
+
+  } else if (method == "log2_t") {
+    m_sfe@sfe_data <- lapply(msfe@sfe_data,
+                             .int_logTransformCounts,
+                             assay.type = assay.type)
   }
 
   return(m_sfe)
@@ -346,3 +373,31 @@ normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
 .int_msfeCompSizeFact <- function(sfe, ...) {
   scater::computeLibraryFactors(sfe, ...)
 }
+
+
+#' Internal: Only Log2-transform gene counts
+#'
+#' This function is transforming gene counts using log2(counts + 1). It does
+#' NOT use library sizes to normalise the data.
+#'
+#' @param sfe A A SpatialFeatureExperiment object.
+#' @param assay.type Character string. The counts assay name to use. Defaults
+#' to "counts"
+#'
+#' @importFrom SummarizedExperiment assay
+#'
+#' @return An SFE object with a new counts table named "unNormLogCounts".
+#'
+#' @rdname dot-int_logTransformCounts
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+.int_logTransformCounts <- function(sfe, assay.type = "counts") {
+  ## Extract counts
+  counts <- assay(sfe, assay.type)
+  ## Add new assay
+  log2_t_counts <- as(log1p(counts)/log(2), Class = "dgCMatrix")
+  assay(sfe, "unNormLogCounts") <- log2_t_counts
+  ## Return updated SFE
+  sfe
+}
+

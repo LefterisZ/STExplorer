@@ -4,7 +4,7 @@
 \alias{.int_dataToPlot}
 \title{Internal Function: .int_dataToPlot}
 \usage{
-.int_dataToPlot(sfe, ids, fill)
+.int_dataToPlot(sfe, ids, fill, type)
 }
 \arguments{
 \item{sfe}{A SpatialFeatureExperiment object.}
@@ -12,6 +12,8 @@
 \item{ids}{Vector of sample IDs to include in the plot.}
 
 \item{fill}{Variable used for filling the spots in the plot.}
+
+\item{type}{Acharacter string indicating the geometries to use.}
 }
 \value{
 Returns a data frame suitable for generating spatial plots.

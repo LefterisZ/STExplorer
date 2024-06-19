@@ -2,17 +2,34 @@
 % Please edit documentation in R/hvgs.R
 \name{modelGeneVariance}
 \alias{modelGeneVariance}
+\alias{modelGeneVariance.SpatialFeatureExperiment}
+\alias{modelGeneVariance.MetaSpatialFeatureExperiment}
 \title{Model Gene Variance}
 \usage{
 modelGeneVariance(
-  msfe,
+  m_sfe,
+  sample_id,
+  method = c("Var", "VarPoisson", "VarSpikes", "CV2", "CV2Spikes"),
+  ...
+)
+
+\method{modelGeneVariance}{SpatialFeatureExperiment}(
+  m_sfe,
+  sample_id = NULL,
+  method = c("Var", "VarPoisson", "VarSpikes", "CV2", "CV2Spikes"),
+  ...
+)
+
+\method{modelGeneVariance}{MetaSpatialFeatureExperiment}(
+  m_sfe,
   sample_id,
   method = c("Var", "VarPoisson", "VarSpikes", "CV2", "CV2Spikes"),
   ...
 )
 }
 \arguments{
-\item{msfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
+object.}
 
 \item{sample_id}{Either a logical vector indicating the samples to include
 (if TRUE, all samples are included), or a character vector specifying the

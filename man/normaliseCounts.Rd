@@ -6,11 +6,17 @@
 \alias{normaliseCounts.MetaSpatialFeatureExperiment}
 \title{Normalise Counts in a Spatial Transcriptomics Experiment}
 \usage{
-normaliseCounts(m_sfe, sample_id, method = c("log"), ...)
+normaliseCounts(
+  m_sfe,
+  sample_id,
+  method = c("log", "log2_t"),
+  assay.type = "counts",
+  ...
+)
 
-\method{normaliseCounts}{SpatialFeatureExperiment}(m_sfe, method = c("log"), ...)
+\method{normaliseCounts}{SpatialFeatureExperiment}(m_sfe, method = c("log", "log2_t"), assay.type = "counts", ...)
 
-\method{normaliseCounts}{MetaSpatialFeatureExperiment}(m_sfe, method = c("log"), ...)
+\method{normaliseCounts}{MetaSpatialFeatureExperiment}(m_sfe, method = c("log", "log2_t"), assay.type = "counts", ...)
 }
 \arguments{
 \item{m_sfe}{An object of class SpatialFeatureExperiment or
@@ -21,7 +27,10 @@ one for each directory specified via samples. This parameter is ignored if
 the names of samples are not null (!is.null(names(samples))).}
 
 \item{method}{The normalisation method to be applied. Currently, only "log"
-transformation is supported.}
+and "log2_t" transformations are supported. More in details.}
+
+\item{assay.type}{Character string. The counts assay name to use. Defaults
+to "counts"}
 
 \item{...}{Additional arguments to be passed to the normalisation function.}
 }
@@ -34,9 +43,19 @@ using specified methods.
 }
 \details{
 The function normalises counts in a spatial transcriptomics
-experiment using specified methods. Currently, only the "log" transformation
-method is supported. Additional arguments can be passed to the underlying
-normalisation function.
+experiment using specified methods. Currently, only the "log" and "log2_t"
+transformation methods are supported. Additional arguments can be passed to
+the underlying normalisation function.
+
+"log" is using \code{scater::logNormCounts} which normalises for library size and
+log2-transforms the gene counts.
+
+"log2_t" is NOT normalising for library sizes but simply log2-transforms the
+gene counts using the log2(counts + 1) formula. This was implemented after
+Bhuva, et al., 2024, published that library size confounds biology in
+spatial transcriptomics data. (https://doi.org/10.1186/s13059-024-03241-7).
+We suggest to use it when you are trying to identify spatial domains. Use
+the "log" method when trying to find differences between clusters or domains.
 }
 \examples{
 \dontrun{

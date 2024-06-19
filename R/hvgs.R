@@ -3,7 +3,8 @@
 #' This function models gene variance for each gene in a
 #' SpatialFeatureExperiment.
 #'
-#' @param msfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or a MetaSpatialFeatureExperiment
+#' object.
 #' @param sample_id Either a logical vector indicating the samples to include
 #' (if TRUE, all samples are included), or a character vector specifying the
 #' sample IDs to include. It is suggested to use a character vector to specify
@@ -52,11 +53,52 @@
 #' @importFrom scran modelGeneCV2 modelGeneCV2WithSpikes
 #'
 #' @export
-modelGeneVariance <- function(msfe,
+modelGeneVariance <- function(m_sfe,
                               sample_id,
                               method = c("Var", "VarPoisson", "VarSpikes",
                                          "CV2", "CV2Spikes"),
                               ...) {
+  UseMethod("modelGeneVariance")
+}
+
+#' @rdname modelGeneVariance
+#' @export
+modelGeneVariance.SpatialFeatureExperiment <- function(m_sfe,
+                                                       sample_id = NULL,
+                                                       method = c("Var", "VarPoisson", "VarSpikes",
+                                                                  "CV2", "CV2Spikes"),
+                                                       ...) {
+  ## Check arguments
+  # stopifnot(is(msfe, "SpatialFeatureExperiment"))
+  method <- match.arg(method)
+
+  ## Select samples
+  ids <- .int_getSmplIDs(sfe = m_sfe, sample_id = sample_id)
+
+  ## Initialise list
+  var_int <- list()
+
+  ## Model Gene Variance
+  ## NOTE: at the moment, it will NOT work if the SFE includes multiple samples!
+  var_int[[ids]] <- switch(method,
+                           Var = scran::modelGeneVar(m_sfe, ...),
+                           VarPoisson = scran::modelGeneVarByPoisson(m_sfe, ...),
+                           VarSpikes = scran::modelGeneVarWithSpikes(m_sfe, ...),
+                           CV2 = scran::modelGeneCV2(m_sfe, ...),
+                           CV2Spikes = scran::modelGeneCV2WithSpikes(m_sfe, ...)
+  )
+
+  return(var_int)
+}
+
+
+#' @rdname modelGeneVariance
+#' @export
+modelGeneVariance.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                           sample_id,
+                                                           method = c("Var", "VarPoisson", "VarSpikes",
+                                                                      "CV2", "CV2Spikes"),
+                                                           ...) {
   ## Check arguments
   # stopifnot(is(msfe, "SpatialFeatureExperiment"))
   method <- match.arg(method)
@@ -138,30 +180,3 @@ getTopHighVarGenes <- function(stats, sample_id = TRUE, ...) {
 }
 
 
-#' INTERNAL: Get Sample IDs from a named List
-#'
-#' This internal function extracts sample IDs from a list, based on the
-#' provided sample ID specification.
-#'
-#' @param list A list object containing sample information.
-#' @param sample_id Either a logical vector indicating the samples to include
-#' (if TRUE, all samples are included), or a character vector specifying the
-#' sample IDs to include. It is suggested to use a character vector to specify
-#' a specific sample, or NULL to select the first available sample.
-#'
-#' @return A character vector containing the selected sample IDs.
-#'
-#' @keywords internal
-#'
-#' @rdname dot-int_getListSmplIDs
-.int_getListSmplIDs <- function(list, sample_id) {
-  if (is.null(sample_id)) {
-    ids <- names(list)[1]
-  } else if (is.character(sample_id)) {
-    ids <- sample_id
-  } else if (sample_id) {
-    ids <- names(list)
-  }
-
-  return(ids)
-}

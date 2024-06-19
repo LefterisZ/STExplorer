@@ -554,6 +554,8 @@ fgwc_findOptimumK <- function(fgwc_in,
 #' data.
 #' @param sample_id A character string indicating the name of the sample. It is
 #' required when the `m_sfe` argument is provided with a MetaSFE object.
+#' Defaults to `NULL` which selects the first sample. If an SFE object is
+#' provided then it is ignored.
 #' @param data an object of data with d>1. Can be \code{matrix} or
 #' \code{data.frame}. If your data is univariate, bind it with \code{1} to get
 #' a data frame with 2 columns. We suggest this to be the dimensionality
@@ -721,7 +723,7 @@ fgwc_findOptimumK <- function(fgwc_in,
 #'
 #' @export
 fgwcSTE <- function(m_sfe,
-                    sample_id,
+                    sample_id = NULL,
                     data,
                     pop = NULL,
                     distMat = NULL,

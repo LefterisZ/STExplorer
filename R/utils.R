@@ -555,6 +555,9 @@ readCurioSeeker <- function(samples,
 }
 
 
+# ---------------------------------------------------------------------------- #
+#  ################# INTERNAL FUNCTIONS FOR MISC UTILITIES ###################
+# ---------------------------------------------------------------------------- #
 #' Internal: Format with leading zero
 #'
 #' This function appends the number `0` only for the numbers 1 to 9.
@@ -600,4 +603,69 @@ readCurioSeeker <- function(samples,
     message("No file matching the pattern found.")
     return(NULL)
   }
+}
+
+
+#' INTERNAL: Get Sample IDs from a named List
+#'
+#' This internal function extracts sample IDs from a list, based on the
+#' provided sample ID specification.
+#'
+#' @param list A list object containing sample information.
+#' @param sample_id Either a logical vector indicating the samples to include
+#' (if TRUE, all samples are included), or a character vector specifying the
+#' sample IDs to include. It is suggested to use a character vector to specify
+#' a specific sample, or NULL to select the first available sample.
+#'
+#' @return A character vector containing the selected sample IDs.
+#'
+#' @keywords internal
+#'
+#' @rdname dot-int_getListSmplIDs
+.int_getListSmplIDs <- function(list, sample_id) {
+  if (is.null(sample_id)) {
+    ids <- names(list)[1]
+  } else if (is.character(sample_id)) {
+    ids <- sample_id
+  } else if (sample_id) {
+    ids <- names(list)
+  }
+
+  return(ids)
+}
+
+
+#' Internal Function: .int_getSmplIDs
+#'
+#' Description: Fetches sample IDs.
+#'
+#' @param sfe A SpatialFeatureExperiment object.
+#' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
+#' sample/image identifier(s). If \code{TRUE}, all samples/images are
+#' considered. If \code{NULL}, the first available entry is considered.
+#'
+#' @return Returns a character vector of sample IDs for plotting.
+#'
+#' @details This function fetches sample IDs based on the input parameters,
+#' providing flexibility for customizing the sample IDs for plotting.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @keywords internal
+#'
+#' @rdname dot-int_getSmplIDs
+#'
+#' @importFrom DelayedArray unique
+#'
+.int_getSmplIDs <- function(sfe, sample_id = NULL) {
+  ## Fetch the required sample IDs
+  if (is.null(sample_id)) {
+    sample_id <- DelayedArray::unique(colData(sfe)$sample_id)[1]
+  } else if (is.character(sample_id)) {
+    sample_id <- sample_id
+  } else if (sample_id) {
+    sample_id <- DelayedArray::unique(colData(sfe)$sample_id)
+  }
+
+  return(sample_id)
 }

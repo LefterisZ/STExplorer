@@ -693,7 +693,7 @@ plotQC_map <- function(m_sfe,
     lab_fill <- metric_lab
   }
   data <- data.frame(fill = fill,
-                     geometry = colGeometry(sfe, type = type))
+                     geometry = colGeometry(sfe, type = type)[["geometry"]])
 
   ## Set some defaults if not provided
   if (missing(colours)) {
@@ -713,7 +713,7 @@ plotQC_map <- function(m_sfe,
   } else {
     p <- ggplot(data) + ggplot2::geom_sf(aes(geometry = geometry,
                                              colour = fill),
-                                         size = 0.5) +
+                                         size = 0.2) +
       ggplot2::labs(colour = lab_fill)
   }
 
@@ -750,6 +750,8 @@ plotQC_map <- function(m_sfe,
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
 #' identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
 #' the first available entry.
+#' @param type Character vector specifying the spot type, either "spot", "cntd"
+#'             or "hex".
 #'
 #' @details
 #' This function plots the quality control filtered locations map in a
@@ -775,10 +777,28 @@ plotQC_map <- function(m_sfe,
 plotQC_filtered <- function(sfe,
                             metric = c("libsize", "mito", "NAs",
                                        "detected", "cellCount", "discard"),
-                            sample_id = TRUE) {
+                            sample_id = TRUE,
+                            type = c("spot", "hex", "cntd")) {
 
   ## Check arguments
   stopifnot(is(sfe, "SpatialFeatureExperiment"))
+
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "hex") {
+    stopifnot("spotHex" %in% names(colGeometries(sfe)))
+    type <- "spotHex"
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+    type <- "spotPoly"
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "spotCntd"
+  }
 
   ## Check valid metric argument
   metric <- match.arg(metric)
@@ -822,11 +842,18 @@ plotQC_filtered <- function(sfe,
     ggplot2::geom_sf(data = data,
                      ggplot2::aes(geometry = geometry,
                                   fill = fill)) +
-    ggplot2::scale_fill_manual(values = c("grey95", "red")) +
     ggplot2::theme_void() +
-    ggplot2::theme(legend.position = "right") +
-    ggplot2::labs(fill = fill_label,
-                  title = title)
+    ggplot2::theme(legend.position = "right")
+
+  if (type == "spotCntd") {
+    p <- p + ggplot2::scale_colour_manual(values = c("grey95", "red")) +
+      ggplot2::labs(colour = fill_label,
+                    title = title)
+  } else {
+    p <- p + ggplot2::scale_fill_manual(values = c("grey95", "red")) +
+      ggplot2::labs(fill = fill_label,
+                    title = title)
+  }
 
   ## Add facet_wrap if there are multiple samples
   ## Or add plot title if there is only one plot
@@ -1157,6 +1184,7 @@ plotQC_sizeFactors <- function(sfe,
 #' @param sfe A SpatialFeatureExperiment object.
 #' @param ids Vector of sample IDs to include in the plot.
 #' @param fill Variable used for filling the spots in the plot.
+#' @param type Acharacter string indicating the geometries to use.
 #'
 #' @return Returns a data frame suitable for generating spatial plots.
 #'
@@ -1171,13 +1199,13 @@ plotQC_sizeFactors <- function(sfe,
 #'
 #' @importFrom dplyr filter
 #'
-.int_dataToPlot <- function(sfe, ids, fill) {
+.int_dataToPlot <- function(sfe, ids, fill, type) {
   ## Create a data frame
   data <- data.frame(sample_id = colData(sfe)$sample_id,
                      fill = colData(sfe)[[fill]])
 
   ## Add geometries according to requested type
-  data$geometry <- colGeometries(sfe)$spotHex$geometry
+  data$geometry <- colGeometry(sfe, type = type)[["geometry"]]
 
   data <- data %>%
     dplyr::filter(.data$sample_id %in% ids)
@@ -1353,42 +1381,6 @@ plotQC_sizeFactors <- function(sfe,
   limits_list[[2]] <- ylim
 
   return(limits_list)
-}
-
-
-#' Internal Function: .int_getSmplIDs
-#'
-#' Description: Fetches sample IDs for plotting.
-#'
-#' @param sfe A SpatialFeatureExperiment object.
-#' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
-#' sample/image identifier(s). If \code{TRUE}, all samples/images are
-#' considered. If \code{NULL}, the first available entry is considered.
-#'
-#' @return Returns a character vector of sample IDs for plotting.
-#'
-#' @details This function fetches sample IDs based on the input parameters,
-#' providing flexibility for customizing the sample IDs for plotting.
-#'
-#' @author Eleftherios (Lefteris) Zormpas
-#'
-#' @keywords internal
-#'
-#' @rdname dot-int_getSmplIDs
-#'
-#' @importFrom DelayedArray unique
-#'
-.int_getSmplIDs <- function(sfe, sample_id = NULL) {
-  ## Fetch the required sample IDs
-  if (is.null(sample_id)) {
-    sample_id <- DelayedArray::unique(colData(sfe)$sample_id)[1]
-  } else if (is.character(sample_id)) {
-    sample_id <- sample_id
-  } else if (sample_id) {
-    sample_id <- DelayedArray::unique(colData(sfe)$sample_id)
-  }
-
-  return(sample_id)
 }
 
 

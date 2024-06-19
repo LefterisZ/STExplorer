@@ -7,7 +7,8 @@
 plotQC_filtered(
   sfe,
   metric = c("libsize", "mito", "NAs", "detected", "cellCount", "discard"),
-  sample_id = TRUE
+  sample_id = TRUE,
+  type = c("spot", "hex", "cntd")
 )
 }
 \arguments{
@@ -19,6 +20,9 @@ plotQC_filtered(
 \item{sample_id}{Character string, TRUE, or NULL specifying sample/image
 identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
 the first available entry.}
+
+\item{type}{Character vector specifying the spot type, either "spot", "cntd"
+or "hex".}
 }
 \description{
 This function plots the quality control filtered locations map in a
