@@ -5,7 +5,8 @@
 #' other genomic elements) that do not meet the specified QC criteria, creating
 #' a new \code{SpatialFeatureExperiment} with the filtered features.
 #'
-#' @param sfe A \code{SpatialFeatureExperiment} object.
+#' @param m_sfe A \code{SpatialFeatureExperiment} or a
+#' \code{MetaSpatialFeatureExperiment} object.
 #' @param sample_id A character string, \code{TRUE}, or \code{NULL} specifying
 #' sample/image identifier(s). If \code{TRUE}, all samples/images are
 #' considered. If \code{NULL}, the first available entry is considered.
@@ -37,23 +38,64 @@
 #' }
 #'
 #' @export
-applyQCthresh_loc <- function(sfe, sample_id = TRUE) {
-  ## Check arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
+applyQCthresh_loc <- function(m_sfe, sample_id = TRUE) {
+  UseMethod("applyQCthresh_loc")
+}
 
+
+#' @rdname applyQCthresh_loc
+#' @export
+applyQCthresh_loc.SpatialFeatureExperiment <- function(m_sfe,
+                                                       sample_id = TRUE) {
   ## Get sample IDs
   ids <- .int_getSmplIDs(sfe = sfe, sample_id = sample_id)
 
-  ## Create a list of filtered SpatialFeatureExperiment objects
-  sfe_list <- lapply(ids, .int_filterQCDiscard, sfe = sfe)
+  if (length(ids) > 1) {
+    ## Pre-allocate the list to store subsets of SFE objects
+    sfe_list <- vector("list", length(ids))
 
-  ## Merge the list of SpatialFeatureExperiment objects into one
-  sfeOut <- Reduce(function(x, y) cbind(x, y), sfe_list)
+    ## Iterate over each id to subset and process the SFE objects
+    for (i in seq_along(ids)) {
+      id <- ids[i]
+      ## Subset SFE object
+      sfe_int <- m_sfe[, colData(m_sfe)$sample_id == id]
+      ## Store the filtered SpatialFeatureExperiment object
+      sfe_list[[i]] <- .int_filterQCDiscard(sfe = sfe_int)
+    }
 
-  ## Clean up duplicate entries in the metadata slot
-  sfeOut <- .int_cleanMetaData(sfeOut = sfeOut)
+    ## Merge the list of SpatialFeatureExperiment objects into one
+    # sfeOut <- Reduce(function(x, y) cbind(x, y), sfe_list)
+    sfeOut <- do.call(cbind, sfe_list)
+
+    ## Clean metadata slot if needed
+    sfeOut <- .int_cleanMetaData(sfeOut)
+
+  } else {
+    sfeOut <- .int_filterQCDiscard(sfe = m_sfe)
+  }
 
   return(sfeOut)
+}
+
+
+#' @rdname applyQCthresh_loc
+#' @export
+applyQCthresh_loc.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                           sample_id = TRUE) {
+  ## Select samples
+  ids <- .int_getMSFEsmplID(msfe = m_sfe, sample_id = sample_id)
+
+  ## Create a list of filtered SpatialFeatureExperiment objects
+  msfe_int <- lapply(m_sfe@sfe_data[ids], .int_filterQCDiscard)
+
+  ## If specific samples where modified replace in the metaSFE list
+  if (is.character(sample_id)) {
+    m_sfe@sfe_data[names(msfe_int)] <- msfe_int
+  } else {
+    m_sfe@sfe_data <- msfe_int
+  }
+
+  return(m_sfe)
 }
 
 
@@ -155,10 +197,10 @@ applyQCthresh_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
 #'
 #' @rdname dot-int_filterQCDiscard
 #'
-.int_filterQCDiscard <- function(id, sfe) {
-  sfe_int <- sfe[, colData(sfe)$sample_id == id]
-  keep <- Matrix::which(colData(sfe_int)$qc_discard == FALSE)
-  sfe_int <- sfe_int[, keep]
+.int_filterQCDiscard <- function(sfe) {
+  keep <- Matrix::which(colData(sfe)$qc_discard == FALSE)
+  sfe_int <- sfe[, keep]
+
   return(sfe_int)
 }
 
@@ -189,8 +231,12 @@ applyQCthresh_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
   ## Clean up duplicate entries in the metadata slot
   ## Get names
   mdt_names <- unique(names(metadata(sfeOut)))
-  ## Make names unique
-  names(metadata(sfeOut)) <- make.unique(names(metadata(sfeOut)))
+
+  if (!is.null(mdt_names)) { # this is to avoid error from when no additional metadata are added
+    ## Make names unique
+    names(metadata(sfeOut)) <- make.unique(names(metadata(sfeOut)))
+  }
+
   ## Keep slots with the original names
   metadata(sfeOut) <- metadata(sfeOut)[mdt_names]
 

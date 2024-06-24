@@ -3,12 +3,19 @@
 \name{applyQCthresh_loc}
 \alias{applyQCthresh_loc}
 \alias{applyQCthresh}
+\alias{applyQCthresh_loc.SpatialFeatureExperiment}
+\alias{applyQCthresh_loc.MetaSpatialFeatureExperiment}
 \title{Apply Quality Control Thresholds to SpatialFeatureExperiment}
 \usage{
-applyQCthresh_loc(sfe, sample_id = TRUE)
+applyQCthresh_loc(m_sfe, sample_id = TRUE)
+
+\method{applyQCthresh_loc}{SpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
+
+\method{applyQCthresh_loc}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE)
 }
 \arguments{
-\item{sfe}{A \code{SpatialFeatureExperiment} object.}
+\item{m_sfe}{A \code{SpatialFeatureExperiment} or a
+\code{MetaSpatialFeatureExperiment} object.}
 
 \item{sample_id}{A character string, \code{TRUE}, or \code{NULL} specifying
 sample/image identifier(s). If \code{TRUE}, all samples/images are

@@ -384,7 +384,7 @@ normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' @param assay.type Character string. The counts assay name to use. Defaults
 #' to "counts"
 #'
-#' @importFrom SummarizedExperiment assay
+#' @importFrom SummarizedExperiment assay assay<-
 #'
 #' @return An SFE object with a new counts table named "unNormLogCounts".
 #'

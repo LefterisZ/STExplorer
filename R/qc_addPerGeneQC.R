@@ -28,6 +28,13 @@
 #' Ensembl Genomes databases. The mirror and the version arguments cannot be
 #' used together.
 #'
+#' @param add Character string or a vector of characters. The vector needs to
+#' contain one or any combination of "sparsity", "zeroexpr", "coefofvar", and
+#' "exprstats". Indicates which additional QC metrics to be
+#' calculated. Defaults to "zeroexpr". Leave it as is since the other metrics
+#' are not used downstream at the moment and can only increase size and running
+#' times.
+#'
 #' @param ... further arguments passed to \code{addPerFeatureQC}, to pass
 #'  to \code{perFeatureQCMetrics}.
 #'
@@ -55,6 +62,7 @@ addPerGeneQC <- function(m_sfe,
                          organism = "human",
                          version = NULL,
                          mirror = NULL,
+                         add = c("sparsity", "zeroexpr", "coefofvar", "exprstats"),
                          ...) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
@@ -80,20 +88,32 @@ addPerGeneQC <- function(m_sfe,
   ## Prepare for putatively multiple samples
   samples = unique(colData(sfe)$sample_id)
 
+  if (missing(add)) {
+    add <- "zeroexpr"
+  }
+
   for (s in samples) {
     # message(paste0("calculating stats for sample: ", s))
-    ## Add locational sparsity
-    sfe <- get.QC.Sparsity(sfe, assay = assay, MARGIN = 1,
-                           sampleNo = length(samples), .sample_id = s)
+    if ("sparsity" %in% add) {
+      ## Add locational sparsity
+      sfe <- get.QC.Sparsity(sfe, assay = assay, MARGIN = 1,
+                             sampleNo = length(samples), .sample_id = s)
+    }
 
-    ## Find genes with zero counts
-    sfe <- get.QC.FindZeroExpr(sfe, assay = assay, .sample_id = s)
+    if ("zeroexpr" %in% add) {
+      ## Find genes with zero counts
+      sfe <- get.QC.FindZeroExpr(sfe, assay = assay, .sample_id = s)
+    }
 
-    ## Add other gene stats
-    sfe <- get.QC.ExprStats(sfe, assay = assay, .sample_id = s)
+    if ("exprstats" %in% add) {
+      ## Add other gene stats
+      sfe <- get.QC.ExprStats(sfe, assay = assay, .sample_id = s)
+    }
 
-    ## Add Coefficient of Variance
-    sfe <- get.QC.CoefficientOfVar(sfe, assay = assay, .sample_id = s)
+    if ("coefofvar" %in% add) {
+      ## Add Coefficient of Variance
+      sfe <- get.QC.CoefficientOfVar(sfe, assay = assay, .sample_id = s)
+    }
   }
 
   ## Check and output either an msfe or an sfe object

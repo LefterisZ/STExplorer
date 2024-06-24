@@ -11,7 +11,7 @@
 #' types of neighbour graph algorithms and distance models.
 #' The function wraps around `spdep`'s neighbour functions.
 #'
-#' @param msfe The metaSFE object.
+#' @param m_sfe An SFE or metaSFE object.
 #'
 #' @param sample_id character string, TRUE or NULL specifying sample/image
 #' identifier(s); here, TRUE is equivalent to all samples/images.
@@ -99,8 +99,8 @@
 #' type = "knearneigh", style = "W", distMod = "raw", k = 6, sfe_out = FALSE)
 #'
 #' @export
-addSpatialNeighGraphs <- function(msfe,
-                                  sample_id = TRUE,
+addSpatialNeighGraphs <- function(m_sfe,
+                                  sample_id,
                                   type = c("poly2nb", "tri2nb", "soi.graph",
                                            "gabrielneigh", "relativeneigh",
                                            "knearneigh", "dnearneigh"),
@@ -114,6 +114,72 @@ addSpatialNeighGraphs <- function(msfe,
                                   sym = FALSE,
                                   sfe_out = TRUE,
                                   ...) {
+  UseMethod("addSpatialNeighGraphs")
+}
+
+
+#' @rdname addSpatialNeighGraphs
+#' @export
+addSpatialNeighGraphs.SpatialFeatureExperiment <- function(m_sfe,
+                                                           sample_id = NULL,
+                                                           type = c("poly2nb", "tri2nb", "soi.graph",
+                                                                    "gabrielneigh", "relativeneigh",
+                                                                    "knearneigh", "dnearneigh"),
+                                                           style = c("raw", "W", "B", "C", "U",
+                                                                     "minmax", "S"),
+                                                           distMod = c("raw", "idw", "exp", "dpd"),
+                                                           glist = NULL,
+                                                           alpha = 1,
+                                                           dmax = NULL,
+                                                           zero.policy = TRUE,
+                                                           sym = FALSE,
+                                                           sfe_out = TRUE,
+                                                           ...) {
+  ## check arguments
+  # stopifnot(is(msfe, "SpatialFeatureExperiment"))
+  type <- match.arg(type)
+  style <- match.arg(style)
+  distMod <- match.arg(distMod)
+
+  ## Select samples
+  # ids <- .int_getSmplIDs(sfe = m_sfe, sample_id = sample_id)
+
+  ## Generate the graphs
+  m_sfe <- .int_addSpNghGphs(m_sfe,
+                             # sample_id,
+                             type = type,
+                             style = style,
+                             distMod = distMod,
+                             glist = glist,
+                             alpha = alpha,
+                             dmax = dmax,
+                             zero.policy = zero.policy,
+                             sym = sym,
+                             sfe_out = sfe_out,
+                             ...)
+
+  return(m_sfe)
+}
+
+
+
+#' @rdname addSpatialNeighGraphs
+#' @export
+addSpatialNeighGraphs.MetaSpatialFeatureExperiment <- function(m_sfe,
+                                                               sample_id = TRUE,
+                                                               type = c("poly2nb", "tri2nb", "soi.graph",
+                                                                        "gabrielneigh", "relativeneigh",
+                                                                        "knearneigh", "dnearneigh"),
+                                                               style = c("raw", "W", "B", "C", "U",
+                                                                         "minmax", "S"),
+                                                               distMod = c("raw", "idw", "exp", "dpd"),
+                                                               glist = NULL,
+                                                               alpha = 1,
+                                                               dmax = NULL,
+                                                               zero.policy = TRUE,
+                                                               sym = FALSE,
+                                                               sfe_out = TRUE,
+                                                               ...) {
   ## check arguments
   # stopifnot(is(msfe, "SpatialFeatureExperiment"))
   type <- match.arg(type)
@@ -148,7 +214,9 @@ addSpatialNeighGraphs <- function(msfe,
 }
 
 
-
+# ---------------------------------------------------------------------------- #
+#  ########## INTERNAL FUNCTIONS ASSOCIATED WITH NEIGHBOUR GRAPHS ###########
+# ---------------------------------------------------------------------------- #
 .int_addSpNghGphs <- function(sfe,
                               # sample_id,
                               type, #= c("poly2nb", "tri2nb", "soi.graph",
@@ -225,3 +293,5 @@ addSpatialNeighGraphs <- function(msfe,
   }
 
 }
+
+

@@ -5,12 +5,12 @@
 \title{Internal Function: Filter QC Discard Status for a Specific Sample in
 SpatialFeatureExperiment}
 \usage{
-.int_filterQCDiscard(id, sfe)
+.int_filterQCDiscard(sfe)
 }
 \arguments{
-\item{id}{A character string specifying the sample identifier.}
-
 \item{sfe}{A \code{SpatialFeatureExperiment} object.}
+
+\item{id}{A character string specifying the sample identifier.}
 }
 \value{
 A new \code{SpatialFeatureExperiment} object with QC-discarded

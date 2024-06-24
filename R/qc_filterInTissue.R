@@ -88,37 +88,3 @@ filterInTissue <- function(sfe, sample_id = TRUE) {
   sfe_int <- sfe_int[, in_tissue]
   return(sfe_int)
 }
-
-
-#' Internal Function: Clean Metadata Entries
-#'
-#' This internal function cleans metadata entries in a SpatialFeatureExperiment
-#' object. It ensures that duplicate entries in the metadata slot are removed,
-#' preserving the original names. The function takes a SpatialFeatureExperiment
-#' object (sfeOut) as input and returns the cleaned object.
-#'
-#' @param sfeOut A \code{SpatialFeatureExperiment} object.
-#'
-#' @return A \code{SpatialFeatureExperiment} object with cleaned metadata
-#' entries.
-#'
-#' @details
-#' This internal function efficiently cleans metadata entries in a
-#' SpatialFeatureExperiment object. It takes a SpatialFeatureExperiment object
-#' (sfeOut) as input and ensures that duplicate entries in the metadata slot
-#' are removed. The function maintains the original names while making them
-#' unique.
-#'
-#' @keywords internal function, spatial transcriptomics, metadata
-#'
-.int_cleanMetaData <- function(sfeOut) {
-  ## Clean up duplicate entries in the metadata slot
-  ## Get names
-  mdt_names <- unique(names(metadata(sfeOut)))
-  ## Make names unique
-  names(metadata(sfeOut)) <- make.unique(names(metadata(sfeOut)))
-  ## Keep slots with the original names
-  metadata(sfeOut) <- metadata(sfeOut)[mdt_names]
-
-  return(sfeOut)
-}

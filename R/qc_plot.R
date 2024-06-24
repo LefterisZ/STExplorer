@@ -607,8 +607,8 @@ plotQC_scat <- function(sfe,
 #' @param metric_name Character string. The custom metric's column name as
 #'                    found in the `colData`.
 #' @param metric_lab Character string. The title you want for the map's legend.
-#' @param ... Additional arguments to be passed to the underlying plotting
-#'            functions.
+#' @param ... Additional arguments to be passed to the underlying `geom_sf`
+#'            plotting function.
 #'
 #' @return A ggplot object representing the quality control map plot.
 #'
@@ -634,6 +634,7 @@ plotQC_scat <- function(sfe,
 #' @aliases plotQC_map
 #'
 #' @importFrom DelayedArray isEmpty
+#' @importFrom ggplot2 scale_colour_viridis_c scale_fill_viridis_c
 #'
 #' @examples
 #' \dontrun{
@@ -708,12 +709,13 @@ plotQC_map <- function(m_sfe,
   ## Generate plot
   if (type %in% c("spotPoly", "spotHex")) {
     p <- ggplot(data) + ggplot2::geom_sf(aes(geometry = geometry,
-                                             fill = fill)) +
+                                             fill = fill),
+                                         ...) +
       ggplot2::labs(fill = lab_fill)
   } else {
     p <- ggplot(data) + ggplot2::geom_sf(aes(geometry = geometry,
                                              colour = fill),
-                                         size = 0.2) +
+                                         ...) +
       ggplot2::labs(colour = lab_fill)
   }
 
@@ -752,6 +754,8 @@ plotQC_map <- function(m_sfe,
 #' the first available entry.
 #' @param type Character vector specifying the spot type, either "spot", "cntd"
 #'             or "hex".
+#' @param ... Additional arguments to be passed to the underlying `geom_sf`
+#'            plotting function.
 #'
 #' @details
 #' This function plots the quality control filtered locations map in a
@@ -778,7 +782,8 @@ plotQC_filtered <- function(sfe,
                             metric = c("libsize", "mito", "NAs",
                                        "detected", "cellCount", "discard"),
                             sample_id = TRUE,
-                            type = c("spot", "hex", "cntd")) {
+                            type = c("spot", "hex", "cntd"),
+                            ...) {
 
   ## Check arguments
   stopifnot(is(sfe, "SpatialFeatureExperiment"))
@@ -835,25 +840,32 @@ plotQC_filtered <- function(sfe,
   }
 
   ## Put together the data to plot
-  data <- .int_dataToPlot(sfe = sfe, ids = ids, fill = fill)
+  data <- .int_dataToPlot(sfe = sfe, ids = ids, fill = fill, type = type)
 
   ## Plot filtered locations map
-  p <- ggplot2::ggplot() +
-    ggplot2::geom_sf(data = data,
-                     ggplot2::aes(geometry = geometry,
-                                  fill = fill)) +
-    ggplot2::theme_void() +
-    ggplot2::theme(legend.position = "right")
+  p <- ggplot2::ggplot()
 
   if (type == "spotCntd") {
-    p <- p + ggplot2::scale_colour_manual(values = c("grey95", "red")) +
+    p <- p +
+      ggplot2::geom_sf(data = data,
+                       ggplot2::aes(geometry = geometry,
+                                    colour = fill)) +
+      ggplot2::scale_colour_manual(values = c("grey95", "red")) +
       ggplot2::labs(colour = fill_label,
                     title = title)
   } else {
-    p <- p + ggplot2::scale_fill_manual(values = c("grey95", "red")) +
+    p <- p +
+      ggplot2::geom_sf(data = data,
+                       ggplot2::aes(geometry = geometry,
+                                    fill = fill)) +
+      ggplot2::scale_fill_manual(values = c("grey95", "red")) +
       ggplot2::labs(fill = fill_label,
                     title = title)
   }
+
+  p <- p +
+    ggplot2::theme_void() +
+    ggplot2::theme(legend.position = "right")
 
   ## Add facet_wrap if there are multiple samples
   ## Or add plot title if there is only one plot

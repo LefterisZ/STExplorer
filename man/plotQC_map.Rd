@@ -46,8 +46,8 @@ found in the \code{colData}.}
 
 \item{metric_lab}{Character string. The title you want for the map's legend.}
 
-\item{...}{Additional arguments to be passed to the underlying plotting
-functions.}
+\item{...}{Additional arguments to be passed to the underlying \code{geom_sf}
+plotting function.}
 }
 \value{
 A ggplot object representing the quality control map plot.

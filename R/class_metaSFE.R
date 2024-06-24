@@ -231,8 +231,8 @@ getSampleIDs <- function(x) {
 #'
 #' @param msfe A SpatialFeatureExperiment object.
 #' @param sample_id Either a logical vector indicating the samples to include
-#' (if TRUE, all samples are included), or a character vector specifying the
-#' sample IDs to include.
+#' (if TRUE, all samples are included), NULL (if NULL selects the first sample),
+#' or a character vector specifying the sample IDs to include.
 #'
 #' @return A character vector of selected sample IDs.
 #'
@@ -242,6 +242,8 @@ getSampleIDs <- function(x) {
     ids <- names(msfe@sfe_data)
   } else if (is.character(sample_id)) {
     ids <- sample_id
+  } else if (is.null(sample_id)) {
+    ids <- names(msfe@sfe_data)[1]
   }
 
   return(ids)

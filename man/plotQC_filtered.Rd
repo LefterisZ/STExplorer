@@ -8,7 +8,8 @@ plotQC_filtered(
   sfe,
   metric = c("libsize", "mito", "NAs", "detected", "cellCount", "discard"),
   sample_id = TRUE,
-  type = c("spot", "hex", "cntd")
+  type = c("spot", "hex", "cntd"),
+  ...
 )
 }
 \arguments{
@@ -23,6 +24,9 @@ the first available entry.}
 
 \item{type}{Character vector specifying the spot type, either "spot", "cntd"
 or "hex".}
+
+\item{...}{Additional arguments to be passed to the underlying \code{geom_sf}
+plotting function.}
 }
 \description{
 This function plots the quality control filtered locations map in a

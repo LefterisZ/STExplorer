@@ -6,7 +6,7 @@
 \usage{
 fgwcSTE(
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   data,
   pop = NULL,
   distMat = NULL,
@@ -21,7 +21,9 @@ fgwcSTE(
 data.}
 
 \item{sample_id}{A character string indicating the name of the sample. It is
-required when the \code{m_sfe} argument is provided with a MetaSFE object.}
+required when the \code{m_sfe} argument is provided with a MetaSFE object.
+Defaults to \code{NULL} which selects the first sample. If an SFE object is
+provided then it is ignored.}
 
 \item{data}{an object of data with d>1. Can be \code{matrix} or
 \code{data.frame}. If your data is univariate, bind it with \code{1} to get
@@ -61,9 +63,10 @@ SC index (\code{SC}), separation index (\code{SI}), Xie and Beni's index
 }
 }
 \description{
-Wrapper around classic fuzzy clustering with addition of
-spatial configuration of membership matrix. It supports optimisation
-algorithms.
+Adaptation of classic fuzzy clustering with addition of
+spatial configuration of membership matrix as it is developed in the
+\code{naspaclust} R package. It supports optimisation algorithms. The
+\code{naspaclust} code has been adapted for efficiency.
 }
 \details{
 Fuzzy Geographically Weighted Clustering (FGWC) was developed by

@@ -409,8 +409,8 @@ abc_params <- function(ncluster,
 #' @export
 fgwc_findOptimumK <- function(fgwc_in,
                               k_range = 2:10,
-                              index_type = "FPC",
-                              elbow_method = "angle",
+                              index_type = "composite",
+                              elbow_method = "knee",
                               m_sfe,
                               sample_id = NULL,
                               algorithm = "classic",
@@ -424,6 +424,10 @@ fgwc_findOptimumK <- function(fgwc_in,
   index_type <- toupper(index_type) # make sure is all caps
   if (!index_type %in% c("COMPOSITE", "FPC", "CE", "SC", "XB")) {
     stop("index_type must be one of 'composite', 'FPC', 'CE', 'SC', or 'XB'")
+  }
+
+  if (verbose) {
+    message("Initialising...")
   }
 
   ## SFE or metaSFE?
@@ -448,9 +452,13 @@ fgwc_findOptimumK <- function(fgwc_in,
   }
 
   ## Iterate over all k values in k_range
+  if (verbose) {
+    message("Finding optimal number...")
+  }
+
   for (k in k_range) {
     if (verbose) {
-      message("Running FGWC for k = ", k, "...\n")
+      message("\tRunning FGWC for k = ", k, "...\n")
     }
 
     ## Update number of clusters in parameters list
@@ -545,9 +553,10 @@ fgwc_findOptimumK <- function(fgwc_in,
 
 #' Fuzzy Geographicaly Weighted Clustering
 #'
-#' @description Wrapper around classic fuzzy clustering with addition of
-#' spatial configuration of membership matrix. It supports optimisation
-#' algorithms.
+#' @description Adaptation of classic fuzzy clustering with addition of
+#' spatial configuration of membership matrix as it is developed in the
+#' `naspaclust` R package. It supports optimisation algorithms. The
+#' `naspaclust` code has been adapted for efficiency.
 #'
 #' @param m_sfe The \code{SpatialFeatureExperiment} or
 #' \code{MetaSpatialFeatureExperiment} object containing spatial expression
@@ -625,9 +634,6 @@ fgwc_findOptimumK <- function(fgwc_in,
 #' optimization based on Rao et al. (2012) and elitism improvement by Rao and
 #' Patel (2012).
 #' }
-#'
-#' @importFrom naspaclust fgwcuv
-#' @importFrom naspaclust abcfgwc
 #'
 #' @seealso \code{\link[naspaclust]{fgwcuv}}, \code{\link[naspaclust]{abcfgwc}},
 #' \code{\link[naspaclust]{fpafgwc}}, \code{\link[naspaclust]{gsafgwc}},
@@ -740,7 +746,7 @@ fgwcSTE <- function(m_sfe,
 
   ## Get population
   if (is.null(pop)) {
-    pop <- pop <- rep(1, nrow(data))
+    pop <- rep(1, nrow(data))
   }
 
   ## Set defaults
@@ -758,22 +764,303 @@ fgwcSTE <- function(m_sfe,
   ## Run FGWC
   if (algorithm == "classic") {
     ## Run classic FGWC
-    fgwc <- do.call(naspaclust::fgwcuv, c(parameters, main_params))
+    fgwc <- do.call(fgwcuvSTE, c(parameters, main_params))
   } else if (algorithm == "abc") {
     ## Run FGWC with Artificial Bee Colony (ABC) optimisation
-    fgwc <- do.call(naspaclust::abcfgwc, c(parameters, main_params))
+    fgwc <- do.call(abcfgwcSTE, c(parameters, main_params))
   }
 
   ## Add extra information in the fgwc output
+  if ("spotHex" %in% names(colGeometries(sfe))) {
+    geom_type <- "hex"
+  } else {
+    geom_type <- "cntd"
+  }
   fgwc$finaldata <- .int_addToFGWCout(fgwc = fgwc,
                                       sfe = sfe,
-                                      geom_type = "hex")
+                                      geom_type = geom_type)
 
   fgwc$metageneSignatures <- attr(data, "basis")
 
   return(fgwc)
 }
 
+
+#' Classical Fuzzy Geographicaly Weighted Clustering
+#'
+#' Fuzzy clustering with addition of spatial configuration of
+#' membership matrix. Code has been adapted to increase efficiency from
+#' original in the `naspaclust` R package.
+#'
+#' @param data an object of data with d>1. Can be \code{matrix} or
+#' \code{data.frame}. If your data is univariate, bind it with \code{1} to
+#' get 2 columns.
+#' @param pop an n*1 vector contains population.
+#' @param distmat an n*n distance matrix between regions.
+#' @param kind use \code{'u'} if you want to use membership approach and
+#' \code{'v'} for centroid approach.
+#' @param ncluster an integer. The number of clusters.
+#' @param m degree of fuzziness or fuzzifier. Default is 2.
+#' @param distance the distance metric between data and centroid, the default
+#' is euclidean, see \code{\link{cdist}} for details.
+#' @param order, minkowski order. default is 2.
+#' @param alpha the old membership effect with [0,1], if \code{alpha} equals 1,
+#' it will be same as fuzzy C-Means, if 0, it equals to neighborhood effect.
+#' @param a spatial magnitude of distance. Default is 1.
+#' @param b spatial magnitude of population. Default is 1.
+#' @param max.iter maximum iteration. Default is 500.
+#' @param error error tolerance. Default is 1e-5.
+#' @param randomN random seed for initialisation (if uij or vi is NA).
+#' Default is 0.
+#' @param uij membership matrix initialisation.
+#' @param vi centroid matrix initialisation.
+#'
+#' @return an object of class \code{"fgwc"}.\cr
+#' An \code{"fgwc"} object contains as follows:
+#' \itemize{
+#' \item \code{converg} - the process convergence of objective function
+#' \item \code{f_obj} - objective function value
+#' \item \code{membership} - membership matrix
+#' \item \code{centroid} - centroid matrix
+#' \item \code{validation} - validation indices (there are partition
+#' coefficient (\code{PC}), classification entropy (\code{CE}),
+#' SC index (\code{SC}), separation index (\code{SI}),
+#' Xie and Beni's index (\code{XB}), IFV index (\code{IFV}),
+#' and Kwon index (Kwon))
+#' \item \code{max.iter} - Maximum iteration
+#' \item \code{cluster} - the cluster of the data
+#' \item \code{finaldata} - The final data (with the cluster)
+#' \item \code{call} - the syntax called previously
+#' \item \code{time} - computational time.
+#' }
+#'
+#' @details Fuzzy Geographically Weighted Clustering (FGWC) was developed
+#' by \insertCite{fgwc;textual}{naspaclust} by adding neighbourhood effects and
+#' population to configure the membership matrix in Fuzzy C-Means. There are
+#' two kinds of options in doing classical FGWC. The first is using \code{"u"}
+#' \insertCite{Runkler2006}{naspaclust} (default) for membership optimization
+#' and \code{"v"} \insertCite{fgwc}{naspaclust} for centroid optimisation.
+#'
+#' @seealso \code{\link{abcfgwc}} \code{\link{fpafgwc}} \code{\link{gsafgwc}}
+#' \code{\link{hhofgwc}} \code{\link{ifafgwc}} \code{\link{psofgwc}}
+#' \code{\link{tlbofgwc}}
+#'
+#' @rdname fgwcuvSTE
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @export
+fgwcuvSTE <- function(data,
+                      pop,
+                      distmat,
+                      kind = "u",
+                      ncluster = 5,
+                      m = 1.5,
+                      distance = "manhattan",
+                      order = 1,
+                      alpha = 0.5,
+                      a = 1.8,
+                      b = 1,
+                      max.iter = 500,
+                      error = 1e-05,
+                      randomN = 1,
+                      uij = NA,
+                      vi = NA) {
+  ptm <- proc.time()
+  stopifnot(kind == "v" || kind == "u" || is.na(kind) == TRUE)
+
+  ## Ensure 'data' is a matrix
+  if (!is.matrix(data)) {
+    data <- as.matrix(data)
+  }
+
+  ## Set up required variables
+  n <- nrow(data)
+  d <- ncol(data)
+  beta <- 1 - alpha
+
+  iter <- 0
+  conv <- numeric(0)
+
+  ## Handle alpha = 1 case
+  if (alpha == 1) {
+    pop <- rep(1, n)
+    distmat <- matrix(1, n, n)
+  }
+
+  ## Ensure 'pop' is a matrix with one column
+  pop <- matrix(pop, ncol = 1)
+  mi.mj <- pop %*% t(pop)
+
+  ## Initialise 'uij' membership matrix
+  if (is.na(kind) || kind == "u") {
+    if (is.na(uij)) { # If 'uij' is NA, we need to initialise it.
+      ## Set the random seed to ensure reproducibility.
+      set.seed(randomN)
+      ## Generate a uniform random matrix of dimensions n x ncluster.
+      uij <- matrix(runif(n * ncluster), n, ncluster)
+      ## Normalise each row of 'uij' so that the sum of each row equals 1.
+      ## This makes 'uij' a proper fuzzy membership matrix.
+      uij <- uij / rowSums(uij)
+    } else {
+      ## If 'uij' is not NA, it means it's externally provided.
+      ## Convert it to a matrix of dimensions n x ncluster.
+      uij <- matrix(uij, n, ncluster)
+    }
+  }
+
+  ## Main loop for FGWC "u" (membership approach)
+  ## Commentary PER LINE:
+  ##  - Initialise a matrix 'old_uij' with the same dimensions as 'uij'
+  ##    (n x ncluster), filled with zeros. It is used to store the membership
+  ##    matrix from the previous iteration to monitor convergence.
+  ##  - Start the iterative process.
+  ##    Continue until the maximum change in 'uij' is less than 'error' or the
+  ##    maximum number of iterations 'max.iter' is reached.
+  ##  - Update 'old_uij' to keep the previous state of 'uij' to compare changes
+  ##    between iterations.
+  ##  - Compute the new centroids 'vi' using the current state of 'uij'.
+  ##    New centroids vi are a weighted mean of the data points, where the
+  ##    weights are given by the membership degrees old_uij^m. 't(old_uij^m)' is
+  ##    the transposed matrix of 'old_uij' raised element-wise to the power of
+  ##    'm'. This matrix is multiplied by 'data', and then element-wise divided
+  ##    by the column sums of 'old_uij^m' to get the new centroids
+  ##  - Compute the distances from each data point to each centroid,
+  ##    adjust them by the fuzzifier 'm', and then take element-wise inversion.
+  ##    'rdist::cdist(data, vi, distance, order)' computes the distance between
+  ##    each pair of data points and centroids. After squaring and adjusting by
+  ##    'm', the distances are used to update 'uij'.
+  ##  - Update 'uij' by taking the inverse of the row sums of the inverse of
+  ##    'dists'. This ensures that each element of 'uij' is between 0 and 1 and
+  ##    all elements in a row sum to 1.
+  ##  - Modify 'uij' using the spatial and population information.
+  ##    --> This step incorporates the geographical component into the clustering.
+  ##  - Increment the iteration counter.
+  ##  - Calculate the convergence metric for this iteration and append it to the
+  ##    'conv' vector. This uses the updated 'uij' and the centroids 'vi' to
+  ##    compute the fuzzy within-cluster sum of squares.
+  if (is.na(kind) || kind == "u") { # FGWC "u" (membership approach)
+    ## Initialise a matrix 'old_uij' with the same dimensions as 'uij'
+    old_uij <- matrix(0, n, ncluster)
+    ## Start the iterative process.
+    while (max(abs(uij - old_uij)) > error && iter < max.iter) {
+      ## Update 'old_uij' to keep the previous state of 'uij' to compare changes between iterations.
+      old_uij <- uij
+      ## Compute the new centroids 'vi' using the current state of 'uij'.
+      vi <- (t(old_uij^m) %*% data) / colSums(old_uij^m)
+      ## Compute adjusted by fuzzifier 'm' distances from each data point to each centroid
+      dists <- (rdist::cdist(data, vi, distance, order)^2)^(1 / (m - 1))
+      ## Update 'uij'. Ensure range between 0-1 and a row sum to 1 for each element of 'uij'.
+      uij <- (1 / dists) / rowSums(1 / dists)
+      ## Modify 'uij' using the spatial and population information.
+      uij <- .int_membershipUpdate(data, uij, mi.mj, distmat, alpha, beta, a, b)
+      ## Increment the iteration counter.
+      iter <- iter + 1
+      ## Calculate the convergence metric.
+      conv <- c(conv, sum(uij^m * (rdist::cdist(data, vi, distance, order)^2)))
+    }
+  }
+
+  ## Main loop for FGWC "v" (centroid approach)
+  ## Commentary PER LINE:
+  ##  - Check if 'vi' (the centroid matrix) is not initialised (is NA).
+  ##    If true, initialise it.
+  ##  - Generate initial centroids 'vi' using the 'gen_vi' function with
+  ##    uniform distribution.
+  ##  - Initialise 'v_new' with the current centroids 'vi'.
+  ##  - Initialise 'v_old' as an array of 'Inf' with the same dimensions as 'vi'
+  ##    to ensure the loop starts.
+  ##  - Initialise the membership matrix 'uij' with zeros, with 'n' rows and
+  ##    'ncluster' columns.
+  ##  - Start the iterative process; continue until centroids change less than
+  ##    'error' or maximum iterations 'max.iter' are reached.
+  ##  - Update 'v_old' to keep the previous centroids to compare changes between
+  ##    iterations.
+  ##  - Compute the distances from each data point to each centroid 'v_old',
+  ##    adjust by the fuzzifier 'm', and take element-wise inversion.
+  ##    'rdist::cdist(data, v_old, distance, order)' computes the distance
+  ##    between each pair of data points and centroids. After squaring and
+  ##    adjusting by 'm', the distances are used to update 'uij'.
+  ##  - Update 'uij' by taking the inverse of the row sums of the inverse of
+  ##    'dists'. This ensures that each element of 'uij' is between 0 and 1 and
+  ##    all elements in a row sum to 1.
+  ##  - Modify 'uij' using the spatial and population information.
+  ##    This step incorporates the geographical component into the clustering.
+  ##  - Compute the new centroids 'v_new' using the current state of 'uij'.
+  ##    't(uij^m)' is the transposed matrix of 'uij' raised element-wise to the
+  ##    power of 'm'. This matrix is multiplied by 'data', and then element-wise
+  ##    divided by the column sums of 'uij^m' to get the new centroids.
+  ##  - Calculate the convergence metric for this iteration and append it to the
+  ##    'conv' vector. This uses the updated 'uij' and the centroids 'v_new' to
+  ##    compute the fuzzy within-cluster sum of squares.
+  ##  - Increment the iteration counter.
+  ##  - Update the final centroids 'vi' with 'v_new' after finishing the iterations.
+  if (kind == "v") { # FGWC "v" (centroid approach)
+    if (is.na(vi)) {
+      ## Generate initial centroids.
+      vi <- .int_generateInitialCentroids(data, ncluster, "uniform", randomN)
+    }
+    ## Initialise 'v_new' with the current centroids 'vi'.
+    v_new <- vi
+    ## Initialise 'v_old' as an array of 'Inf' with the same dimensions as 'vi'.
+    v_old <- array(Inf, dim = dim(vi))
+    ## Initialise the membership matrix 'uij' with zeros.
+    dists <- (rdist::cdist(data, v_new, distance, order)^2)^(1 / (m - 1))
+    uij <- (1 / dists) / rowSums(1 / dists)
+    ## Start the iterative process.
+    while (max(abs(v_new - v_old)) > error && iter < max.iter) {
+      ## Update 'v_old' to keep the previous centroids to compare changes between iterations.
+      v_old <- v_new
+      ## Compute adjusted by the fuzzifier 'm' distances from each data point to each centroid 'v_old'.
+      dists <- (rdist::cdist(data, v_old, distance, order)^2)^(1 / (m - 1))
+      ## Update 'uij'. Ensure range between 0-1 and a row sum to 1 for each element of 'uij'.
+      uij <- (1 / dists) / rowSums(1 / dists)
+      ## Modify 'uij' using the spatial and population information.
+      uij <- .int_membershipUpdate(data, uij, mi.mj, distmat, alpha, beta, a, b)
+      ## Compute the new centroids 'v_new' using the current state of 'uij'.
+      v_new <- (t(uij^m) %*% data) / colSums(uij^m)
+      ## Calculate the convergence metric for this iteration.
+      conv <- c(conv, sum(uij^m * (rdist::cdist(data, v_new, distance, order)^2)))
+      ## Increment the iteration counter.
+      iter <- iter + 1
+    }
+    ## Update the final centroids 'vi' with 'v_new' after finishing the iterations.
+    vi <- v_new
+  }
+
+  fgwc_obj <- sum(uij^m * (rdist::cdist(data, vi, distance, order)^2))
+  finaldata <- .int_determineCluster(data, uij)
+  cluster <- finaldata[, ncol(finaldata)]
+
+  ## Prepare output
+  result <- list(
+    converg = conv,
+    f_obj = fgwc_obj,
+    membership = uij,
+    centroid = vi,
+    validation = .int_getIndexes(data, cluster, uij, vi, m, exp(1)),
+    iteration = iter,
+    cluster = cluster,
+    finaldata = finaldata,
+    call = match.call(),
+    time = proc.time() - ptm
+  )
+  class(result) <- 'fgwc'
+
+  ## Clean result object
+  result$call$data <- NULL
+  result$call$pop <- NULL
+  result$call$distmat <- NULL
+
+  ## Output
+  printOut <- c(order, ncluster, m, randomN)
+  names(printOut) <- c("order", "ncluster", "m", "randomN")
+  print(printOut)
+  return(result)
+}
+
+abcfgwcSTE <- function() {
+
+}
 
 # ---------------------------------------------------------------------------- #
 #  ################# INTERNAL FUNCTIONS ASSOCIATED WITH FGWC ################
@@ -791,22 +1078,31 @@ fgwcSTE <- function(m_sfe,
 #' @rdname dot-int_addToFGWCout
 #'
 .int_addToFGWCout <- function(fgwc, sfe, geom_type) {
-  annot <- colData(sfe)["annotation"] %>%
-    as.data.frame() %>%
-    rownames_to_column(var = "Barcode")
-
   if (geom_type == "hex") {
     geom <- "spotHex"
+  } else if (geom_type == "cntd") {
+    geom <- "spotCntd"
   }
 
   geoms <- colGeometry(sfe, geom) %>%
     rownames_to_column(var = "Barcode")
 
   finaldata <- fgwc$finaldata %>%
+    as.data.frame() %>%
     rownames_to_column(var = "Barcode") %>%
-    left_join(annot, by = "Barcode") %>%
-    left_join(geoms, by = "Barcode") %>%
-    column_to_rownames(var = "Barcode")
+    left_join(geoms, by = "Barcode")
+
+  if ("annotation" %in% colnames(colData(sfe))) {
+    annot <- colData(sfe)["annotation"] %>%
+      as.data.frame() %>%
+      rownames_to_column(var = "Barcode")
+
+    finaldata <- finaldata %>%
+      left_join(annot, by = "Barcode") %>%
+      column_to_rownames(var = "Barcode")
+  } else {
+    finaldata <- column_to_rownames(finaldata, var = "Barcode")
+  }
 
   return(finaldata)
 }
@@ -1302,6 +1598,359 @@ fgwcSTE <- function(m_sfe,
   elbow_point <- k_values[elbow_point_index]
 
   return(elbow_point)
+}
+
+
+#' Internal: Generate Initial Centroids for Clustering
+#'
+#' This function generates initial centroids for clustering based on the
+#' specified distribution. It supports both normal and uniform distributions to
+#' initialise the centroid positions. The centroids are generated for each
+#' feature (column) in the data matrix.
+#'
+#' @param data A numeric matrix or data frame where rows are observations
+#'   and columns are variables (features).
+#' @param ncluster An integer specifying the number of clusters (centroids) to
+#'   generate.
+#' @param gendist A character string specifying the type of distribution to use
+#'   for initialising the centroids. This can be "normal" for a normal
+#'   distribution or "uniform" for a uniform distribution.
+#' @param randomN An integer used to set the seed for random number generation
+#'   to ensure reproducibility.
+#'
+#' @details
+#' This function is an adaptation of the `uij` function from the
+#' `naspaclust` R package.
+#'
+#' @return A numeric matrix where each row represents a centroid and each column
+#'   corresponds to a feature in the input data. The dimensions of this matrix
+#'   are \code{ncluster} by \code{ncol(data)}.
+#'
+#' @rdname dot-int_generateInitialCentroids
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+.int_generateInitialCentroids <- function(data, ncluster, gendist, randomN) {
+  ## Set the random seed for reproducibility
+  set.seed(randomN)
+
+  ## Get the number of features (columns) in the data
+  p <- ncol(data)
+
+  ## Initialise the matrix to store centroids
+  piclass <- matrix(0, ncluster, p)
+
+  ## Check the type of distribution to generate initial centroids
+  if (gendist == "normal") {
+    ## Calculate means and standard deviations for each feature (column)
+    means <- colMeans(data)
+    sds <- apply(data, 2, sd)
+
+    ## Generate centroids from the normal distribution for each feature
+    piclass <- mapply(function(mu, sigma) {rnorm(ncluster, mu, sigma)},
+                      mu = means,
+                      sigma = sds)
+
+  } else if (gendist == "uniform") {
+    ## Calculate min and max for each feature (column)
+    mins <- apply(data, 2, min)
+    maxs <- apply(data, 2, max)
+
+    ## Generate centroids from the uniform distribution for each feature
+    piclass <- mapply(function(min_val, max_val) {runif(ncluster,
+                                                        min_val,
+                                                        max_val)},
+                      min_val = mins,
+                      max_val = maxs)
+  }
+
+  ## Return the matrix of centroids
+  return(piclass)
+}
+
+
+#' Internal: Update Fuzzy Membership with Spatial Influence
+#'
+#' This function updates the fuzzy membership matrix for geographical
+#' weighted clustering, combining the previous membership with spatial
+#' influences from population and distance.
+#'
+#' @param data A matrix or data frame of the dataset, where rows are
+#'   observations and columns are features. This parameter is included
+#'   for potential extensions but is not used in the current implementation.
+#' @param old_uij A matrix of previous fuzzy memberships.
+#' @param mi.mj A matrix representing the influence of population between
+#'   all pairs of regions (typically population_i * population_j).
+#' @param dist A matrix of distances between regions; this should be
+#'   a square matrix with dimensions n by n.
+#' @param alpha The weighting of the old membership in the update,
+#'   often denoted as the retention factor.
+#' @param beta The weighting of the spatial influence in the update.
+#' @param a The exponent for distance influence; controls how distance
+#'   affects spatial weighting.
+#' @param b The exponent for population influence; controls how population
+#'   size affects spatial weighting.
+#'
+#' @details
+#' This function is a copy of the `renew_uij` function from the
+#' `naspaclust` R package.
+#'
+#' @return A matrix of updated fuzzy memberships, combining previous
+#'   membership with spatially influenced adjustments.
+#'
+#' @rdname dot-int_membershipUpdate
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+.int_membershipUpdate <- function(data,
+                                  old_uij,
+                                  mi.mj,
+                                  dist,
+                                  alpha,
+                                  beta,
+                                  a,
+                                  b) {
+  ## Set diagonal of distance matrix to Inf to avoid division by zero
+  diag(dist) <- Inf
+
+  ## Calculate the weights using population and distance influences
+  wij <- (mi.mj^b) / (dist^a)
+
+  ## Multiply the weight matrix by the old membership matrix to get
+  ## influence-weighted membership
+  wijmuj <- wij %*% old_uij
+
+  ## Sum these influence-weighted memberships for normalisation
+  A <- rowSums(wijmuj)
+
+  ## Update the membership matrix by combining spatial influence and
+  ## previous membership
+  new_uij <- alpha * old_uij + (beta / A) * wijmuj
+
+  return(new_uij)
+}
+
+
+#' Internal: Determine Highest Cluster Membership from Fuzzy Membership Matrix
+#'
+#' This function assigns each data point to a cluster based on the highest
+#' membership value from the fuzzy membership matrix 'uij'.
+#'
+#' @param data A numeric matrix or data frame where each row is a data point
+#'   and each column is a feature.
+#' @param uij A matrix where each row corresponds to a data point and each
+#'   column corresponds to a cluster. The values are membership scores.
+#'
+#' @return A data frame or matrix similar to 'data' but with an additional
+#'   column 'cluster' that indicates the cluster to which each data point
+#'   has been assigned. The cluster index is based on the maximum membership
+#'   score for each point.
+#'
+#' @details
+#' This function is an adaptation of the `determine_cluster` function from the
+#' `naspaclust` R package.
+#'
+#' @rdname dot-int_determineCluster
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+.int_determineCluster <- function(data, uij) {
+  ## Use max.col to find the index of the maximum value in each row (most
+  ## likely cluster). ties.method = "first" ensures that the first occurrence
+  ## of the maximum value is chosen, matching the behaviour of which.max
+  clust <- max.col(uij, ties.method = "first")
+
+  # Efficiently combine data with cluster assignments
+  # If 'data' is a data frame, use data.frame directly for efficiency
+  if (is.data.frame(data)) {
+    data$cluster <- clust
+    return(data)
+  } else {
+    # If 'data' is a matrix, avoid converting the whole matrix to a data frame
+    return(cbind(data, cluster = clust))
+  }
+}
+
+
+
+#' Internal: Calculate Validation indexes
+#'
+#' A set of functions to calculate FGWC validation indexes
+#'
+#' @param data an object of data with d>1. Can be \code{matrix} or
+#' \code{data.frame}. If your data is univariate, bind it with \code{1} to
+#' get 2 columns.
+#' @param m degree of fuzziness or fuzzifier. Default is 2.
+#' @param uij membership matrix
+#' @param vi centroid matrix
+#'
+#' @details
+#' These functions are copied and/or adapted from the `naspaclust` R package.
+#'
+#'
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+.int_getIndexes <- function(data,
+                            cluster,
+                            uij,
+                            vi,
+                            m,
+                            a = exp(1)) {
+  result <- list()
+  result$PC <- .int_PartitionCoefficient(uij)
+  result$CE <- .int_ClassificationEntropy(uij, a)
+  result$SC <- .int_SilhouetteCoefficient(data, cluster, uij, vi, m)
+  result$SI <- .int_SeparationIndex(data, uij, vi)
+  result$XB <- .int_XieBeniIndex(data, uij, vi, m)
+  result$IFV <- .int_IFV(data, uij, vi, m)
+  result$Kwon <- .int_Kwon(data, uij, vi, m)
+
+  return(result)
+}
+
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+.int_PartitionCoefficient <- function(uij) {
+  return(sum(uij^2) / nrow(uij))
+}
+
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+.int_ClassificationEntropy <- function(uij, a) {
+  return(sum(uij * log(uij,a)) / (-nrow(uij)))
+}
+
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+.int_SilhouetteCoefficient <- function(data, cluster, uij, vi, m) {
+  ## Use dist and outer to compute distances in a vectorised manner
+  ## Compute the squared Euclidean distance between each data point and each centroid
+  d <- as.matrix(dist(rbind(data, vi)))
+  d <- d[1:nrow(data), (nrow(data) + 1):(nrow(data) + nrow(vi))]^2
+
+  ## Compute pt1 using matrix operations
+  pt1 <- colSums((uij^m) * d)
+
+  ## Pre-compute the squared distances between centroids
+  viDist <- as.matrix(dist(vi))^2
+
+  ## Pre-compute the number of points in each cluster
+  ## Ni will have a length of max(cluster) to handle all possible cluster indices
+  Ni <- numeric(max(cluster))
+  for (i in 1:max(cluster)) {
+    Ni[i] <- sum(cluster == i)
+  }
+
+  ## Initialise vkvi and scale rows by the corresponding Ni
+  vkvi <- viDist
+  for (i in 1:nrow(vi)) {
+    if (i <= length(Ni)) {
+      vkvi[i,] <- Ni[i] * vkvi[i,]
+    }
+  }
+
+  ## Compute pt2 as the sum of vkvi
+  pt2 <- colSums(vkvi)
+
+  ## Return the final SC value
+  return(sum(pt1 / pt2))
+}
+
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+.int_SeparationIndex <- function(data, uij, vi) {
+  ## Vectorized distance computation between data points and centroids
+  d <- as.matrix(dist(rbind(data, vi)))
+  d <- d[1:nrow(data), (nrow(data) + 1):(nrow(data) + nrow(vi))]^2
+
+  ## Vectorized distance computation between centroids themselves
+  viDist <- as.matrix(dist(vi))^2
+
+  ## Replace diagonal with Inf to ignore self-distance in the min calculation
+  diag(viDist) <- Inf
+
+  ## Compute pt1 as the sum of element-wise multiplication of uij^2 and d
+  pt1 <- sum((uij^2) * d)
+
+  ## Compute pt2 using the minimum non-diagonal value in viDist
+  pt2 <- nrow(data) * min(viDist)
+
+  ## Return the final value
+  return(pt1 / pt2)
+}
+
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+.int_XieBeniIndex <- function(data, uij, vi, m) {
+  ## Compute squared Euclidean distances using a vectorized approach
+  d <- as.matrix(dist(rbind(data, vi)))
+  d <- d[1:nrow(data), (nrow(data) + 1):(nrow(data) + nrow(vi))]^2
+
+  ## Replace zero distances with Inf to avoid division errors in later calculations
+  d[d == 0] <- Inf
+
+  ## Compute pt1 as the sum of element-wise multiplication of uij^m and d
+  pt1 <- sum((uij^m) * d)
+
+  ## Compute pt2 using the minimum value in d and multiply by the number of data points
+  pt2 <- nrow(data) * min(d)
+
+  ## Return the XB index value
+  return(pt1 / pt2)
+}
+
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+.int_IFV <- function(data, uij, vi, m) {
+  ## Calculate vkvi matrix using vectorized operations
+  distance_matrix <- as.matrix(dist(vi, method = "euclidean"))^2
+  vkvi <- distance_matrix
+
+  ## Calculate d matrix using vectorized operations
+  d <- as.matrix(dist(rbind(data, vi), method = "euclidean"))^2
+  d <- d[1:nrow(data), (nrow(data) + 1):(nrow(data) + nrow(vi))]
+
+  ## Calculate sigmaD
+  sigmaD <- sum(d) / (nrow(data) * nrow(vi))
+
+  ## Calculate SDmax
+  SDmax <- max(vkvi)
+
+  ## Calculate log2u and u2ij
+  log2u <- colSums(log(uij, 2)) / nrow(data)
+  u2ij <- colSums(uij^2)
+
+  ## Compute inside term
+  log_term <- log(nrow(vi), 2) - log2u
+  inside <- sum(u2ij * log_term)
+
+  ## Calculate final IFV value
+  result <- sum(u2ij * ((log_term)^2) / nrow(data) * (SDmax / sigmaD))
+
+  return(result)
+}
+
+#' @rdname dot-int_getIndexes
+#' @author Eleftherios (Lefteris) Zormpas
+.int_Kwon <- function(data, uij, vi, m) {
+  ## Calculate d matrix using vectorized operations
+  d <- as.matrix(dist(rbind(data, vi), method = "euclidean"))^2
+  d <- d[1:nrow(data), (nrow(data) + 1):(nrow(data) + nrow(vi))]
+
+  ## Calculate s vector using vectorized operations
+  s <- colSums((vi - colMeans(data))^2)
+
+  ## Calculate vivj matrix using vectorized operations
+  vivj <- as.matrix(dist(vi, method = "euclidean"))^2
+  diag(vivj) <- Inf  # Set diagonal elements to Inf
+
+  ## Calculate pt1, pt2, and pt3
+  pt1 <- colSums((uij^m) * d)
+  pt2 <- sum(s) / nrow(vi)
+  pt3 <- min(vivj)
+
+  ## Compute the final Kwon value
+  result <- sum((pt1 + pt2) / pt3)
+
+  return(result)
 }
 
 

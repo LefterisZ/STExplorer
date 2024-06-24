@@ -11,6 +11,7 @@ addPerGeneQC(
   organism = "human",
   version = NULL,
   mirror = NULL,
+  add = c("sparsity", "zeroexpr", "coefofvar", "exprstats"),
   ...
 )
 }
@@ -37,6 +38,13 @@ are 'www', 'uswest', 'useast', 'asia'. If no mirror is specified the primary
 site at www.ensembl.org will be used. Mirrors are not available for the
 Ensembl Genomes databases. The mirror and the version arguments cannot be
 used together.}
+
+\item{add}{Character string or a vector of characters. The vector needs to
+contain one or any combination of "sparsity", "zeroexpr", "coefofvar", and
+"exprstats". Indicates which additional QC metrics to be
+calculated. Defaults to "zeroexpr". Leave it as is since the other metrics
+are not used downstream at the moment and can only increase size and running
+times.}
 
 \item{...}{further arguments passed to \code{addPerFeatureQC}, to pass
 to \code{perFeatureQCMetrics}.}

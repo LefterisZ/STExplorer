@@ -2,10 +2,44 @@
 % Please edit documentation in R/qc_addSpatialNeighGraphs.R
 \name{addSpatialNeighGraphs}
 \alias{addSpatialNeighGraphs}
+\alias{addSpatialNeighGraphs.SpatialFeatureExperiment}
+\alias{addSpatialNeighGraphs.MetaSpatialFeatureExperiment}
 \title{Add Neighbour Graphs}
 \usage{
 addSpatialNeighGraphs(
-  msfe,
+  m_sfe,
+  sample_id,
+  type = c("poly2nb", "tri2nb", "soi.graph", "gabrielneigh", "relativeneigh",
+    "knearneigh", "dnearneigh"),
+  style = c("raw", "W", "B", "C", "U", "minmax", "S"),
+  distMod = c("raw", "idw", "exp", "dpd"),
+  glist = NULL,
+  alpha = 1,
+  dmax = NULL,
+  zero.policy = TRUE,
+  sym = FALSE,
+  sfe_out = TRUE,
+  ...
+)
+
+\method{addSpatialNeighGraphs}{SpatialFeatureExperiment}(
+  m_sfe,
+  sample_id = NULL,
+  type = c("poly2nb", "tri2nb", "soi.graph", "gabrielneigh", "relativeneigh",
+    "knearneigh", "dnearneigh"),
+  style = c("raw", "W", "B", "C", "U", "minmax", "S"),
+  distMod = c("raw", "idw", "exp", "dpd"),
+  glist = NULL,
+  alpha = 1,
+  dmax = NULL,
+  zero.policy = TRUE,
+  sym = FALSE,
+  sfe_out = TRUE,
+  ...
+)
+
+\method{addSpatialNeighGraphs}{MetaSpatialFeatureExperiment}(
+  m_sfe,
   sample_id = TRUE,
   type = c("poly2nb", "tri2nb", "soi.graph", "gabrielneigh", "relativeneigh",
     "knearneigh", "dnearneigh"),
@@ -21,7 +55,7 @@ addSpatialNeighGraphs(
 )
 }
 \arguments{
-\item{msfe}{The metaSFE object.}
+\item{m_sfe}{An SFE or metaSFE object.}
 
 \item{sample_id}{character string, TRUE or NULL specifying sample/image
 identifier(s); here, TRUE is equivalent to all samples/images.}

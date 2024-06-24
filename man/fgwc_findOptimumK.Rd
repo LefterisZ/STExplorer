@@ -7,8 +7,8 @@
 fgwc_findOptimumK(
   fgwc_in,
   k_range = 2:10,
-  index_type = "FPC",
-  elbow_method = "angle",
+  index_type = "composite",
+  elbow_method = "knee",
   m_sfe,
   sample_id = NULL,
   algorithm = "classic",

@@ -10,8 +10,8 @@
 \item{msfe}{A SpatialFeatureExperiment object.}
 
 \item{sample_id}{Either a logical vector indicating the samples to include
-(if TRUE, all samples are included), or a character vector specifying the
-sample IDs to include.}
+(if TRUE, all samples are included), NULL (if NULL selects the first sample),
+or a character vector specifying the sample IDs to include.}
 }
 \value{
 A character vector of selected sample IDs.
