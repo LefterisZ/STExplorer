@@ -1709,7 +1709,10 @@ abcfgwcSTE <- function() {
                                   a,
                                   b) {
   ## Set diagonal of distance matrix to Inf to avoid division by zero
-  diag(dist) <- Inf
+  # diag(dist) <- Inf
+  for (i in 1:nrow(dist)) {
+    dist[i, i] <- Inf
+  }
 
   ## Calculate the weights using population and distance influences
   wij <- (mi.mj^b) / (dist^a)
