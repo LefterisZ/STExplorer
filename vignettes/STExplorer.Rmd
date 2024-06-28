@@ -73,7 +73,6 @@ library(foreach)
 library(progressr)
 library(parallel)
 library(cols4all)
-library(pheatmap)
 library(RColorBrewer)
 ```
 
