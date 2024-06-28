@@ -89,11 +89,11 @@ original in the \code{naspaclust} R package.
 }
 \details{
 Fuzzy Geographically Weighted Clustering (FGWC) was developed
-by \insertCite{fgwc;textual}{naspaclust} by adding neighbourhood effects and
+by \code{fgwc;textual}{naspaclust} by adding neighbourhood effects and
 population to configure the membership matrix in Fuzzy C-Means. There are
 two kinds of options in doing classical FGWC. The first is using \code{"u"}
-\insertCite{Runkler2006}{naspaclust} (default) for membership optimization
-and \code{"v"} \insertCite{fgwc}{naspaclust} for centroid optimisation.
+\code{Runkler2006}{naspaclust} (default) for membership optimization
+and \code{"v"} \code{fgwc}{naspaclust} for centroid optimisation.
 }
 \seealso{
 \code{\link{abcfgwc}} \code{\link{fpafgwc}} \code{\link{gsafgwc}}

@@ -51,8 +51,8 @@ cores.}
 \value{
 An SFE object with the below two columns added in the \code{rowData}:
 \itemize{
-\item{gearyC}{the value of the observed Geary's C.}
-\item{gearyK}{sample kurtosis of gene.}
+\item gearyC - the value of the observed Geary's C.
+\item gearyK - sample kurtosis of gene.
 }
 }
 \description{

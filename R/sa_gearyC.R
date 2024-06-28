@@ -35,8 +35,8 @@
 #'
 #' @return An SFE object with the below two columns added in the `rowData`:
 #' \itemize{
-#'  \item{gearyC}{the value of the observed Geary's C.}
-#'  \item{gearyK}{sample kurtosis of gene.}
+#'  \item gearyC - the value of the observed Geary's C.
+#'  \item gearyK - sample kurtosis of gene.
 #' }
 #'
 #' @details If n, n1, and S0 are not provided, they are calculated based on the
@@ -465,14 +465,16 @@ gearyGlobalCTest <- function(m_sfe,
 #' @return An SFE object with the results added in the `localResults` slot
 #' which contains a DataFrame named `localGearyC`/`localGearyCPerm` that
 #' contains the per location Ci statistics values for each gene:
-#' \item{Ci or ENSG***.Ci}{Numeric vector containing Local Geary statistic
+#' \itemize{
+#' \item Ci or ENSG***.Ci - Numeric vector containing Local Geary statistic
 #' with attribute
-#' \item{ENSG***.CiFDR}{(Only for gearyLocalCPerm) \code{rank()} and
+#' \item ENSG***.CiFDR - (Only for gearyLocalCPerm) \code{rank()} and
 #' \code{punif()} of observed statistic rank for [0, 1] p-values using
 #' \code{alternative=}}
-#' \item{ENSG***.CiCluster}{(Only for gearyLocalCPerm) Low/High cluster for
+#' \item ENSG***.CiCluster - (Only for gearyLocalCPerm) Low/High cluster for
 #' each location. It can take values: "Low-Low", "High-High", "Other Positive",
-#' "Negative"}
+#' "Negative"
+#' }
 #'
 #' @references Anselin, L. (2019). Local indicators of spatial
 #' association—LISA. Spatial Statistics, 29, 10-27.

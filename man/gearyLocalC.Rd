@@ -69,14 +69,16 @@ https://github.com/r-spatial/spdep/issues/124}
 An SFE object with the results added in the \code{localResults} slot
 which contains a DataFrame named \code{localGearyC}/\code{localGearyCPerm} that
 contains the per location Ci statistics values for each gene:
-\item{Ci or ENSG***.Ci}{Numeric vector containing Local Geary statistic
+\itemize{
+\item Ci or ENSG***.Ci - Numeric vector containing Local Geary statistic
 with attribute
-\item{ENSG***.CiFDR}{(Only for gearyLocalCPerm) \code{rank()} and
+\item ENSG***.CiFDR - (Only for gearyLocalCPerm) \code{rank()} and
 \code{punif()} of observed statistic rank for \link{0, 1} p-values using
 \code{alternative=}}
-\item{ENSG***.CiCluster}{(Only for gearyLocalCPerm) Low/High cluster for
+\item ENSG***.CiCluster - (Only for gearyLocalCPerm) Low/High cluster for
 each location. It can take values: "Low-Low", "High-High", "Other Positive",
-"Negative"}
+"Negative"
+}
 
 description
 }

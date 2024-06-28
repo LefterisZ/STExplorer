@@ -140,7 +140,7 @@ plotGeneExpression <- function(m_sfe,
                                sample_id = NULL,
                                assay = c("counts", "logcounts"),
                                minmax = c(0, Inf),
-                               type = c("spot", "hex"),
+                               type = c("spot", "hex", "cntd"),
                                res = c("lowres", "hires", "fullres", "none"),
                                fill_args = list(),
                                alpha = 0.3,
@@ -154,10 +154,12 @@ plotGeneExpression <- function(m_sfe,
     type <- "spotHex"
   } else if (type == "spot") {
     type <- "spotPoly"
+  } else if (type == "cntd") {
+    type <- "spotCntd"
   }
 
   ## Fetch image if needed
-  if (!is.null(res)) {
+  if (!res == "none") {
     ## Fetch image data and transform to raster
     image <- .int_getImgDt(sfe = sfe, sample_id = sample_id, image_id = res)
     ## Get capture area limits
@@ -185,18 +187,38 @@ plotGeneExpression <- function(m_sfe,
                              type = type)
 
   ## Plot
-  ggplot(data) +
-    tidyterra::geom_spatraster_rgb(data = image[[1]]) +
-    ggplot2::geom_sf(data = data,
-                     aes(geometry = geometry,
-                         fill = expression),
-                     alpha = alpha) +
-    do.call(scale_fill_viridis_c, c(list(), fill_args)) +
-    ggplot2::labs(fill = fill) +
-    ggplot2::coord_sf() +
-    ggplot2::facet_wrap(~gene, scales = "fixed", ncol = 1) +
-    ggplot2::theme_void()
+ p <- ggplot()
 
+ if (!res == "none") {
+   p <- p +
+     tidyterra::geom_spatraster_rgb(data = image[[1]])
+ }
+
+ if (type == "cntd") {
+   p <- p +
+     ggplot2::geom_sf(data = data,
+                      aes(geometry = geometry,
+                          fill = expression),
+                      alpha = alpha) +
+     do.call(scale_fill_viridis_c, c(list(), fill_args)) +
+     ggplot2::labs(fill = fill)
+ } else {
+   p <- p +
+     ggplot2::geom_sf(data = data,
+                      aes(geometry = geometry,
+                          colour = expression),
+                      alpha = alpha,
+                      size = 0.5) +
+     do.call(scale_colour_viridis_c, c(list(), fill_args)) +
+     ggplot2::labs(colour = fill)
+ }
+
+ p <- p +
+   ggplot2::coord_sf() +
+   ggplot2::facet_wrap(~gene, scales = "fixed", ncol = 1) +
+   ggplot2::theme_void()
+
+ p
 }
 
 
@@ -474,6 +496,7 @@ plotHeatmap <- function(m_sfe,
 #' @importFrom purrr reduce
 #' @importFrom dplyr select filter
 #' @importFrom tidyr pivot_longer
+#' @importFrom Matrix t
 #'
 .int_prepareDataMap <- function(sfe, assay, genes, minmax, type) {
   # genes_df <- assay(sfe, assay) %>%
@@ -482,7 +505,7 @@ plotHeatmap <- function(m_sfe,
   #   dplyr::select(tidyr::all_of(genes)) %>%
   #   tibble::rownames_to_column(var = "rownames")
   genes_df <- assay(sfe, assay) %>%
-    t() %>%
+    Matrix::t() %>%
     as.data.frame()
 
   genes_lst <- lapply(genes, FUN = function(x) {

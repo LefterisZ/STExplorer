@@ -835,11 +835,11 @@ fgwcSTE <- function(m_sfe,
 #' }
 #'
 #' @details Fuzzy Geographically Weighted Clustering (FGWC) was developed
-#' by \insertCite{fgwc;textual}{naspaclust} by adding neighbourhood effects and
+#' by \code{fgwc;textual}{naspaclust} by adding neighbourhood effects and
 #' population to configure the membership matrix in Fuzzy C-Means. There are
 #' two kinds of options in doing classical FGWC. The first is using \code{"u"}
-#' \insertCite{Runkler2006}{naspaclust} (default) for membership optimization
-#' and \code{"v"} \insertCite{fgwc}{naspaclust} for centroid optimisation.
+#' \code{Runkler2006}{naspaclust} (default) for membership optimization
+#' and \code{"v"} \code{fgwc}{naspaclust} for centroid optimisation.
 #'
 #' @seealso \code{\link{abcfgwc}} \code{\link{fpafgwc}} \code{\link{gsafgwc}}
 #' \code{\link{hhofgwc}} \code{\link{ifafgwc}} \code{\link{psofgwc}}
@@ -1406,7 +1406,29 @@ abcfgwcSTE <- function() {
                   max.iter = max.iter,
                   loss = loss,
                   seed = seed)
-  # assign("k.err", k.err, envir = .GlobalEnv) # leave thi here for now
+  # # Modified sapply to include progress bar updates
+  # # If your function .int_computeErrors is too fast and this overhead
+  # # affects performance, consider updating the progress bar less frequently,
+  # # for example, only on every 10th or 100th iteration depending on your total length.
+  # k.err <- sapply(X = k_range,
+  #                 FUN = function(k, ...) {
+  #                   # Update the progress bar
+  #                   curr_progress <<- curr_progress + 1
+  #                   setTxtProgressBar(pb, curr_progress)
+  #
+  #                   # Call the original function
+  #                   .int_computeErrors(k, ...)
+  #                 },
+  #                 A = A,
+  #                 A.rand = A.rand,
+  #                 n_cores = n_cores,
+  #                 max.iter = max.iter,
+  #                 loss = loss,
+  #                 seed = seed)
+  #
+  # # Close the progress bar
+  # close(pb)
+  # assign("k.err", k.err, envir = .GlobalEnv) # leave this here for now
   rownames(k.err) <- c("err", "err.rand")
   colnames(k.err) <- k_range
 

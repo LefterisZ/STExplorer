@@ -361,8 +361,8 @@ readCurioSeeker <- function(samples,
     obj <- anndata::read_h5ad(filename = filePath)
 
     ## Format counts table
-    counts <- obj$X %>% Matrix::as.matrix(sparse = TRUE) %>%
-      t() %>%
+    counts <- obj$X %>% # Matrix::as.matrix(sparse = TRUE) %>%
+      Matrix::t() %>%
       as(Class = "dgCMatrix")
 
     ## Load coordinates

@@ -10,7 +10,7 @@ plotGeneExpression(
   sample_id = NULL,
   assay = c("counts", "logcounts"),
   minmax = c(0, Inf),
-  type = c("spot", "hex"),
+  type = c("spot", "hex", "cntd"),
   res = c("lowres", "hires", "fullres", "none"),
   fill_args = list(),
   alpha = 0.3,

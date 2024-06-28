@@ -1,11 +1,15 @@
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
+# Load packages ----
 library(pryr)
 library(lineprof)
+library(microbenchmark)
 
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
+# Prepare input data ----
+
 # data
 # pop
 # distmat
@@ -37,9 +41,12 @@ library(lineprof)
 # verbose = FALSE
 
 # m_sfe
+sfe_test <- sfe[, 1:1000]
+sfe_nmf_test <- sfe_nmf[1:1000,]
+sfe_test <- addDistMat(sfe_test, 2)
 sample_id = NULL
 data = sfe_nmf_test
-pop = NULL
+pop = rep(1, nrow(data))
 distMat = getDistMat(sfe_test, dMetric = "euclidean", sample_id = NULL)
 dMetric = NULL
 algorithm = "classic"
@@ -47,6 +54,7 @@ parameters = fgwc_params(algorithm = "classic", ncluster = 5)
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
+# Re-implemented FGWC source code ----
 ## Check SFE or MSFE?
 sfe1 <- .int_sfeORmsfe(m_sfe = sfe_test, sample_id = sample_id)
 c(address(sfe1), refs(sfe1))
@@ -306,6 +314,7 @@ return(result)
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
+# Re-implemented Index functions ----
 # Set the seed for reproducibility
 set.seed(42)
 
@@ -585,6 +594,21 @@ cat("Optimised Kwon1 Result:", optimisedKwon1_result, "\n")
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
+# Test running times ----
+mbm <- microbenchmark("STE" = fgwcSTE(m_sfe = sfe_test,
+                                      data = data,
+                                      pop = pop,
+                                      distMat = distMat,
+                                      parameters = parameters),
+                      "original" = naspaclust::fgwc(data = data,
+                                                    pop = pop,
+                                                    distmat = distMat,
+                                                    fgwc_param = parameters))
+
+
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+# Housekeeping ----
 rm(k_range, index_type, elbow_method, sample_id, algorithm, distMat, dMetric,
    parameters, plot, verbose, data, pop, main_params, distMat, fgwc, kind,
    ncluster, m, distance, order, alpha, a, b, max.iter, error, randomN, uij,
