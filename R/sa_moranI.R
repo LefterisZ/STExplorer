@@ -483,6 +483,7 @@ moranGlobalITest <- function(m_sfe,
 #' @return An SFE object with the results added in the `localResults` slot
 #' which contains a DataFrame named `localMoranI`/`localMoranIPerm` that
 #' contains the per location Ii statistics values for each gene:
+#' \itemize{
 #' \item{ENSG***.Ii}{Numeric vector containing Local Moran statistic
 #' with attribute
 #' \item{ENSG***.IiFDR}{(Only for gearyLocalCPerm) \code{rank()} and
@@ -490,8 +491,10 @@ moranGlobalITest <- function(m_sfe,
 #' \code{alternative=}}
 #' \item{ENSG***.IiCluster}{Low/High cluster for each location. It can take
 #' values: "Low-Low", "High-High", "Low-High", "High-Low"}
+#' }
 #'
-#' @note Conditional permutations added for comparative purposes; permutations
+#' @note
+#' Conditional permutations added for comparative purposes; permutations
 #' are over the whole data vector omitting the observation itself. For p-value
 #' adjustment, use \code{p.adjust()} or \code{p.adjustSP()} on the output
 #' vector.

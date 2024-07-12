@@ -118,6 +118,7 @@ replacements to avoid duplicate values,
 An SFE object with the results added in the \code{localResults} slot
 which contains a DataFrame named \code{localMoranI}/\code{localMoranIPerm} that
 contains the per location Ii statistics values for each gene:
+\itemize{
 \item{ENSG***.Ii}{Numeric vector containing Local Moran statistic
 with attribute
 \item{ENSG***.IiFDR}{(Only for gearyLocalCPerm) \code{rank()} and
@@ -125,6 +126,7 @@ with attribute
 \code{alternative=}}
 \item{ENSG***.IiCluster}{Low/High cluster for each location. It can take
 values: "Low-Low", "High-High", "Low-High", "High-Low"}
+}
 }
 \description{
 This function is a wrapper of the \code{\link[spdep]{moran}} function from

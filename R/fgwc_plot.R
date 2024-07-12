@@ -253,9 +253,11 @@ plotFGWC_multiViolin <- function(fgwc, m_sfe, sample_id = NULL) {
     geom_violin(aes(fill = cluster),
                 width = 1,
                 show.legend = TRUE,
-                trim = FALSE) +
+                trim = FALSE,
+                drop = FALSE) +
     geom_boxplot(width = 0.1, colour = "black", alpha = 0.2,
-                 outlier.size = 0.5, outlier.alpha = 0.2) +
+                 outlier.size = 0.5, outlier.alpha = 0.2,
+                 drop = FALSE) +
     scale_fill_viridis_d() +
     facet_wrap(~annotation) +
     labs(x = "",
@@ -345,9 +347,12 @@ plotFGWC_multiHeatmap <- function(fgwc,
 
   ## Prepare location annotations
   if (loc_annot != "none") {
-    annotations_and_colours <- .int_getAnnotsAndColours(fgwc = fgwc,
-                                                        loc_annot = loc_annot,
-                                                        order_rows = order_rows)
+    if (loc_annot == "both") {
+      loc_annot <- c("annotation", "cluster")
+    }
+    annotations_and_colours <- .int_getAnnotsAndColoursFGWC(fgwc = fgwc,
+                                                            loc_annot = loc_annot,
+                                                            order_rows = order_rows)
   } else {
     annotations_and_colours <- list(annotations = NA, colours = NA)
   }
@@ -754,7 +759,7 @@ plotFGWC_pie <- function(fgwc,
   df$ratio <- df$Freq/sum(df$Freq)
   if (showRatioPie) {
     df$label <- ifelse(df$ratio >= showRatioThreshold,
-                       paste0(df$label, "\n(", scales::percent(df$ratio), ")"),
+                       paste0(df$label, "\n(", scales::label_percent(accuracy = 1)(df$ratio), ")"),
                        as.character(df$label))
   }
   df$labelx <- (r0 + r1)/2 * sin(df$mid) + df$x
@@ -772,9 +777,9 @@ plotFGWC_pie <- function(fgwc,
     total <- sum(df3$Freq)
     df3$ratio1 <- df3$Freq/total
     if (ratioByGroup) {
-      df3$ratio <- scales::percent(df3$Freq/df3$group)
+      df3$ratio <- scales::label_percent(accuracy = 0.1)(df3$Freq/df3$group)
     } else {
-      df3$ratio <- scales::percent(df3$ratio1)
+      df3$ratio <- scales::label_percent(accuracy = 0.1)(df3$ratio1)
     }
     df3$end <- cumsum(df3$Freq)
     df3$start <- dplyr::lag(df3$end)
@@ -1048,6 +1053,7 @@ plotFGWC_pie <- function(fgwc,
 #' and Subtype.
 #' @param cluster_no The cluster number for which the heatmap is generated.
 #' @param cutree_cols Optional, cutree result for columns.
+#' @param ... Arguments passed to `pheatmap`.
 #'
 #' @return A pheatmap object.
 #'
@@ -1084,7 +1090,8 @@ plotFGWC_markersHeatmap <- function(fgwc,
                              sample_id,
                              markers,
                              cluster_no,
-                             cutree_cols = NA) {
+                             cutree_cols = NA,
+                             ...) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
@@ -1153,7 +1160,8 @@ plotFGWC_markersHeatmap <- function(fgwc,
                       cluster_rows = FALSE,
                       cluster_cols = TRUE,
                       cutree_cols = cutree_cols,
-                      main = paste0("Cluster ", cluster_no))
+                      main = paste0("Cluster ", cluster_no),
+                      ...)
 
   return(heatmap)
 }
@@ -1279,6 +1287,7 @@ plotFGWC_subClust <- function(heatmap, k, clust,
 #' generated.
 #' @param cutree_cols Number of columns for cutree to cut the sample tree of the
 #'  heatmap. If NA, the tree will not be cut.
+#' @param ... Arguments passed to `pheatmap`.
 #'
 #' @return A pheatmap object representing the gene expression heatmap for the
 #' specified sub-cluster.
@@ -1307,7 +1316,8 @@ plotFGWC_subHeatmap <- function(heatmap,
                                 m_sfe,
                                 sample_id,
                                 cluster_no,
-                                cutree_cols = NA) {
+                                cutree_cols = NA,
+                                ...) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
@@ -1371,7 +1381,8 @@ plotFGWC_subHeatmap <- function(heatmap,
                       cluster_rows = FALSE,
                       cluster_cols = TRUE,
                       cutree_cols = cutree_cols,
-                      main = paste0("Sub-Cluster ", cluster_no))
+                      main = paste0("Sub-Cluster ", cluster_no),
+                      ...)
 
   return(heatmap)
 }
@@ -1657,8 +1668,8 @@ plotFGWC_subHeatmap <- function(heatmap,
   input[is.na(input)] <- 0
 
   ## Order and drop NAs introduced
-  input <- input %>%
-    .[markers$gene.name,] %>%
+  input <- input[markers$gene.name,] %>%
+    as.data.frame() %>%
     tidyr::drop_na()
 
   return(input)
@@ -2062,23 +2073,25 @@ plotFGWC_subHeatmap <- function(heatmap,
 #'
 .int_getAnnotsAndColoursFGWC <- function(fgwc, loc_annot, order_rows) {
   annotations <- fgwc$finaldata %>%
-    dplyr::select(dplyr::any_of(c("cluster", "annotation"))) %>%
-    dplyr::mutate(cluster = as.factor(cluster))
+    dplyr::select(dplyr::all_of(loc_annot))
 
-  col_clust <- length(unique(annotations$cluster))
-  annot_colours <- list(cluster = getColours(col_clust))
-  names(annot_colours$cluster) <- unique(annotations$cluster)
+  annot_colours <- vector(mode = "list",
+                          length = length(loc_annot))
 
-  if ("annotation" %in% colnames(annotations)) {
-    col_annot <- length(unique(annotations$annotation))
-    annot_colours[["annotation"]] <- c4a(palette = "carto.pastel", n = col_annot)
-    names(annot_colours$annotation) <- unique(annotations$annotation)
-  }
+  for (column in loc_annot) {
+    if (is.numeric(annotations[[column]])) {
+      annotations[[column]] <- as.factor(annotations[[column]])
+    }
 
-  if (loc_annot %in% c("cluster", "annotation")) {
-    annotations <- annotations %>%
-      dplyr::select(all_of(loc_annot))
-    annot_colours <- annot_colours[[loc_annot]]
+    col_no <- length(unique(annotations[[column]]))
+
+    if (column == "cluster") {
+      annot_colours[[column]] <- getColours(col_no)
+    } else {
+      annot_colours[[column]] <- c4a(palette = "carto.pastel", n = col_no)
+    }
+
+    names(annot_colours[[column]]) <- unique(annotations[[column]])
   }
 
   if (order_rows %in% c("cluster", "annotation")) {
@@ -2106,6 +2119,7 @@ plotFGWC_subHeatmap <- function(heatmap,
 .int_getMetageneData <- function(fgwc) {
   n <- ncol(fgwc$metageneSignatures)
   fgwc$metageneSignatures %>%
+    as.data.frame() %>%
     dplyr::rename_with(~ paste0("Factor", sapply(1:n, .int_addLeadingZero)))
 }
 

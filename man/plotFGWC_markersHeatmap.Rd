@@ -10,7 +10,8 @@ plotFGWC_markersHeatmap(
   sample_id,
   markers,
   cluster_no,
-  cutree_cols = NA
+  cutree_cols = NA,
+  ...
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ and Subtype.}
 \item{cluster_no}{The cluster number for which the heatmap is generated.}
 
 \item{cutree_cols}{Optional, cutree result for columns.}
+
+\item{...}{Arguments passed to \code{pheatmap}.}
 }
 \value{
 A pheatmap object.

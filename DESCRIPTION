@@ -62,7 +62,8 @@ Imports:
     tidyr,
     ggExtra,
     RcppML,
-    patchwork
+    patchwork,
+    anndata
 License: GPL (>= 3)
 Suggests: 
     BiocStyle,

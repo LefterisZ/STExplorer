@@ -201,6 +201,10 @@ We can identify low-quality spots using several characteristics that are also us
 
 Low library size or low number of expressed features can indicate poor mRNA capture rates, e.g. due to cell damage and missing mRNAs, or low reaction efficiency. A high proportion of mitochondrial reads indicates cell damage, e.g. partial cell lysis leading to leakage and missing cytoplasmic mRNAs, with the resulting reads therefore concentrated on the remaining mitochondrial mRNAs that are relatively protected inside the mitochondrial membrane. Unusually high numbers of cells per spot can indicate problems during cell segmentation.
 
+>**Important consideration:** In this vignette we suggest using quantiles for setting the lower and higher thresholds. This is an attempt to assist in streamlining the QC steps. However, we strongly recomend that you check the QC thresholds individually for each tissue section as it is likely that some of those sections have different QC requirements than the standard suggestions.
+
+>**Important consideration:** Underfiltering can be as bad as overfiltering your dataset.
+
 The idea of using scRNA-seq QC metrics in STx data comes from the fact that if we remove space and effectively treat each spot as a single cell, the two datasets share common features. We need to bear in mind, however, that the expected distributions for high-quality *spots* are different (compared to high-quality *cells* in scRNA-seq), since spots may contain zero, one, or multiple cells.
 
 A few publications for further reading that can help you understand the quality controls: @McCarthy2017Apr and @Amezquita2020Feb.
@@ -324,8 +328,8 @@ plotQC_spots(sfe, type = "spot", sample_id = NULL, in_tissue = TRUE)
 plotQC_spots(sfe, type = "hex", sample_id = "JBO022", in_tissue = TRUE)
 
 ## Plot spatial coordinates with annotations
-plotQC_spotsAnnotation(sfe = sfe, type = "spot", sample_id = NULL)
-plotQC_spotsAnnotation(sfe = sfe, type = "hex", sample_id = "JBO022")
+plotQC_spotsAnnotation(sfe, type = "spot", sample_id = NULL)
+plotQC_spotsAnnotation(sfe, type = "hex", sample_id = "JBO022")
 ```
 
 ### Plot manual annotation with tissue image
@@ -366,7 +370,9 @@ plotQC_hist(sfe, metric = "libsize", limits = c(2000, 36500),
 plotQC_map(sfe, metric = "libsize")
 
 ## Select threshold
-sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE, min_t = 500, max_t = 32000)
+sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE,
+                           min_t = quantile(sfe@colData$sum, probs = c(.15)),
+                           max_t = quantile(sfe@colData$sum, probs = c(.999)))
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
@@ -404,7 +410,9 @@ plotQC_hist(sfe, metric = "detected", limits = c(500, NA))
 plotQC_map(sfe, metric = "detected")
 
 ## Select threshold
-sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE, min_t = 500, max_t = NA)
+sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE,
+                           min_t = quantile(sfe@colData$sum, probs = c(.15)),
+                           max_t = quantile(sfe@colData$sum, probs = c(.999)))
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "detected", sample_id = TRUE)
@@ -447,11 +455,11 @@ As previously mentioned, number of cells per spot is an attribute that not all d
 
 If the number of cells per spot is an existing information for our dataset, we can use it to investigate the presence of any outlier values that could indicate problems. To do so we need to take a look in the column `cell_count` in `colData`.
 
-Unfortunately, our current example dataset doesn't include this information. If it did, we would sue the below chunks of code to check it.
+Unfortunately, our current example dataset doesn't include this information. If it did, we would use the below chunks of code to check it.
 
 ```{r 02_plot-cellsPerSpot-histo, eval=FALSE, fig.height=4, warning=FALSE, message=FALSE}
 ## Density and histogram of the number of cells in each spot
-plotQC_hist(sfe, metric = "cellCount")
+# plotQC_hist(sfe, metric = "cellCount")
 
 ```
 
@@ -464,9 +472,9 @@ If we see from both the histogram and the scatter plot there a tail of very high
 
 ```{r 02_cellsPerSpot-thresh, eval=FALSE, fig.height=4}
 ## Select threshold
-sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, min_t = NA, max_t = 25)
+# sfe <- setQCthresh_CellCount(sfe, sample_id = TRUE, min_t = NA, max_t = 25)
 ## Check putative spatial patterns of removed spots
-plotQC_filtered(sfe, metric = "cellCount", sample_id = TRUE)
+# plotQC_filtered(sfe, metric = "cellCount", sample_id = TRUE)
 
 ```
 
@@ -578,6 +586,14 @@ SummarizedExperiment::assayNames(msfe@sfe_data[["JBO022"]])
 ## Gene-level Quality Control
 
 ### Calculating extra QC metrics
+The calculation of the mean of log counts over the number of locations a gene is present, is an optional metric that attempts to find genes with a low number of log counts on average. This attempts to identify genes that are putative noise. To calculate this metric you need to provide the `add` argument in the `addPerGeneQC` function with `c("zeroexpr", "exprstats")`. Otherwise the below error will occur:
+
+```
+Error in `[[<-`(`*tmp*`, colnameLogM, value = list(sLogMean = numeric(0))) : 
+  0 elements in value to replace 32738 elements
+```
+
+You can skip this step. Make sure though to also skip the related LogLowMean line in the next code chunk where you will be setting the thresholds to filter out genes.
 
 ```{r 03_GeneQC_sfe1}
 ## Calculate the mean of log counts over the number of locations a gene is present
@@ -589,15 +605,18 @@ colnames(rowData(msfe@sfe_data[["JBO022"]]))
 
 ### Set and apply filters
 
-**NOTE** - Feature selection is a complicated process with significant impacts on the chosen downstream analysis.
+> **NOTE** - Feature selection is a complicated process with significant impacts on the chosen downstream analysis.
 
 > **NOTE:** in the below code chunk we use `sample_id = TRUE` to apply the thresholds over all `SFE` samples within the `MSFE` object.
+
+> **NOTE:** we suggest that you remove genes without any expression (zeroexpr).
 
 ```{r 03_GeneQC_sfe2}
 ## Zero expression genes
 msfe <- setQCthresh_ZeroExpr(msfe)
 
 ## Lowly expressed (noise?!) genes
+## Do not run this line if you haven't calculated the logLowMean in the previous code chunk.
 msfe <- setQCthresh_LowLogMean(msfe, threshold = 1)
 
 ## Remove mitochondrial and other genes
@@ -1674,7 +1693,7 @@ There are 2 basic steps to any GW approach:
 1.  Determine the optimal kernel bandwidth $h$ (i.e. how many data points - or which size window - to include in each local model). Here an AIC approach is used.
 2.  Fit the GWR model.
 
-> **NOTE:** The two genes selected below are merely used to illustrate how you can use run GWR.
+> **NOTE:** The two genes selected below are merely used to illustrate how you can use GWR.
 
 #### Set up the formula
 
@@ -1746,77 +1765,7 @@ gwr_stats(gwr)
 
 ## Putting it all together
 
-The below code puts all these steps in order by selecting one of the options at each step.
-
-```{r all_in_one, message=FALSE, warning=FALSE, eval=FALSE}
-## Import data
-# sampleDir <- "./data/spaceranger_outs/Human_Liver_Steatotic/JBO019_Results"
-sampleNames <- "JBO019"
-sfe <- read10xVisiumSFE(samples = sampleDir, 
-                        sample_id = sampleNames, 
-                        type = "sparse", 
-                        data = "filtered", 
-                        images = "lowres", 
-                        style = "W", 
-                        zero.policy = TRUE)
-# ----------------------------------------------- #
-# ground_truth <- read_table("./data/to_load/spotzonationGroup.txt")
-## Add QC metrics
-is_mito <- grepl("(^MT-)|(^mt-)", rowData(sfe)$symbol)
-sfe <- addPerLocQC(sfe, gTruth = ground_truth, assay = "counts", 2, subsets = list(mito = is_mito))
-sfe <- addGeometries(sfe, samples = sampleDir, sample_id = sampleNames, res = "fullres")
-sfe <- addPerGeneQC(sfe, assay = "counts", version = NULL, mirror = NULL)
-# ----------------------------------------------- #
-## SPOT SELECTION
-## Select library size threshold
-qc_lib_size <- colData(sfe)$sum < 1000
-## Add threshold in colData
-colData(sfe)$qc_lib_size <- qc_lib_size
-## Select expressed genes threshold
-qc_detected <- colData(sfe)$detected < 550
-## Add threshold in colData
-colData(sfe)$qc_detected <- qc_detected
-## Select mitochondrial percentage threshold
-qc_mito <- colData(sfe)$subsets_mito_percent > 22
-## Add threshold in colData
-colData(sfe)$qc_mito <- qc_mito
-## Combine together the set of discarded spots
-discard <- qc_lib_size | qc_detected | qc_mito
-## Store the set in the object
-colData(sfe)$discard <- discard
-## Remove combined set of low-quality spots
-sfe <- sfe[, !colData(sfe)$discard]
-# ----------------------------------------------- #
-## FEATURE SELECTION
-## Calculate library size factors
-sfe <- computeLibraryFactors(sfe)
-## Calculate logcounts using library size factors
-sfe <- logNormCounts(sfe)
-## Calculate log-counts sample mean
-rowData(sfe)[["JBO019.s_logMean"]] <- rowSums(assay(sfe, "logcounts")) / rowData(sfe)[["JBO019.nLocations"]]
-## Set and apply filters
-is_zero <- rowData(sfe)$total == 0
-is_logLow <- rowData(sfe)[["JBO019.s_logMean"]] <= 1
-discard_gs <- is_zero | is_mito | is_logLow
-rowData(sfe)$discard <- discard_gs
-## Remove mitochondrial and other genes
-sfe <- sfe[!rowData(sfe)$discard, ]
-## Fit mean-variance relationship
-dec <- modelGeneVar(sfe,
-                    assay.type = "logcounts")
-## Select top HVGs
-top_hvgs <- getTopHVGs(dec, 
-                       var.field = "bio", 
-                       prop = 0.5,
-                       var.threshold = 0,
-                       fdr.threshold = 0.05)
-# ----------------------------------------------- #
-## ADD GEOGRAPHY
-## Add a neighbour graph using a weighted distance matrix
-sfe <- addSpatialNeighGraphs(sfe, "JBO019", type = "knearneigh", style = "W", distMod = "raw", k = 6)
-## Calculate a simple distance matrix
-sfe <- addDistMat(sfe, p = 2)
-```
+For each technology (i.e., Visium, etc.) there are individual vignettes that include the code naked from the majority of commentary.
 
 # References {.unnumbered}
 

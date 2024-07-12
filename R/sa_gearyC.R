@@ -470,7 +470,7 @@ gearyGlobalCTest <- function(m_sfe,
 #' with attribute
 #' \item ENSG***.CiFDR - (Only for gearyLocalCPerm) \code{rank()} and
 #' \code{punif()} of observed statistic rank for [0, 1] p-values using
-#' \code{alternative=}}
+#' \code{alternative=}
 #' \item ENSG***.CiCluster - (Only for gearyLocalCPerm) Low/High cluster for
 #' each location. It can take values: "Low-Low", "High-High", "Other Positive",
 #' "Negative"

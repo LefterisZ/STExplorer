@@ -67,7 +67,7 @@ viewCollections <- function(){
 #' viewCollections()
 #'
 #' # Get term-to-gene data.table
-#' t2g <- getTerm2Gene(msig_data = data, cat = C1, subcat = "")
+#' t2g <- getTerm2Gene(msig_data = data, cat = C3, subcat = "")
 #'
 #' # Note in the above that if a category has no subcategory then we put "" in
 #' # the 'subcat' argument.
@@ -140,7 +140,10 @@ getTerm2Gene <- function(user_data = NULL,
 #'                  positive ("pos") or negateive ("neg") enrichment). Look at
 #'                  details for more info.
 #' @param nPermSimple The number of permutations for simple GSEA.
-#' @param mc.cores The number of cores to use for parallel processing.
+#' @param mc.cores The number of cores to use for parallel processing. If not
+#' provided and type is "FORK", it defaults to availableCores() - 1.
+#' @param type The type of cluster to be created. Default is "FORK". Other
+#' options may include "PSOCK" or others supported by parallel::makeCluster.
 #' @param regex A regular expression pattern for cluster identification.
 #' @param ... Additional arguments to be passed to internal functions.
 #'
@@ -157,7 +160,8 @@ getTerm2Gene <- function(user_data = NULL,
 #' the original loadings are passed into GSEA.
 #'
 #' @importFrom stringr str_count
-#' @importFrom parallel mclapply
+#' @importFrom doParallel registerDoParallel
+#' @importFrom parallel stopCluster
 #' @importFrom dplyr bind_rows group_by filter arrange slice_max mutate
 #' @importFrom tibble column_to_rownames
 #'
@@ -192,23 +196,41 @@ gwpca_FunctionalClustering <- function(gwpca,
                                        scoreType = "std",
                                        nPermSimple = 10000,
                                        mc.cores = 4,
+                                       type = "FORK",
                                        regex = "",
                                        ...) {
   ## Get input dataset from gwpca
   inputGSEA <- gwpca$loadings[,,pc]
 
   ## Run GSEA for all locations
-  list <- mclapply(X = 1:nrow(inputGSEA),
-                   FUN = .int_runGSEA,
-                   inputGSEA = inputGSEA,
-                   minGSSize = minGSSize,
-                   pvalueCutoff = pvalueCutoff,
-                   TERM2GENE = TERM2GENE,
-                   pAdjustMethod = pAdjustMethod,
-                   scoreType = scoreType,
-                   nPermSimple = nPermSimple,
-                   mc.cores = mc.cores,
-                   ...)
+  # list <- mclapply(X = 1:nrow(inputGSEA),
+  #                  FUN = .int_runGSEA,
+  #                  inputGSEA = inputGSEA,
+  #                  minGSSize = minGSSize,
+  #                  pvalueCutoff = pvalueCutoff,
+  #                  TERM2GENE = TERM2GENE,
+  #                  pAdjustMethod = pAdjustMethod,
+  #                  scoreType = scoreType,
+  #                  nPermSimple = nPermSimple,
+  #                  mc.cores = mc.cores,
+  #                  ...)
+
+  my.cl <- makeClusterGWPCA(spec = mc.cores, type = type)
+  doParallel::registerDoParallel(my.cl)
+
+  list <- foreach::foreach(X = 1:nrow(inputGSEA)) %dopar% {
+    X <- X # scope thing
+    .int_runGSEA(inputGSEA = inputGSEA,
+                 minGSSize = minGSSize,
+                 pvalueCutoff = pvalueCutoff,
+                 TERM2GENE = TERM2GENE,
+                 pAdjustMethod = pAdjustMethod,
+                 scoreType = scoreType,
+                 nPermSimple = nPermSimple,
+                 ...)
+  }
+
+  parallel::stopCluster(my.cl)
 
   ## Make the dataframe
   gsea <- bind_rows(list)

@@ -16,6 +16,7 @@ gwpca_FunctionalClustering(
   scoreType = "std",
   nPermSimple = 10000,
   mc.cores = 4,
+  type = "FORK",
   regex = "",
   ...
 )
@@ -52,7 +53,11 @@ details for more info.}
 
 \item{nPermSimple}{The number of permutations for simple GSEA.}
 
-\item{mc.cores}{The number of cores to use for parallel processing.}
+\item{mc.cores}{The number of cores to use for parallel processing. If not
+provided and type is "FORK", it defaults to availableCores() - 1.}
+
+\item{type}{The type of cluster to be created. Default is "FORK". Other
+options may include "PSOCK" or others supported by parallel::makeCluster.}
 
 \item{regex}{A regular expression pattern for cluster identification.}
 

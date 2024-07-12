@@ -362,8 +362,8 @@ readCurioSeeker <- function(samples,
 
     ## Format counts table
     counts <- obj$X %>% # Matrix::as.matrix(sparse = TRUE) %>%
-      Matrix::t() %>%
-      as(Class = "dgCMatrix")
+      Matrix::t() # %>%
+      # as(Class = "dgCMatrix")
 
     ## Load coordinates
     coords <- obj$obsm$X_spatial %>%

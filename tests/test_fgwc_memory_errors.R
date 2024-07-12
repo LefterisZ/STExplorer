@@ -608,6 +608,54 @@ mbm <- microbenchmark("STE" = fgwcSTE(m_sfe = sfe_test,
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
+# Testing C++ running times ----
+ptm1 <- proc.time()
+res <- t(uij)
+proc.time() - ptm1
+
+ptm2 <- proc.time()
+res <- Rfast::transpose(uij)
+proc.time() - ptm2
+
+# --------------------------------------- #
+ptm1 <- proc.time()
+res <- rowSums(uij)
+proc.time() - ptm1
+
+ptm2 <- proc.time()
+res <- Rfast::rowsums(uij)
+proc.time() - ptm2
+
+# --------------------------------------- #
+uij <- matrix(runif(n * ncluster), n, ncluster)
+uij <- uij / rowSums(uij)
+old_uij <- uij
+m = 1.5
+data = sfe_nmf
+
+ptm1 <- proc.time()
+res <- (t(old_uij^m) %*% data) / colSums(old_uij^m)
+proc.time() - ptm1
+
+ptm2 <- proc.time()
+res2 <- (Rfast::transpose(old_uij^m) %*% data) / Rfast::colsums(old_uij^m)
+proc.time() - ptm2
+
+# --------------------------------------- #
+vi = res
+distance = "euclidean"
+roder = 2
+
+ptm1 <- proc.time()
+res <- (rdist::cdist(data, vi, distance, order)^2)^(1 / (m - 1))
+proc.time() - ptm1
+
+ptm2 <- proc.time()
+res2 <- (Rfast::transpose(old_uij^m) %*% data) / Rfast::colsums(old_uij^m)
+proc.time() - ptm2
+
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 # Housekeeping ----
 rm(k_range, index_type, elbow_method, sample_id, algorithm, distMat, dMetric,
    parameters, plot, verbose, data, pop, main_params, distMat, fgwc, kind,

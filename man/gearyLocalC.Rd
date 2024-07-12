@@ -74,7 +74,7 @@ contains the per location Ci statistics values for each gene:
 with attribute
 \item ENSG***.CiFDR - (Only for gearyLocalCPerm) \code{rank()} and
 \code{punif()} of observed statistic rank for \link{0, 1} p-values using
-\code{alternative=}}
+\code{alternative=}
 \item ENSG***.CiCluster - (Only for gearyLocalCPerm) Low/High cluster for
 each location. It can take values: "Low-Low", "High-High", "Other Positive",
 "Negative"

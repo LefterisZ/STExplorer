@@ -11,7 +11,8 @@ plotFGWC_subHeatmap(
   m_sfe,
   sample_id,
   cluster_no,
-  cutree_cols = NA
+  cutree_cols = NA,
+  ...
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ generated.}
 
 \item{cutree_cols}{Number of columns for cutree to cut the sample tree of the
 heatmap. If NA, the tree will not be cut.}
+
+\item{...}{Arguments passed to \code{pheatmap}.}
 }
 \value{
 A pheatmap object representing the gene expression heatmap for the
