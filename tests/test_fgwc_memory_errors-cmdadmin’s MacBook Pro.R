@@ -4,6 +4,7 @@
 library(pryr)
 library(lineprof)
 library(microbenchmark)
+library(profvis)
 
 
 # ---------------------------------------------------------------------------- #
@@ -42,7 +43,7 @@ library(microbenchmark)
 
 # m_sfe
 sfe_test <- sfe[, 1:1000]
-sfe_nmf_test <- sfe_nmf_list$V1_2[1:1000,]
+sfe_nmf_test <- sfe_nmf[1:1000,]
 sfe_test <- addDistMat(sfe_test, 2)
 sample_id = NULL
 data = sfe_nmf_test
@@ -207,7 +208,7 @@ if (is.na(kind) || kind == "u") { # FGWC "u" (membership approach)
     ## Update 'uij'. Ensure range between 0-1 and a row sum to 1 for each element of 'uij'.
     uij <- (1 / dists) / rowSums(1 / dists)
     ## Modify 'uij' using the spatial and population information.
-    uij <- STExplorer:::.int_membershipUpdate(data, uij, mi.mj, distmat, alpha, beta, a, b)
+    uij <- .int_membershipUpdate(data, uij, mi.mj, distmat, alpha, beta, a, b)
     ## Increment the iteration counter.
     iter <- iter + 1
     ## Calculate the convergence metric.
@@ -283,7 +284,7 @@ if (kind == "v") { # FGWC "v" (centroid approach)
 }
 
 fgwc_obj <- sum(uij^m * (rdist::cdist(data, vi, distance, order)^2))
-finaldata <- STExplorer:::.int_determineCluster(data, uij)
+finaldata <- .int_determineCluster(data, uij)
 cluster <- finaldata[, ncol(finaldata)]
 
 ## Prepare output
@@ -292,7 +293,7 @@ result <- list(
   f_obj = fgwc_obj,
   membership = uij,
   centroid = vi,
-  validation = STExplorer:::.int_getIndexes(data, cluster, uij, vi, m, exp(1)),
+  validation = .int_getIndexes(data, cluster, uij, vi, m, exp(1)),
   iteration = iter,
   cluster = cluster,
   finaldata = finaldata,
@@ -603,144 +604,13 @@ mbm <- microbenchmark("STE" = fgwcSTE(m_sfe = sfe_test,
                       "original" = naspaclust::fgwc(data = data,
                                                     pop = pop,
                                                     distmat = distMat,
-                                                    fgwc_param = parameters),
-                      times = 10)
+                                                    fgwc_param = parameters))
 
-
-# ---------------------------------------------------------------------------- #
-# ---------------------------------------------------------------------------- #
-# Generate some data
-# Generate a fuzzy membership matrix uij (20 data points, 3 clusters)
-uij <- matrix(runif(200000), nrow = 100000, ncol = 2)
-# Normalize each row to sum to 1
-uij <- uij / rowSums(uij)
-
-# Generate centroids vi (3 centroids, 2 features)
-vi <- matrix(rnorm(4), nrow = 2, ncol = 2)
-# --------------------------------------- #
-
-# Testing C++ running times ----
-ptm1 <- proc.time()
-res <- t(uij)
-proc.time() - ptm1
-
-ptm2 <- proc.time()
-res <- Rfast::transpose(uij)
-proc.time() - ptm2
-
-mbm_t <- microbenchmark("base" = t(uij),
-                        "Rfast" = Rfast::transpose(uij),
-                        times = 100)
-mbm_t
-
-# --------------------------------------- #
-ptm1 <- proc.time()
-res <- rowSums(uij)
-proc.time() - ptm1
-
-ptm2 <- proc.time()
-res <- Rfast::rowsums(uij)
-proc.time() - ptm2
-
-mbm_rowSums <- microbenchmark("base" = rowSums(uij),
-                              "Rfast" = Rfast::rowsums(uij),
-                              times = 100)
-mbm_rowSums
-
-# --------------------------------------- #
-uij <- matrix(runif(n * ncluster), n, ncluster)
-uij <- uij / rowSums(uij)
-old_uij <- uij
-m = 1.5
-data = sfe_nmf
-old_uij_t <- t(old_uij^m)
-
-ptm1 <- proc.time()
-res <- (t(old_uij^m) %*% data) / colSums(old_uij^m)
-proc.time() - ptm1
-
-ptm2 <- proc.time()
-res2 <- (Rfast::transpose(old_uij^m) %*% data) / Rfast::colsums(old_uij^m)
-proc.time() - ptm2
-
-mbm_matMult <- microbenchmark("base" = old_uij_t %*% data,
-                             "Rfast" = Rfast::mat.mult(old_uij_t, data),
-                             times = 100)
-mbm_matMult
-
-mbm_combo1 <- microbenchmark("base" = (t(old_uij^m) %*% data) / colSums(old_uij^m),
-                              "Rfast" = (Rfast::transpose(old_uij^m) %*% data) / Rfast::colsums(old_uij^m),
-                              times = 100)
-mbm_combo1
-
-mbm_combo1 <- microbenchmark("base" = (t(old_uij^m) %*% data) / colSums(old_uij^m),
-                             "Rfast" = (Rfast::mat.mult(Rfast::transpose(old_uij^m), data)) / Rfast::colsums(old_uij^m),
-                             times = 100)
-mbm_combo1
-
-# --------------------------------------- #
-vi = res
-distance = "euclidean"
-roder = 2
-
-ptm1 <- proc.time()
-res <- (rdist::cdist(data, vi, distance, order)^2)^(1 / (m - 1))
-proc.time() - ptm1
-
-ptm2 <- proc.time()
-res2 <- (Rfast::dista(data, vi, type = distance, p = order)^2)^(1 / (m - 1))
-proc.time() - ptm2
-
-mbm_dist <- microbenchmark("base" = rdist::cdist(data, vi, distance, order),
-                              "Rfast" = Rfast::dista(data, vi, type = distance, p = order),
-                              times = 100)
-mbm_dist
-
-mbm_combo2 <- microbenchmark("base" = (rdist::cdist(data, vi, distance, order)^2)^(1 / (m - 1)),
-                             "Rfast" = (Rfast::dista(data, vi, type = distance, p = order)^2)^(1 / (m - 1)),
-                             times = 100)
-mbm_combo2
-
-# --------------------------------------- #
-dists <- (rdist::cdist(data, vi, distance, order)^2)^(1 / (m - 1))
-
-ptm1 <- proc.time()
-res <- (1 / dists) / rowSums(1 / dists)
-proc.time() - ptm1
-
-ptm2 <- proc.time()
-res <- (1 / dists) / Rfast::rowsums(1 / dists)
-proc.time() - ptm2
-
-mbm_combo3 <- microbenchmark("base" = (1 / dists) / rowSums(1 / dists),
-                             "Rfast" = (1 / dists) / Rfast::rowsums(1 / dists),
-                             times = 100)
-mbm_combo3
-
-# --------------------------------------- #
-uij <- (1 / dists) / rowSums(1 / dists)
-distmat <- distMat
-c(address(distmat), refs(distmat))
-
-ptm1 <- proc.time()
-for (i in 1:nrow(distmat)) {
-  distmat[i, i] <- Inf
-}
-proc.time() - ptm1
-
-ptm2 <- proc.time()
-diag(distmat) <- Inf
-proc.time() - ptm2
-
-ptm3 <- proc.time()
-distmat <- Rfast::Diag.fill(distmat, v = Inf)
-proc.time() - ptm3
-c(address(distmat), refs(distmat))
-
-mbm_diag <- microbenchmark("base" = diag(distmat) <- Inf,
-                           "Rfast" = Rfast::Diag.fill(distmat, v = Inf),
-                           times = 100)
-mbm_diag
+profvis(fgwcSTE(m_sfe = sfe_test,
+                data = data,
+                pop = pop,
+                distMat = distMat,
+                parameters = parameters))
 
 
 # ---------------------------------------------------------------------------- #
