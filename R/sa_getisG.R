@@ -49,7 +49,7 @@
 #' @return An SFE object with the below two columns added in the `rowData`:
 #'   \item{getisG_test}{the value of the standard deviate
 #'     of Getis-Ord G.}
-#'   \item{getisGPval_test}{the p-value of the test.}
+#'   \item{getisG_PvalTest}{the p-value of the test.}
 #'
 #' @references Getis. A, Ord, J. K. 1992 The analysis of spatial association by
 #' use of distance statistics, \emph{Geographical Analysis}, 24, p. 195; see
@@ -99,14 +99,7 @@ getisGlobalGTest <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input.")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -117,7 +110,7 @@ getisGlobalGTest <- function(m_sfe,
   }
 
   res <- parallel::mclapply(genes,
-                            .int_getisCTest,
+                            .int_getisGTest,
                             sfe = sfe,
                             listw = listw,
                             zero.policy = zero.policy,
@@ -131,8 +124,12 @@ getisGlobalGTest <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
-  SummarizedExperiment::rowData(sfe)$getisG_test <- unlist(res$statistic)
-  SummarizedExperiment::rowData(sfe)$getisGPval_test <- unlist(res$p.value)
+
+  SummarizedExperiment::rowData(sfe)$getisG_stat <- NaN
+  SummarizedExperiment::rowData(sfe)$getisG_PvalTest <- NaN
+
+  SummarizedExperiment::rowData(sfe)[rownames(res), "getisG_stat"] <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)[rownames(res), "getisG_PvalTest"] <- unlist(res$p.value)
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
@@ -271,14 +268,7 @@ getisLocalG <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -300,8 +290,10 @@ getisLocalG <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
-  localResults(sfe, name = "localGetisG") <- res
+  DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
+  DFrame@listData <- res
+  rownames(DFrame) <- colnames(sfe)
+  SpatialFeatureExperiment::localResults(sfe, name = "localGetisG") <- res
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
@@ -342,14 +334,7 @@ getisLocalGPerm <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -374,8 +359,10 @@ getisLocalGPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
-  localResults(sfe, name = "localGetisGPerm") <- res
+  DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
+  DFrame@listData <- res
+  rownames(DFrame) <- colnames(sfe)
+  SpatialFeatureExperiment::localResults(sfe, name = "localGetisGPerm") <- res
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)

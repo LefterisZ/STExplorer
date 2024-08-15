@@ -20,6 +20,23 @@ This function identifies the elbow point of a curve using the Knee method.
 This function identifies the elbow point by calculating the distance of each
 point from the line connecting the first and last points. The point with the
 maximum distance is considered the elbow point.
+
+First, the values of k and IndexValue are normalised to the range \link{0, 1}
+using min-max normalisation. This step is often used to scale features to a
+common range without distorting differences in the ranges.
+
+Second, the slope m and y-intercept b are calculated for the line connecting
+the first and last points in the normalised space. This line represents the
+idealised "straight line" against which deviations (distances) are measured.
+
+Third, the distances are calulated using a formula that computes the
+perpendicular distance from each point to the line, using the standard
+point-line distance formula in 2D. The formula is:
+(|slope * k_normalised - index_nomralised + y_intercept|) / sqrt(slope^2 + 1)
+
+Finally, he index of the maximum distance is found, which corresponds to the
+"elbow point" in the curve. The actual k value at this index is the optimal
+number of clusters (or a significant change point) in this context.
 }
 \seealso{
 \code{\link{fgwc_findOptimumK}} for finding the optimal number of

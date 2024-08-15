@@ -76,6 +76,18 @@ values and identifies the elbow point using either the angle or knee method.
 If the \code{index_type} is set to \code{"composite"}, a composite score is
 calculated based on multiple indices, and the elbow point is determined
 using the composite score.
+
+The function uses either the usual "knee" calculation or the angle
+calculation. The former, finds the point where the distance between the
+slope and the imaginary line connecting the start with the end of the
+slope is maximised. The later, finds the point where the angle of the slope
+maximises.
+
+The logic behind finding the maximum angle is that the "elbow" in a curve
+is where there is a significant change in the slope, typically from steep
+to shallow. This point often represents a balance between the complexity
+and variance explained, making it a useful heuristic in cluster analysis
+or other optimisation tasks.
 }
 \examples{
 \dontrun{

@@ -5,7 +5,7 @@
 \title{Plot Size Factors Histogram and Density in a SpatialFeatureExperiment}
 \usage{
 plotQC_sizeFactors(
-  sfe,
+  m_sfe,
   sample_id = TRUE,
   hist_args = list(),
   dens_args = list(),
@@ -13,7 +13,7 @@ plotQC_sizeFactors(
 )
 }
 \arguments{
-\item{sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{sample_id}{Character string, TRUE, or NULL specifying sample/image
 identifier(s). TRUE is equivalent to all samples/images, and NULL specifies

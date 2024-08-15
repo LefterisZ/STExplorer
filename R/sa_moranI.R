@@ -70,14 +70,7 @@ moranGlobalI <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -104,8 +97,8 @@ moranGlobalI <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
-  SummarizedExperiment::rowData(sfe)$moranI <- res$I
-  SummarizedExperiment::rowData(sfe)$moranK <- res$K
+  SummarizedExperiment::rowData(sfe)$moranI_stat <- res$I
+  SummarizedExperiment::rowData(sfe)$moranK_stat <- res$K
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
@@ -158,7 +151,7 @@ moranGlobalI <- function(m_sfe,
 #' @return An SFE object with the below two columns added in the `rowData`:
 #' \item{I}{the value of the observed Moran's I. - replaces other global I
 #' calculations since the I is always going to be the same.}
-#' \item{moranPval_perm}{the pseudo p-value of the test.}
+#' \item{moranI_PvalPerm}{the pseudo p-value of the test.}
 #'
 #' @references Cliff, A. D., Ord, J. K. 1981 Spatial processes, Pion, p. 63-5.
 #'
@@ -206,14 +199,7 @@ moranGlobalIPerm <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -238,8 +224,13 @@ moranGlobalIPerm <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
-  SummarizedExperiment::rowData(sfe)$moranI <- unlist(res$statistic)
-  SummarizedExperiment::rowData(sfe)$moranPval_perm <- unlist(res$p.value)
+
+  SummarizedExperiment::rowData(sfe)$moranI <- NaN
+  SummarizedExperiment::rowData(sfe)$moranI_PvalPerm <- NaN
+
+  SummarizedExperiment::rowData(sfe)[rownames(res), "moranI_stat"] <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)[rownames(res), "moranI_PvalPerm"] <- unlist(res$p.value)
+
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
@@ -296,7 +287,7 @@ moranGlobalIPerm <- function(m_sfe,
 #'
 #' @return An SFE object with the below two columns added in the `rowData`:
 #' \item{moranI_test}{the value of the observed Moran's I.}
-#' \item{moranPval_test}{the pseudo p-value of the test.}
+#' \item{moranI_PvalTest}{the pseudo p-value of the test.}
 #'
 #' @note Var(I) is taken from Cliff and Ord (1969, p. 28),
 #' and Goodchild's CATMOG 47 (1986), see also Upton & Fingleton (1985) p. 171;
@@ -356,14 +347,7 @@ moranGlobalITest <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -389,8 +373,12 @@ moranGlobalITest <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
-  SummarizedExperiment::rowData(sfe)$moranI <- unlist(res$statistic)
-  SummarizedExperiment::rowData(sfe)$moranPval_test <- unlist(res$p.value)
+
+  SummarizedExperiment::rowData(sfe)$moranI <- NaN
+  SummarizedExperiment::rowData(sfe)$moranI_PvalTest <- NaN
+
+  SummarizedExperiment::rowData(sfe)[rownames(res), "moranI_stat"] <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)[rownames(res), "moranI_PvalTest"] <- unlist(res$p.value)
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
@@ -518,6 +506,9 @@ moranGlobalITest <- function(m_sfe,
 #'
 #' @seealso \code{\link{localG}}
 #'
+#' @importFrom SpatialFeatureExperiment localResults<-
+#' @importFrom S4Vectors make_zero_col_DFrame
+#'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @rdname moranLocalI
@@ -559,14 +550,7 @@ moranLocalI <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -590,8 +574,10 @@ moranLocalI <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
-  localResults(sfe, name = "localMoranI") <- res
+  DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
+  DFrame@listData <- res
+  rownames(DFrame) <- colnames(sfe)
+  SpatialFeatureExperiment::localResults(sfe, name = "localMoranI") <- res
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
@@ -632,14 +618,7 @@ moranLocalIPerm <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -666,8 +645,10 @@ moranLocalIPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
-  localResults(sfe, name = "localMoranIPerm") <- res
+  DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
+  DFrame@listData <- res
+  rownames(DFrame) <- colnames(sfe)
+  SpatialFeatureExperiment::localResults(sfe, name = "localMoranIPerm") <- res
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)

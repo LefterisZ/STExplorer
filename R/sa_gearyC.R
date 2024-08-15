@@ -35,7 +35,7 @@
 #'
 #' @return An SFE object with the below two columns added in the `rowData`:
 #' \itemize{
-#'  \item gearyC - the value of the observed Geary's C.
+#'  \item gearyC_stat - the value of the observed Geary's C.
 #'  \item gearyK - sample kurtosis of gene.
 #' }
 #'
@@ -77,14 +77,7 @@ gearyGlobalC <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -112,8 +105,8 @@ gearyGlobalC <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
-  SummarizedExperiment::rowData(sfe)$gearyC <- unlist(res$C)
-  SummarizedExperiment::rowData(sfe)$gearyK <- unlist(res$K)
+  SummarizedExperiment::rowData(sfe)$gearyC_stat <- unlist(res$C)
+  SummarizedExperiment::rowData(sfe)$gearyK_stat <- unlist(res$K)
 
   ## Check and output either an msfe or an sfe object
   MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
@@ -172,7 +165,7 @@ gearyGlobalC <- function(m_sfe,
 #' @return An SFE object with the below two columns added in the `rowData`:
 #' \itemize{
 #'  \item{gearyC_perm}{the value of the observed Geary's C.}
-#'  \item{gearyPval_perm}{the pseudo p-value of the test.}
+#'  \item{gearyC_PvalPerm}{the pseudo p-value of the test.}
 #' }
 #'
 #' @details If n, n1, and S0 are not provided, they are calculated based on the
@@ -216,14 +209,7 @@ gearyGlobalCPerm <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -253,8 +239,12 @@ gearyGlobalCPerm <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
-  SummarizedExperiment::rowData(sfe)$gearyC_perm <- unlist(res$statistic)
-  SummarizedExperiment::rowData(sfe)$gearyPval_perm <- unlist(res$p.value)
+
+  SummarizedExperiment::rowData(sfe)$gearyC_stat <- NaN
+  SummarizedExperiment::rowData(sfe)$gearyC_PvalPerm <- NaN
+
+  SummarizedExperiment::rowData(sfe)[rownames(res), "gearyC_stat"] <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)[rownames(res), "gearyC_PvalPerm"] <- unlist(res$p.value)
 
   ## Check and output either an msfe or an sfe object
   MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
@@ -306,7 +296,7 @@ gearyGlobalCPerm <- function(m_sfe,
 #'
 #' @return An SFE object with the below two columns added in the `rowData`:
 #'   \item{gearyC_test}{the value of the standard deviate of Geary's C.}
-#'   \item{gearyCPval_test}{the p-value of the test.}
+#'   \item{gearyC_PvalTest}{the p-value of the test.}
 #'
 #' @details The derivation of the test (Cliff and Ord, 1981, p. 18) assumes
 #' that the weights matrix is symmetric. For inherently non-symmetric matrices,
@@ -359,14 +349,7 @@ gearyGlobalCTest <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -390,8 +373,12 @@ gearyGlobalCTest <- function(m_sfe,
 
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
-  SummarizedExperiment::rowData(sfe)$gearyC_test <- unlist(res$statistic)
-  SummarizedExperiment::rowData(sfe)$gearyCPval_test <- unlist(res$p.value)
+
+  SummarizedExperiment::rowData(sfe)$gearyC_stat <- NaN
+  SummarizedExperiment::rowData(sfe)$gearyC_PvalTest <- NaN
+
+  SummarizedExperiment::rowData(sfe)[rownames(res), "gearyC_stat"] <- unlist(res$statistic)
+  SummarizedExperiment::rowData(sfe)[rownames(res), "gearyC_PvalTest"] <- unlist(res$p.value)
 
   ## Check and output either an msfe or an sfe object
   MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
@@ -510,14 +497,7 @@ gearyLocalC <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -536,8 +516,10 @@ gearyLocalC <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
-  localResults(sfe, name = "localGearyC") <- res
+  DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
+  DFrame@listData <- res
+  rownames(DFrame) <- colnames(sfe)
+  SpatialFeatureExperiment::localResults(sfe, name = "localGearyC") <- res
 
   ## Check and output either an msfe or an sfe object
   MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
@@ -575,14 +557,7 @@ gearyLocalCPerm <- function(m_sfe,
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check genes to use
-  if (is.character(genes)) {
-    # genes is already a character vector, no need to modify it
-  } else if (isTRUE(genes)) {
-    genes <- rownames(rowData(sfe))
-    names(genes) <- genes
-  } else {
-    stop("Invalid `genes` argument input.")
-  }
+  genes <- .int_SAgeneCheck(sfe = sfe, genes = genes)
 
   ## Get neighbour graph
   listw <- colGraph(sfe)
@@ -605,8 +580,10 @@ gearyLocalCPerm <- function(m_sfe,
                             mc.cores = mc.cores)
 
   ## Import output into the SFE object's localResults
-  res <- S4Vectors::DataFrame(rlist::list.cbind(res))
-  localResults(sfe, name = "localGearyCPerm") <- res
+  DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
+  DFrame@listData <- res
+  rownames(DFrame) <- colnames(sfe)
+  SpatialFeatureExperiment::localResults(sfe, name = "localGearyCPerm") <- res
 
   ## Check and output either an msfe or an sfe object
   MSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")

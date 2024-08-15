@@ -1,3 +1,103 @@
+#' Title: Visualise Global Spatial Autocorrelation result summary
+#'
+#' Description: This function plots a dot plot of global SA values for selected
+#' genes.
+#'
+#' @param m_sfe An object of class 'SpatialFeatureExperiment' or
+#'              'MultiSpatialFeatureExperiment' containing spatial data.
+#' @param sample_id A character string specifying the sample ID for analysis.
+#' @param genes A character vector containing a selection of genes. It must be
+#'              either EnsgIDs OR gene names. A mix of both will throw an error.
+#' @param statistic A character vector specifying which spatial autocorrelation
+#'                  statistics to plot. Valid options are "moran", "getis", and
+#'                  "geary". Default is c("moran", "getis", "geary").
+#' @param ylab A character string indicating the label for the y-axis. It can
+#'             be "gene_name" to use gene names or any other value to use
+#'             Ensemble Gene IDs. Default is "gene_name".
+#' @param moran_thresh A numeric vector of length 2 specifying the threshold
+#'                     range for Moran's I values to be considered significant.
+#'                     Default is c(-0.5, 0.5).
+#' @param geary_thresh A numeric vector of length 2 specifying the threshold
+#'                     range for Geary's C values to be considered significant.
+#'                     Default is c(0.5, 1.5).
+#' @param getis_thresh A numeric value specifying the threshold for Getis-Ord's
+#'                     G statistic to be considered significant. Default is 2.
+#' @param ... Additional arguments passed on to `geom_point()` for customising
+#'            the point aesthetics in the ggplot.
+#'
+#' @return A ggplot object representing the dot plot of global spatial
+#'         autocorrelation statistics for the specified genes across the given
+#'         statistics.
+#'
+#' @details
+#' The function creates a faceted dot plot where each facet corresponds to one
+#' of the specified spatial autocorrelation statistics. Points represent genes,
+#' and their position and colour indicate the statistic value. Point size shows
+#' the significance of the statistic, while the shape indicates whether the
+#' statistic suggests positive or negative spatial autocorrelation.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @keywords spatial autocorrelation visualisation global
+#'
+#' @rdname plotSA_globalSum
+#'
+#' @importFrom ggplot2 theme_bw
+#'
+#' @examples
+#' plotSA_globalSum(m_sfe, "sample1", c("Gene1", "Gene2"), c("moran", "getis"))
+#'
+#' @export
+plotSA_globalSum <- function(m_sfe,
+                             sample_id = NULL,
+                             genes,
+                             statistic = c("moran", "getis", "geary"),
+                             ylab = "gene_name",
+                             moran_thresh = c(-0.5, 0.5),
+                             geary_thresh = c(0.5, 1.5),
+                             getis_thresh = 2,
+                             ...) {
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Validate genes input
+  gs_to_plot <- .int_matchNamesToEnsgID(sfe, genes)
+
+  ## Select columns to plot
+  stat_to_plot <- .int_getSAStatColumns(colnames(rowData(sfe)),
+                                        statistic = statistic,
+                                        ylab = ylab)
+
+  ## Prepare data to plot
+  data <- .int_prepareGlobalSAPlotData(rowData(sfe)[gs_to_plot, stat_to_plot],
+                                       moran_thresh = moran_thresh,
+                                       geary_thresh = geary_thresh,
+                                       getis_thresh = getis_thresh)
+
+  ## Prepare plot elements
+  if (ylab == "gene_name") {
+    y_lab <- "Gene Names"
+  } else {
+    y_lab <- "Ensemble Gene IDs"
+  }
+
+  ## Plot
+  ggplot(data = data,
+         aes(x = stat, y = gene_name,
+             colour = stat,
+             shape = PosNegSA,
+             size = Pval)) +
+    geom_point(...) +
+    facet_wrap(~stat_name, scales = "free_x") +
+    labs(y = y_lab,
+         x = "SA Statistic",
+         size = "p-value",
+         colour = "SA\nStatistic",
+         shape = "+/- SA") +
+    theme_bw()
+}
+
+
 #' Title: Visualise Local Spatial Autocorrelation
 #'
 #' Description: Generates a map visualizing local spatial autocorrelation
@@ -7,7 +107,7 @@
 #'              'MultiSpatialFeatureExperiment' containing spatial data.
 #' @param sample_id A character string specifying the sample ID for analysis.
 #' @param feature A character string indicating the feature of interest.
-#'                Currently supports only ENSGene IDs.
+#'                It can be either ENSGene IDs or Gene Names.
 #' @param statistic A character string specifying the type of spatial
 #'                  autocorrelation results ("moran", "geary", "getis") to look
 #'                  for in the m_sfe object for the specified sample.
@@ -28,7 +128,8 @@
 #'                   identify which SA values are also statistically
 #'                   significant.
 #' @param title A character string ("ENSGID" or "name") specifying whether the
-#'              title should show the ENSGene ID or the gene name.
+#'              title should show the ENSGene ID or the gene name. Default is
+#'              "name".
 #' @param locations A character string ("all" or "significant") specifying
 #'                  which locations to include in the plot. If `"all"` is
 #'                  selected, then all spots are included and the locations
@@ -85,12 +186,15 @@ plotSA_local <- function(m_sfe,
   if (type == "hex") {
     stopifnot("spotHex" %in% names(colGeometries(sfe)))
   }
+  if (missing(title)) {
+    title <- "name"
+  }
+
+  ## Validate genes input
+  feature <- .int_matchNamesToEnsgID(sfe, feature)
 
   ## Construct plot's title
   title <- .int_getTitle(sfe = sfe, feature = feature, title = title)
-
-  ## Get feature suffixes
-  feature <- .int_getSAFeatSuffix(feature = feature, statistic = statistic)
 
   ## Get the `localResults` name for the specific statistic
   localRes <- .int_getLocalResName(statistic = statistic, test = test)
@@ -99,12 +203,12 @@ plotSA_local <- function(m_sfe,
   pVal <- .int_checkSACompatible(localRes = localRes, pVal = pVal)
 
   ## Prepare the data to plot
-  data <- .int_prepareSAPlotData(sfe = sfe,
-                                 feature = feature,
-                                 localRes = localRes,
-                                 pVal = pVal,
-                                 type = type,
-                                 plot = "localStat")
+  data <- .int_prepareLocalSAPlotData(sfe = sfe,
+                                      feature = feature,
+                                      localRes = localRes,
+                                      pVal = pVal,
+                                      type = type,
+                                      plot = "localStat")
 
   ## Construct plot's fill label
   fill <- .int_getFillLabel(statistic = statistic, plot = "localStat")
@@ -173,6 +277,19 @@ plotSA_local <- function(m_sfe,
 #'                  details below for more information about what these names
 #'                  should be. Default is `NULL` and the default colours are
 #'                  applied.
+#' @param signif_col A character string specifying the colour for the outline
+#'                   of significant locations in the plot. Used only when the
+#'                   `locations` argument is set to `"all"`. It helps to
+#'                   identify which SA values are also statistically
+#'                   significant.
+#' @param locations A character string ("all" or "significant") specifying
+#'                  which locations to include in the plot. If `"all"` is
+#'                  selected, then all spots are included and the locations
+#'                  where the local SA is significant has a differently
+#'                  coloured outline as set by the `signif_col` argument. If
+#'                  `"significant` is selected, then only the locations with
+#'                  statistically significant SA values are plotted while the
+#'                  rest of the locations are greyed out.
 #'
 #' @return A ggplot object visualising clusters in local spatial
 #'         autocorrelation.
@@ -202,7 +319,6 @@ plotSA_local <- function(m_sfe,
 #' 0.05, "spot")
 #'
 #' @export
-
 plotSA_localClust <- function(m_sfe,
                               sample_id = NULL,
                               feature,
@@ -211,7 +327,9 @@ plotSA_localClust <- function(m_sfe,
                               pVal = 0.05,
                               type = c("spot", "hex"),
                               title = c("ENSGID", "name"),
-                              clust_col = NULL) {
+                              clust_col = NULL,
+                              signif_col = "#E0E0E0",
+                              locations = "all") {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
@@ -229,12 +347,15 @@ plotSA_localClust <- function(m_sfe,
            "?plotSA_localClust")
     }
   }
+  if (missing(title)) {
+    title <- "name"
+  }
+
+  ## Validate genes input
+  feature <- .int_matchNamesToEnsgID(sfe, feature)
 
   ## Construct plot's title
   title <- .int_getTitle(sfe = sfe, feature = feature, title = title)
-
-  ## Get feature suffixes
-  feature <- .int_getSAFeatSuffix(feature = feature, statistic = statistic)
 
   ## Get the `localResults` name for the specific statistic
   localRes <- .int_getLocalResName(statistic = statistic, test = test)
@@ -243,12 +364,12 @@ plotSA_localClust <- function(m_sfe,
   pVal <- .int_checkSACompatible(localRes = localRes, pVal = pVal)
 
   ## Prepare the data to plot
-  data <- .int_prepareSAPlotData(sfe = sfe,
-                                 feature = feature,
-                                 localRes = localRes,
-                                 pVal = pVal,
-                                 type = type,
-                                 plot = "cluster")
+  data <- .int_prepareLocalSAPlotData(sfe = sfe,
+                                      feature = feature,
+                                      localRes = localRes,
+                                      pVal = pVal,
+                                      type = type,
+                                      plot = "cluster")
 
   ## Construct plot's fill label
   fill <- .int_getFillLabel(statistic = statistic, plot = "cluster")
@@ -257,10 +378,17 @@ plotSA_localClust <- function(m_sfe,
   colours <- .int_getSAClustColours(clust_col = clust_col,
                                     clusters = levels(data$Clust))
 
+  ## Workaround to suppress the 'Coordinate system already present' message
+  ## from ggplot2 based on this GitHub issue:
+  ## https://github.com/tidyverse/ggplot2/issues/2799
+  cf <- coord_fixed()
+  cf$default <- TRUE
+
   ## Create the ggplot object
   p <- ggplot2::ggplot(data = data) +
     ggplot2::scale_fill_manual(values = colours) +
-    ggplot2::coord_fixed() +
+    cf +
+    #ggplot2::coord_fixed() +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
     ggplot2::labs(fill = fill,
@@ -269,8 +397,17 @@ plotSA_localClust <- function(m_sfe,
   ## Add geom_sf
   ## - for an unknown reason, when the geom_sf() is added inside the above it
   ##   throws an error. Temporary solution until fixed:
-  p <- p + geom_sf(aes(geometry = geometry, fill = Clust),
-                   colour = NA)
+  if (locations == "all") {
+    p <- p + geom_sf(aes(geometry = geometry, fill = Clust),
+                     colour = NA)
+    p <- p + geom_sf(aes(geometry = geom_b),
+                     fill = NA, colour = signif_col, linewidth = 0.25)
+  } else if (locations == "significant") {
+    p <- p + geom_sf(aes(geometry = geometry),
+                     colour = NA, fill = "#E0E0E0", alpha = 0.5)
+    p <- p + geom_sf(aes(geometry = geom_b, fill = Clust),
+                     colour = NA)
+  }
 
   ## Return plot
   return(p)
@@ -280,31 +417,91 @@ plotSA_localClust <- function(m_sfe,
 # ---------------------------------------------------------------------------- #
 #  ######### INTERNAL FUNCTIONS ASSOCIATED WITH SA PLOTS  (C, G, I) #########
 # ---------------------------------------------------------------------------- #
-#' Internal Function: Get Feature Suffix for Spatial Autocorrelation
+#' Internal Function: Select global SA stat columns to plot
 #'
-#' @param feature A character string indicating the feature of interest.
+#' This function is fetching the required columns from the SFE's rowData.
 #'
-#' @param statistic A character string specifying the type of spatial
-#'                  autocorrelation used ("moran", "geary", "getis").
+#' @param colnames The rowData column names from an SFE object.
+#' @inheritParams plotSA_globalSum
 #'
-#' @return A character vector of feature suffixes for the specified statistic.
+#' @return A character string representing the name of the local results.
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
-#' @rdname dot-int_getSAFeatSuffix
+#' @rdname dot-int_getSAStatColumns
 #'
-#' @aliases .int_getSAFeatSuffix
-#'
-.int_getSAFeatSuffix <- function(feature, statistic) {
-  if (statistic == "moran") {
-    features <- paste0(feature, c(".Ii", ".IiFDR", ".IiClust"))
-  } else if (statistic == "geary") {
-    features <- paste0(feature, c(".Ci", ".CiFDR", ".CiClust"))
-  } else if (statistic == "getis") {
-    features <- paste0(feature, c(".Gi", ".GiFDR", ".GiClust"))
+.int_getSAStatColumns <- function(colnames, statistic, ylab) {
+  if ("moran" %in% statistic) {
+    col_moran <- grep("moran", colnames)
+  } else {
+    col_moran <- NULL
+  }
+  if ("geary" %in% statistic) {
+    col_geary <- grep("geary", colnames)
+  } else {
+    col_geary <- NULL
+  }
+  if ("getis" %in% statistic) {
+    col_getis <- grep("getis", colnames)
+  } else {
+    col_getis <- NULL
   }
 
-  return(features)
+  if (ylab == "gene_name") {
+    col_g_name <- grep("gene_name", colnames)
+  } else {
+    col_g_name <- NULL
+  }
+
+  stat_to_plot <- c(col_g_name, col_moran, col_geary, col_getis)
+
+  return(stat_to_plot)
+}
+
+
+#' Internal Function: Prepare Global SA summary data from plotting
+#'
+#' @param data A subset of SFE's rowData
+#' @inheritParams plotSA_globalSum
+#'
+#' @return A long format data frame.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @rdname dot-int_prepareGlobalSAPlotData
+#'
+#' @aliases .int_prepareGlobalSAPlotData
+#'
+.int_prepareGlobalSAPlotData <- function(data,
+                                         moran_thresh,
+                                         geary_thresh,
+                                         getis_thresh) {
+  data <- data %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "g_id")
+
+  # Remove from colnames "Perm" and "Test"
+  colnames(data) <- gsub("Perm|Test", "", colnames(data))
+
+  data <- data %>%
+    pivot_longer(cols = -any_of(c("g_id","gene_name")),
+                 names_to = c("stat_name", ".value"),
+                 names_sep = "_") %>%
+    dplyr::mutate(stat_name = dplyr::case_match(stat_name,
+                                                "moranI" ~ "Moran's I",
+                                                "gearyC" ~ "Geary's C",
+                                                "getisG" ~ "Getis & Ord's G"),
+                  PosNegSA = dplyr::case_when(stat_name == "Moran's I" &
+                                                stat <= moran_thresh[1] ~ "-",
+                                              stat_name == "Moran's I" &
+                                                stat >= moran_thresh[2] ~ "+",
+                                              stat_name == "Geary's C" &
+                                                stat <= geary_thresh[1] ~ "+",
+                                              stat_name == "Geary's C" &
+                                                stat >= geary_thresh[2] ~ "-",
+                                              stat_name == "Getis & Ord's G" &
+                                                stat >= getis_thresh ~ "+",
+                                              .default = "No"))
 }
 
 
@@ -406,11 +603,11 @@ plotSA_localClust <- function(m_sfe,
 #'
 #' @author Eleftherios (Lefteris) Zormpas
 #'
-#' @rdname dot-int_prepareSAPlotData
+#' @rdname dot-int_prepareLocalSAPlotData
 #'
-#' @aliases .int_prepareSAPlotData
+#' @aliases .int_prepareLocalSAPlotData
 #'
-.int_prepareSAPlotData <- function(sfe,
+.int_prepareLocalSAPlotData <- function(sfe,
                                    feature,
                                    localRes,
                                    pVal,
@@ -426,10 +623,10 @@ plotSA_localClust <- function(m_sfe,
   ## Export local SA results
   dt <- data.frame(Stat = localResult(x = sfe,
                                       type = localRes,
-                                      feature = feature[1]),
+                                      feature = feature)[[1]],
                    p.value = localResult(x = sfe,
                                          type = localRes,
-                                         feature = feature[2]),
+                                         feature = feature)[[2]],
                    geometry = colGeometries(sfe)[[geoms]][["geometry"]]) %>%
           mutate(signif = as.factor(case_when(p.value < pVal ~ "Signif.",
                                               p.value >= pVal ~ "Not Signif.")),
@@ -439,10 +636,7 @@ plotSA_localClust <- function(m_sfe,
     dt <- dt %>%
       mutate(Clust = localResult(x = sfe,
                            type = localRes,
-                           feature = feature[3]),
-             Clust = as.factor(if_else(signif == "Signif",
-                                       .data$Clust,
-                                       "Not Signif.")))
+                           feature = feature)[[3]])
 
   }
   return(dt)

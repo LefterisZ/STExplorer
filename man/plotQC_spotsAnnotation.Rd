@@ -14,7 +14,7 @@ plotQC_spotsAnnotation(
 )
 }
 \arguments{
-\item{m_sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{sample_id}{Character string, TRUE, or NULL specifying sample/image
 identifier(s). TRUE is equivalent to all samples/images, and NULL specifies

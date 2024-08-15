@@ -5,7 +5,7 @@
 \title{Plot Quality Control Scatter Plot in a SpatialFeatureExperiment}
 \usage{
 plotQC_scat(
-  sfe,
+  m_sfe,
   limits,
   metric = c("libsize", "mito", "detected", "cellCount"),
   sample_id = TRUE,
@@ -15,7 +15,7 @@ plotQC_scat(
 )
 }
 \arguments{
-\item{sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{limits}{Numeric vector specifying the limits of the x and y axes.}
 

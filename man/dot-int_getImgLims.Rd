@@ -4,10 +4,12 @@
 \alias{.int_getImgLims}
 \title{Internal Function: .int_getImgLims}
 \usage{
-.int_getImgLims(sfe)
+.int_getImgLims(sfe, res)
 }
 \arguments{
 \item{sfe}{A SpatialFeatureExperiment object.}
+
+\item{res}{The resolution as provided in the main function.}
 }
 \value{
 Returns a list of x and y limits for image plotting.

@@ -45,50 +45,164 @@ getSAGlobalGenes <- function(m_sfe,
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
-  if (test == "permutation") {
-    colPVal <- paste0(statistic, "Pval_perm")
-  } else if (test == "permutation") {
-    colPVal <- paste0(statistic, "Pval_test")
+  ## Get the column names based on the statistic and test
+  columns <- .int_getColumnNames(statistic, test)
+  colStat <- columns$colStat
+  colPVal <- columns$colPVal
+
+  ## Check that the necessary columns exist in the rowData colnames
+  #required_columns <- c(colStat, colPVal)
+  missing_columns <- setdiff(unlist(columns), colnames(rowData(sfe)))
+  if (length(missing_columns) > 0) {
+    stop("Missing required columns: ", paste(missing_columns, collapse = ", "))
+  }
+
+  ## Extract and prepare data
+  data <- as.data.frame(rowData(sfe)[, c(colStat, colPVal)])
+
+  ## Filter genes based on the provided thresholds
+  filtered_data <- .int_filterGenes(data, colStat, colPVal, pVal, stat_thresh)
+
+  ## Return the row names of the filtered data
+  return(rownames(filtered_data))
+}
+
+
+# ---------------------------------------------------------------------------- #
+#  ###### INTERNAL FUNCTIONS ASSOCIATED WITH SA CALCULATIONS (C, G, I) ######
+# ---------------------------------------------------------------------------- #
+#' Internal Function: Construct and export column names for Global SA results
+#'
+#' This function aims to construct column names based on the statistic and test.
+#'
+#' @inheritParams getSAGlobalGenes
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @rdname dot-int_getColumnNames
+#'
+.int_getColumnNames <- function(statistic, test) {
+  colPVal <- NULL
+  colStat <- NULL
+
+  if (test %in% c("permutation", "z-score")) {
+    colPVal <- paste(statistic,
+                     ifelse(test == "permutation", "PvalPerm", "PvalTest"),
+                     sep = "_")
+  } else {
+    stop("Unsupported test type: ", test)
   }
 
   if (statistic == "moran") {
-    colStat <- "moranI"
+    colStat <- "moranI_stat"
+    colPVal <- gsub("_", "I_", colPVal)
   } else if (statistic == "geary") {
-    colStat <- "gearyC"
+    colStat <- "gearyC_stat"
+    colPVal <- gsub("_", "C_", colPVal)
   } else if (statistic == "getis") {
-    colStat <- "getisG"
+    colStat <- "getisG_stat"
+    colPVal <- gsub("_", "G_", colPVal)
+  } else {
+    stop("Unsupported statistic: ", statistic)
   }
 
-  ## Export data from rowData
-  data <- rowData(sfe)[c(colStat, colPVal)] %>%
-    as.data.frame()
+  return(list(colStat = colStat, colPVal = colPVal))
+}
 
-  ## Find the genes pass the pVal threshold
+#' Internal Function: filter genes based on Global SA statistic
+#'
+#' This function uses p-value and/or SA statistic values as thresholds to
+#' filter and select genes. Returns a data frame of selected genes from the
+#' SFE object's rowData.
+#'
+#' @param data the SFE rowData.
+#' @param colStat the SA statistic's values column name.
+#' @param colPVal the SA statistic's p-values column name.
+#' @param pVal the SA statistic's p-value threshold. MUST be a numeric.
+#' @param stat_thresh the SA statistic threshold. MUST be a numeric.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @rdname dot-int_filterGenes
+.int_filterGenes <- function(data, colStat, colPVal, pVal, stat_thresh) {
+  ## Validate pVal
+  if (!is.null(pVal) && (!is.numeric(pVal) || pVal < 0 || pVal > 1)) {
+    stop("pVal should be a numeric value between 0 and 1.")
+  }
+
+  ## Validate stat_thresh
+  if (!is.null(stat_thresh) && (!is.numeric(stat_thresh))) {
+    stop("stat_thresh should be a numeric value.")
+  }
+
+  ## Apply the p-value threshold
   if (!is.null(pVal)) {
+    if (any(is.na(data[[colPVal]]))) {
+      warning("Missing values found in p-value column: ", colPVal)
+    }
     data <- mutate(data, filter_PVal = .data[[colPVal]] < pVal)
   }
 
-  ## Find the genes that pass the statistic thershold
+  ## Apply the statistic threshold
   if (!is.null(stat_thresh)) {
+    if (any(is.na(data[[colStat]]))) {
+      warning("Missing values found in statistic column: ", colStat)
+    }
     data <- mutate(data, filter_Stat = abs(.data[[colStat]]) > stat_thresh)
   }
 
-  ## Select the filter columns
-  selected_cols <- grepl("filter_", colnames(data))
+  ## Combine the filter columns
+  selected_cols <- grep("filter_", names(data), value = TRUE)
 
-  ## Create a vector where each element corresponds to a row in the data frame
-  keep <- apply(data[selected_cols], 1, function(row) all(row))
+  ## Ensure that we have filter columns to process
+  if (length(selected_cols) == 0) {
+    stop("No filtering has been applied. Check threshold parameters.")
+  }
+
+  ## Create a logical vector to keep rows that pass all filters
+  keep <- rowSums(data[, selected_cols]) == length(selected_cols)
   names(keep) <- NULL
 
-  ## Make sure the result has only logical (TRUE/FALSE) values
-  keep <- as.logical(keep)
+  ## Ensure the result has only logical (TRUE/FALSE) values
+  keep[is.na(keep)] <- FALSE
 
-  ## Add the vector as a column in data
-  data$keep <- keep
+  return(data[keep, ])
+}
 
-  ## Return a named vector
-  out <- rownames(data)[data$keep]
-  names(out) <- out
 
-  return(out)
+# ---------------------------------------------------------------------------- #
+#  ###### INTERNAL FUNCTIONS ASSOCIATED WITH SA CALCULATIONS (C, G, I) ######
+# ---------------------------------------------------------------------------- #
+#' Internal Function: check genes input
+#'
+#' This internal function checks for the genes input in the main function.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @importFrom SummarizedExperiment assay
+#'
+#' @rdname dot-int_SAgeneCheck
+#'
+#' @aliases dot-int_SAgeneCheck
+.int_SAgeneCheck <- function(sfe, genes) {
+  ## Check genes to use
+  if (is.character(genes)) {
+    # keep only genes that are present in the SFE object.
+    # Otherwise throws an error downstream.
+    gs <- genes %in% rownames(sfe)
+    if (length(genes) > sum(gs)) {
+      message("These genes are not present in your dataset: \n\t",
+              "ENSGIDs: ", paste(genes[!gs], collapse = " "), "\n\t",
+              "Gene Names: ", paste(names(genes[!gs]), collapse = " "))
+      genes <- genes[gs]
+      names(genes) <- genes
+    }
+  } else if (isTRUE(genes)) {
+    genes <- rownames(rowData(sfe))
+    names(genes) <- genes
+  } else {
+    stop("Invalid `genes` argument input")
+  }
+
+  return(genes)
 }

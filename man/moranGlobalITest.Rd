@@ -71,7 +71,7 @@ cores.}
 \value{
 An SFE object with the below two columns added in the \code{rowData}:
 \item{moranI_test}{the value of the observed Moran's I.}
-\item{moranPval_test}{the pseudo p-value of the test.}
+\item{moranI_PvalTest}{the pseudo p-value of the test.}
 }
 \description{
 This function is a wrapper of the \code{\link[spdep]{moran.mc}} function from

@@ -107,6 +107,8 @@ modelGeneVariance.MetaSpatialFeatureExperiment <- function(m_sfe,
   ids <- .int_getMSFEsmplID(msfe = msfe, sample_id = sample_id)
 
   ## Model Gene Variance
+  message("Modeling gene variance for ", length(ids), " samples.\n",
+          "Please be patient! :)")
   var_int <- switch(method,
                     Var = lapply(msfe@sfe_data[ids],
                                  scran::modelGeneVar, ...),

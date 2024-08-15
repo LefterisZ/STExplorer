@@ -57,7 +57,7 @@ cores.}
 \value{
 An SFE object with the below two columns added in the \code{rowData}:
 \item{gearyC_test}{the value of the standard deviate of Geary's C.}
-\item{gearyCPval_test}{the p-value of the test.}
+\item{gearyC_PvalTest}{the p-value of the test.}
 }
 \description{
 This function is a wrapper of the \code{\link[spdep]{geary.test}} function

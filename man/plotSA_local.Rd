@@ -25,7 +25,7 @@ plotSA_local(
 \item{sample_id}{A character string specifying the sample ID for analysis.}
 
 \item{feature}{A character string indicating the feature of interest.
-Currently supports only ENSGene IDs.}
+It can be either ENSGene IDs or Gene Names.}
 
 \item{statistic}{A character string specifying the type of spatial
 autocorrelation results ("moran", "geary", "getis") to look
@@ -53,7 +53,8 @@ identify which SA values are also statistically
 significant.}
 
 \item{title}{A character string ("ENSGID" or "name") specifying whether the
-title should show the ENSGene ID or the gene name.}
+title should show the ENSGene ID or the gene name. Default is
+"name".}
 
 \item{locations}{A character string ("all" or "significant") specifying
 which locations to include in the plot. If \code{"all"} is

@@ -66,7 +66,7 @@ cores.}
 An SFE object with the below two columns added in the \code{rowData}:
 \item{I}{the value of the observed Moran's I. - replaces other global I
 calculations since the I is always going to be the same.}
-\item{moranPval_perm}{the pseudo p-value of the test.}
+\item{moranI_PvalPerm}{the pseudo p-value of the test.}
 }
 \description{
 This function is a wrapper of the \code{\link[spdep]{moran.mc}} function from

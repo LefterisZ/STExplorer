@@ -7,7 +7,7 @@
 .int_logTransformCounts(sfe, assay.type = "counts")
 }
 \arguments{
-\item{sfe}{A A SpatialFeatureExperiment object.}
+\item{sfe}{A SpatialFeatureExperiment object.}
 
 \item{assay.type}{Character string. The counts assay name to use. Defaults
 to "counts"}
@@ -18,6 +18,9 @@ An SFE object with a new counts table named "unNormLogCounts".
 \description{
 This function is transforming gene counts using log2(counts + 1). It does
 NOT use library sizes to normalise the data.
+}
+\details{
+log1p(x)/log(2) is equal to calculating log2(x+1)
 }
 \author{
 Eleftherios (Lefteris) Zormpas

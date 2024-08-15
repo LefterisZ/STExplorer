@@ -74,7 +74,7 @@ cores.}
 An SFE object with the below two columns added in the \code{rowData}:
 \item{getisG_test}{the value of the standard deviate
 of Getis-Ord G.}
-\item{getisGPval_test}{the p-value of the test.}
+\item{getisG_PvalTest}{the p-value of the test.}
 }
 \description{
 This function is a wrapper of the \code{\link[spdep]{moran}} function from

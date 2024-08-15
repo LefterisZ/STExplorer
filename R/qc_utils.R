@@ -309,8 +309,8 @@ add.spotHex <- function(sfe,
                                "tissue_positions_list.csv"),
                      stringsAsFactors = FALSE, header = FALSE)
     ## Check if for whatever reason there is still column names in the first row
-    ## Check for rows with characters (non-numeric values) in all columns but the
-    ## first
+    ## Check for rows with characters (non-numeric values) in all columns but
+    ## the first
     rows_with_characters <- apply(data[, -1], 1,
                                   function(row){
                                     any(is.na(sapply(row,

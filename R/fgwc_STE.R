@@ -1080,8 +1080,45 @@ fgwcuvSTE <- function(data,
   return(result)
 }
 
-abcfgwcSTE <- function() {
-
+abcfgwcSTE <- function(data,
+                       pop = NA,
+                       distmat = NA,
+                       ncluster = 2,
+                       m = 2,
+                       distance = 'euclidean',
+                       order = 2,
+                       alpha = 0.7,
+                       a = 1,
+                       b = 1,
+                       error = 1e-5,
+                       max.iter = 100,
+                       randomN = 0,
+                       vi.dist = "uniform",
+                       nfood = 10,
+                       n.onlooker = 5,
+                       limit = 4,
+                       pso = F,
+                       abc.same = 10) {
+  ## Replace the below with the reimplementation
+  naspaclust::abcfgwc(data = data,
+                      pop = pop,
+                      distmat = distmat,
+                      ncluster = ncluster,
+                      m = m,
+                      distance = distance,
+                      order = order,
+                      alpha = alpha,
+                      a = a,
+                      b = b,
+                      error = error,
+                      max.iter = max.iter,
+                      randomN = randomN,
+                      vi.dist = vi.dist,
+                      nfood = nfood,
+                      n.onlooker = n.onlooker,
+                      limit = limit,
+                      pso = pso,
+                      abc.same = abc.same)
 }
 
 # ---------------------------------------------------------------------------- #

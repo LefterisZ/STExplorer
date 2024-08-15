@@ -4,7 +4,7 @@
 #' SpatialFeatureExperiment, providing options for different spot types and
 #' customization.
 #'
-#' @param sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param type Character vector specifying the spot type, either "spot", "cntd"
 #' or "hex".
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
@@ -45,15 +45,17 @@
 #'              colours = NULL, y_reverse = FALSE)
 #'
 #' @export
-plotQC_spots <- function(sfe,
+plotQC_spots <- function(m_sfe,
                          type = c("spot", "hex", "cntd"),
                          sample_id = NULL,
                          in_tissue = TRUE,
                          colours = NULL,
                          y_reverse = FALSE){
 
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
   ## Check arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
   stopifnot(is.logical(in_tissue)) # check if logical is provided
 
   ## Check valid type argument
@@ -110,7 +112,7 @@ plotQC_spots <- function(sfe,
 #' This function plots the quality control of spots in a
 #' SpatialFeatureExperiment, including annotation information.
 #'
-#' @param m_sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param type Character vector specifying the spot type, either "spot", "cntd
 #' or "hex".
 #' @param fill_args List of arguments to customize the fill scale. Default is
@@ -231,7 +233,7 @@ plotQC_spotsAnnotation <- function(m_sfe,
 #' This function plots the tissue image in a SpatialFeatureExperiment,
 #' providing options for different resolutions and spot types.
 #'
-#' @param sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param res Character vector specifying the image resolution, either
 #' "lowres", "hires", or "fullres".
 #' @param type Character vector specifying the spot type, either "spot",
@@ -265,6 +267,8 @@ plotQC_spotsAnnotation <- function(m_sfe,
 #'
 #' @keywords spatial quality-control annotation plotting ggplot2
 #'
+#' @importFrom patchwork wrap_plots
+#'
 #' @rdname plotQC_tissueImg
 #' @aliases plotQC_tissueImg
 #'
@@ -280,7 +284,7 @@ plotQC_spotsAnnotation <- function(m_sfe,
 #' }
 #'
 #' @export
-plotQC_tissueImg <- function(sfe,
+plotQC_tissueImg <- function(m_sfe,
                              res = c("lowres", "hires", "fullres"),
                              type = c("spot", "hex", "cntd", "none"),
                              sample_id = NULL,
@@ -290,8 +294,8 @@ plotQC_tissueImg <- function(sfe,
                              alpha = 0.3,
                              ...) {
 
-  ## Check arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check valid type argument
   type <- match.arg(type)
@@ -325,11 +329,8 @@ plotQC_tissueImg <- function(sfe,
                        ...)
   })
 
-  ## Determine the number of columns in the grid (can be customised)
-  num_cols <- ceiling(sqrt(length(plots)))
-
-  ## Combine the individual plots into a grid
-  gridExtra::grid.arrange(grobs = plots, ncol = num_cols)
+  ## Combine the individual plots into a patchwork
+  patchwork::wrap_plots(plots)
 
   # return(p)
 }
@@ -341,19 +342,20 @@ plotQC_tissueImg <- function(sfe,
 #' SpatialFeatureExperiment, providing options for different metrics,
 #' sample IDs, and customisation.
 #'
-#' @param sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param limits Numeric vector specifying the limits of the x-axis.
 #' @param metric Character vector specifying the metric, either "libsize",
 #' "mito", "detected", "sizeFact", or "cellCount".
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
 #' identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
 #' the first available entry.
-#' @param hist_args List of arguments to customize the histogram. Default is an
+#' @param hist_args List of arguments to customise the histogram. Default is an
 #' empty list.
-#' @param dens_args List of arguments to customize the density plot. Default is
+#' @param dens_args List of arguments to customise the density plot. Default is
 #' an empty list.
-#' @param vline_args List of arguments to customize the vertical line. Default
+#' @param vline_args List of arguments to customise the vertical line. Default
 #' is an empty list.
+#' @param theme_args List of arguments to customise theme elements.
 #' @param ... Additional arguments to be passed to the underlying plotting
 #' functions.
 #'
@@ -385,7 +387,7 @@ plotQC_tissueImg <- function(sfe,
 #' }
 #'
 #' @export
-plotQC_hist <- function(sfe,
+plotQC_hist <- function(m_sfe,
                         limits,
                         metric = c("libsize", "mito",
                                    "detected", "cellCount"),
@@ -393,9 +395,11 @@ plotQC_hist <- function(sfe,
                         hist_args = list(),
                         dens_args = list(),
                         vline_args = list(),
+                        theme_args = list(),
                         ...) {
-  ## Checks arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
+
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Get the number of unique samples
   ids <- .int_getSmplIDs(sfe = sfe, sample_id = sample_id)
@@ -463,6 +467,11 @@ plotQC_hist <- function(sfe,
     p <- p + ggplot2::facet_wrap(~ sample_id)
   }
 
+  ## Modify theme according to user input (if present)
+  if (DelayedArray::isEmpty(theme_args)) {
+    p <- p + do.call(theme, c(hist_args))
+  }
+
   return(p)
 }
 
@@ -473,7 +482,7 @@ plotQC_hist <- function(sfe,
 #' SpatialFeatureExperiment, providing options for different metrics,
 #' sample IDs, and customisation.
 #'
-#' @param sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param limits Numeric vector specifying the limits of the x and y axes.
 #' @param metric Character vector specifying the metric, either "libsize",
 #' "mito", or "detected".
@@ -515,7 +524,7 @@ plotQC_hist <- function(sfe,
 #' }
 #'
 #' @export
-plotQC_scat <- function(sfe,
+plotQC_scat <- function(m_sfe,
                         limits,
                         metric = c("libsize", "mito",
                                    "detected", "cellCount"),
@@ -523,8 +532,9 @@ plotQC_scat <- function(sfe,
                         point_args = list(),
                         hline_args = list(),
                         ...) {
-  ## Checks arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
+
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check valid type argument
   metric <- match.arg(metric)
@@ -746,7 +756,7 @@ plotQC_map <- function(m_sfe,
 #' SpatialFeatureExperiment, providing options for different metrics and
 #' sample IDs.
 #'
-#' @param sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param metric Character vector specifying the metric, either "libsize",
 #' "mito", "NAs", "detected", "cellCount", or "discard".
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
@@ -778,15 +788,15 @@ plotQC_map <- function(m_sfe,
 #' }
 #'
 #' @export
-plotQC_filtered <- function(sfe,
+plotQC_filtered <- function(m_sfe,
                             metric = c("libsize", "mito", "NAs",
                                        "detected", "cellCount", "discard"),
                             sample_id = TRUE,
                             type = c("spot", "hex", "cntd"),
                             ...) {
 
-  ## Check arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check type argument
   if (missing(type)) {
@@ -885,7 +895,7 @@ plotQC_filtered <- function(sfe,
 #' This function plots the size factors histogram and density in a
 #' SpatialFeatureExperiment, providing options for sample IDs and customisation.
 #'
-#' @param sfe A SpatialFeatureExperiment object.
+#' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
 #' identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
 #' the first available entry.
@@ -921,15 +931,16 @@ plotQC_filtered <- function(sfe,
 #' }
 #'
 #' @export
-plotQC_sizeFactors <- function(sfe,
+plotQC_sizeFactors <- function(m_sfe,
                                sample_id = TRUE,
                                hist_args = list(),
                                dens_args = list(),
                                ...) {
-  ## Checks arguments
-  stopifnot(is(sfe, "SpatialFeatureExperiment"))
 
-  ## Get the number of unique samples
+  ## Check SFE or MSFE?
+  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Get the number of unique samples (in case it is an SFE with multiple samples)
   ids <- .int_getSmplIDs(sfe = sfe, sample_id = sample_id)
   n_samples <- length(unique(ids))
 
@@ -973,7 +984,8 @@ plotQC_sizeFactors <- function(sfe,
 }
 
 
-
+# ---------------------------------------------------------------------------- #
+#  ############### INTERNAL FUNCTIONS ASSOCIATED WITH QC PLOTS ###############
 # ---------------------------------------------------------------------------- #
 #' Internal Function: .int_plotSpot
 #'
@@ -1367,6 +1379,7 @@ plotQC_sizeFactors <- function(sfe,
 #' Extracts image limits for plotting based on spot locations.
 #'
 #' @param sfe A SpatialFeatureExperiment object.
+#' @param res The resolution as provided in the main function.
 #'
 #' @return Returns a list of x and y limits for image plotting.
 #'
@@ -1378,7 +1391,7 @@ plotQC_sizeFactors <- function(sfe,
 #'
 #' @rdname dot-int_getImgLims
 #'
-.int_getImgLims <- function(sfe) {
+.int_getImgLims <- function(sfe, res) {
   ## Extract the spot locations
   spot_coords <- spatialCoords(sfe) %>% as.data.frame()
 
@@ -1477,6 +1490,104 @@ plotQC_sizeFactors <- function(sfe,
 }
 
 
+#' Internal Function: .int_tissueImgPlot
+#'
+#' Generates a ggplot2 plot for tissue images with optional annotations.
+#'
+#' @param image List of raster objects.
+#' @param image_name Character vector specifying the image name.
+#' @param limits_list List of x and y limits for image plotting.
+#' @param sfe A SpatialFeatureExperiment object.
+#' @param type Character vector specifying the plot type ("none", "spot", or
+#' "hex").
+#' @param annotate Logical. If TRUE, includes annotations in the plot.
+#' @param colours Vector of colours for annotations.
+#' @param fill_args List of fill arguments.
+#' @param alpha Numeric. Transparency level for image plotting.
+#' @param ... Additional arguments to pass to ggplot2::scale_fill_manual.
+#'
+#' @return Returns a ggplot2 plot object for tissue images with optional
+#' annotations.
+#'
+#' @details This function generates a ggplot2 plot for tissue images with
+#' optional annotations, allowing customisation of various plot elements.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @keywords internal
+#'
+#' @rdname dot-int_tissueImgPlot
+#'
+#' @importFrom tidyterra geom_spatraster_rgb
+#'
+.int_tissueImgPlot <- function(image,
+                               image_name,
+                               limits_list,
+                               sfe,
+                               type,
+                               annotate,
+                               colours,
+                               fill_args,
+                               alpha,
+                               ...) {
+  ## Identify the RGB value range. It can be 0-1, 0-255 (8-bit), or 0-65536 (16-bit)
+  ## There is a chance the 'range_max' slot to be filled with NaN. We need to
+  ## account for that.
+  max <- image@ptr$range_max[1]
+  if (is.na(max)) {
+    max <- max(image[,,1])
+  }
+  if (max <= 1) {
+    max_col_value <- 1
+  } else if (max <= 255) {
+    max_col_value <- 255
+  } else if (max <= 65536) {
+    max_col_value <- 65536
+  }
+
+  p <- ggplot() +
+    tidyterra::geom_spatraster_rgb(data = image,
+                                   max_col_value = max_col_value) +
+    ggplot2::labs(subtitle = image_name) +
+    ggplot2::lims(x = limits_list[[1]],
+                  y = limits_list[[2]]) +
+    ggplot2::coord_sf() +
+    ggplot2::theme_void() +
+    theme(plot.subtitle = ggplot2::element_text(hjust = 0.5))
+
+  ## Put together the data to plot geometries. Choose spots or hexagons too.
+  if (!type == "none") {
+    ids <- image_name
+    data <- .int_dataToPlotAnnot(sfe = sfe, type = type,
+                                 ids = image_name, annotate = annotate)
+
+    if (annotate) {
+      ## Plot with annotation
+      ## Fetch colours
+      annot_cols <- .int_annotColours(sfe = sfe, colours = colours)
+      ## Set some defaults if not provided
+      fill_args <- .int_fillArgs(fill_args, annot_cols = annot_cols)
+      ## Plot
+      p <- p + ggplot2::geom_sf(data = data,
+                                aes(geometry = geometry,
+                                    fill = annotation),
+                                alpha = alpha) +
+        do.call(scale_fill_manual, c(list(...), fill_args)) +
+        ggplot2::labs(fill = "Annotation")
+    } else {
+      ## Plot without annotation
+      p <- p + ggplot2::geom_sf(data = data,
+                                aes(geometry = geometry),
+                                alpha = alpha)
+    }
+  }
+
+  return(p)
+}
+
+# ---------------------------------------------------------------------------- #
+# ------------------------------- DEPRECATED --------------------------------- #
+# ---------------------------------------------------------------------------- #
 #' Internal Function: .int_getImgLims2
 #'
 #' Extracts image limits for plotting based on spot locations for each sample.
@@ -1524,85 +1635,4 @@ plotQC_sizeFactors <- function(sfe,
   names(limits_list) <- sample_id
 
   return(limits_list)
-}
-
-
-#' Internal Function: .int_tissueImgPlot
-#'
-#' Generates a ggplot2 plot for tissue images with optional annotations.
-#'
-#' @param image List of raster objects.
-#' @param image_name Character vector specifying the image name.
-#' @param limits_list List of x and y limits for image plotting.
-#' @param sfe A SpatialFeatureExperiment object.
-#' @param type Character vector specifying the plot type ("none", "spot", or
-#' "hex").
-#' @param annotate Logical. If TRUE, includes annotations in the plot.
-#' @param colours Vector of colours for annotations.
-#' @param fill_args List of fill arguments.
-#' @param alpha Numeric. Transparency level for image plotting.
-#' @param ... Additional arguments to pass to ggplot2::scale_fill_manual.
-#'
-#' @return Returns a ggplot2 plot object for tissue images with optional
-#' annotations.
-#'
-#' @details This function generates a ggplot2 plot for tissue images with
-#' optional annotations, allowing customisation of various plot elements.
-#'
-#' @author Eleftherios (Lefteris) Zormpas
-#'
-#' @keywords internal
-#'
-#' @rdname dot-int_tissueImgPlot
-#'
-#' @importFrom tidyterra geom_spatraster_rgb
-#'
-.int_tissueImgPlot <- function(image,
-                               image_name,
-                               limits_list,
-                               sfe,
-                               type,
-                               annotate,
-                               colours,
-                               fill_args,
-                               alpha,
-                               ...) {
-
-  p <- ggplot() +
-    tidyterra::geom_spatraster_rgb(data = image) +
-    ggplot2::labs(subtitle = image_name) +
-    ggplot2::lims(x = limits_list[[1]],
-                  y = limits_list[[2]]) +
-    ggplot2::coord_sf() +
-    ggplot2::theme_void() +
-    theme(plot.subtitle = ggplot2::element_text(hjust = 0.5))
-
-  ## Put together the data to plot. Choose spots or hexagons too.
-  if (!type == "none") {
-    ids <- image_name
-    data <- .int_dataToPlotAnnot(sfe = sfe, type = type,
-                                 ids = image_name, annotate = annotate)
-
-    if (annotate) {
-      ## Plot with annotation
-      ## Fetch colours
-      annot_cols <- .int_annotColours(sfe = sfe, colours = colours)
-      ## Set some defaults if not provided
-      fill_args <- .int_fillArgs(fill_args, annot_cols = annot_cols)
-      ## Plot
-      p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = geometry,
-                                    fill = annotation),
-                                alpha = alpha) +
-        do.call(scale_fill_manual, c(list(...), fill_args)) +
-        ggplot2::labs(fill = "Annotation")
-    } else {
-      ## Plot without annotation
-      p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = geometry),
-                                alpha = alpha)
-    }
-  }
-
-  return(p)
 }

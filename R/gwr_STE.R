@@ -489,12 +489,13 @@ gwr_toSF <- function(gwr) {
 #' @rdname gwr_stats
 #' @author Eleftherios Zormpas
 #' @export
-gwr_stats <- function(gwr, stat) {
+gwr_stats <- function(gwr, stat = NULL) {
   UseMethod("gwr_stats")
 }
 
+#' @rdname gwr_stats
 #' @export
-gwr_stats.gwr <- function(gwr, stat) {
+gwr_stats.gwrm <- function(gwr) {
   n <- .int_countElements(deparse1(gwr$lm$terms[[3]]))
   gwr.tab <- apply(gwr$SDF@data[, 1:(5 + n)], 2, summary)
   gwr.tab <- round(gwr.tab, 1)
@@ -502,6 +503,7 @@ gwr_stats.gwr <- function(gwr, stat) {
   return(gwr.tab)
 }
 
+#' @rdname gwr_stats
 #' @export
 gwr_stats.SF <- function(gwr, stat) {
   ## Summary statistics for Local_R2

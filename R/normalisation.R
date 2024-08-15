@@ -50,6 +50,7 @@ computeLibSizeFactors <- function(m_sfe,
 }
 
 
+#' @rdname computeLibSizeFactors
 #' @export
 computeLibSizeFactors.SpatialFeatureExperiment <-
   function(m_sfe,
@@ -102,6 +103,7 @@ computeLibSizeFactors.SpatialFeatureExperiment <-
 }
 
 
+#' @rdname computeLibSizeFactors
 #' @export
 computeLibSizeFactors.MetaSpatialFeatureExperiment <-
   function(m_sfe,
@@ -371,6 +373,8 @@ normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' @rdname dot-int_msfeCompSizeFact
 #'
 .int_msfeCompSizeFact <- function(sfe, ...) {
+  sample_id <- .int_getSmplIDs(sfe, sample_id = NULL)
+  message("Working on sample: ", sample_id)
   scater::computeLibraryFactors(sfe, ...)
 }
 
@@ -380,9 +384,12 @@ normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' This function is transforming gene counts using log2(counts + 1). It does
 #' NOT use library sizes to normalise the data.
 #'
-#' @param sfe A A SpatialFeatureExperiment object.
+#' @param sfe A SpatialFeatureExperiment object.
 #' @param assay.type Character string. The counts assay name to use. Defaults
 #' to "counts"
+#'
+#' @details
+#' log1p(x)/log(2) is equal to calculating log2(x+1)
 #'
 #' @importFrom SummarizedExperiment assay assay<-
 #'
@@ -392,6 +399,8 @@ normaliseCounts.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 .int_logTransformCounts <- function(sfe, assay.type = "counts") {
+  sample_id <- .int_getSmplIDs(sfe, sample_id = NULL)
+  message("Working on sample: ", sample_id)
   ## Extract counts
   counts <- assay(sfe, assay.type)
   ## Add new assay

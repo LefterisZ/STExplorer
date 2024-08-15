@@ -725,7 +725,7 @@ setQCtoDiscard_feat.SpatialFeatureExperiment <- function(m_sfe,
   tbl_list <- .int_summaryTable(sfe, filters = filters)
 
   ## Check the number of discarded features for each metric per sample
-  cat("Number of locations filtered out:\n")
+  cat("Number of genes filtered out:\n")
   print(rlist::list.rbind(tbl_list))
 
   return(sfe)
@@ -747,7 +747,7 @@ setQCtoDiscard_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
   tbl_list <- lapply(msfe_int, .int_summaryTable, filters = filters)
 
   ## Check the number of discarded features for each metric per sample
-  cat("Number of locations filtered out:\n")
+  cat("Number of genes filtered out:\n")
   print(rlist::list.rbind(tbl_list))
 
   ## If specific samples where modified replace in the metaSFE list
@@ -761,6 +761,9 @@ setQCtoDiscard_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
 }
 
 
+# ---------------------------------------------------------------------------- #
+#  ######## INTERNAL FUNCTIONS ASSOCIATED WITH SETTING QC THRESHOLDS ########
+# ---------------------------------------------------------------------------- #
 #' Select QC Metrics for Filtering
 #'
 #' This function selects QC metrics for filtering based on specified criteria.

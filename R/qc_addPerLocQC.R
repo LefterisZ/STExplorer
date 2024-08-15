@@ -49,7 +49,7 @@ addPerLocQC <- function(m_sfe,
                         sample_id,
                         gTruth = NULL,
                         assay = "counts",
-                        MARGIN,
+                        MARGIN = 2,
                         ...) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
@@ -69,7 +69,7 @@ addPerLocQC <- function(m_sfe,
   sfe <- get.QC.Sparsity(sfe, assay = assay, MARGIN = MARGIN)
 
   ## Add other locational QC metrics from scatter package
-  sfe <- addPerCellQC(sfe, ...)
+  sfe <- scater::addPerCellQC(sfe, ...)
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)

@@ -2,12 +2,18 @@
 % Please edit documentation in R/normalisation.R
 \name{computeLibSizeFactors}
 \alias{computeLibSizeFactors}
+\alias{computeLibSizeFactors.SpatialFeatureExperiment}
+\alias{computeLibSizeFactors.MetaSpatialFeatureExperiment}
 \alias{.int_sizeFactCalc}
 \alias{.int_summaryCalc}
 \alias{.int_summarySizeFact}
 \title{Compute Library Size Factors in a SpatialFeatureExperiment}
 \usage{
 computeLibSizeFactors(m_sfe, sample_id, ...)
+
+\method{computeLibSizeFactors}{SpatialFeatureExperiment}(m_sfe, ...)
+
+\method{computeLibSizeFactors}{MetaSpatialFeatureExperiment}(m_sfe, sample_id = TRUE, ...)
 
 .int_sizeFactCalc(id, sfe, ...)
 

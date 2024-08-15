@@ -13,7 +13,9 @@ plotSA_localClust(
   pVal = 0.05,
   type = c("spot", "hex"),
   title = c("ENSGID", "name"),
-  clust_col = NULL
+  clust_col = NULL,
+  signif_col = "#E0E0E0",
+  locations = "all"
 )
 }
 \arguments{
@@ -47,6 +49,21 @@ plotting. The names must match the cluster names. Look at
 details below for more information about what these names
 should be. Default is \code{NULL} and the default colours are
 applied.}
+
+\item{signif_col}{A character string specifying the colour for the outline
+of significant locations in the plot. Used only when the
+\code{locations} argument is set to \code{"all"}. It helps to
+identify which SA values are also statistically
+significant.}
+
+\item{locations}{A character string ("all" or "significant") specifying
+which locations to include in the plot. If \code{"all"} is
+selected, then all spots are included and the locations
+where the local SA is significant has a differently
+coloured outline as set by the \code{signif_col} argument. If
+\verb{"significant} is selected, then only the locations with
+statistically significant SA values are plotted while the
+rest of the locations are greyed out.}
 }
 \value{
 A ggplot object visualising clusters in local spatial

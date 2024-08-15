@@ -5,18 +5,19 @@
 \title{Plot Quality Control Histogram in a SpatialFeatureExperiment}
 \usage{
 plotQC_hist(
-  sfe,
+  m_sfe,
   limits,
   metric = c("libsize", "mito", "detected", "cellCount"),
   sample_id = TRUE,
   hist_args = list(),
   dens_args = list(),
   vline_args = list(),
+  theme_args = list(),
   ...
 )
 }
 \arguments{
-\item{sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{limits}{Numeric vector specifying the limits of the x-axis.}
 
@@ -27,14 +28,16 @@ plotQC_hist(
 identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
 the first available entry.}
 
-\item{hist_args}{List of arguments to customize the histogram. Default is an
+\item{hist_args}{List of arguments to customise the histogram. Default is an
 empty list.}
 
-\item{dens_args}{List of arguments to customize the density plot. Default is
+\item{dens_args}{List of arguments to customise the density plot. Default is
 an empty list.}
 
-\item{vline_args}{List of arguments to customize the vertical line. Default
+\item{vline_args}{List of arguments to customise the vertical line. Default
 is an empty list.}
+
+\item{theme_args}{List of arguments to customise theme elements.}
 
 \item{...}{Additional arguments to be passed to the underlying plotting
 functions.}

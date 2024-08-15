@@ -5,7 +5,7 @@
 \title{Plot Quality Control Filtered Locations Map in a SpatialFeatureExperiment}
 \usage{
 plotQC_filtered(
-  sfe,
+  m_sfe,
   metric = c("libsize", "mito", "NAs", "detected", "cellCount", "discard"),
   sample_id = TRUE,
   type = c("spot", "hex", "cntd"),
@@ -13,7 +13,7 @@ plotQC_filtered(
 )
 }
 \arguments{
-\item{sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{metric}{Character vector specifying the metric, either "libsize",
 "mito", "NAs", "detected", "cellCount", or "discard".}

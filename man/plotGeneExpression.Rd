@@ -8,12 +8,13 @@ plotGeneExpression(
   m_sfe,
   genes,
   sample_id = NULL,
-  assay = c("counts", "logcounts"),
+  assay = c("counts", "logcounts", "unNormLogCounts"),
   minmax = c(0, Inf),
   type = c("spot", "hex", "cntd"),
   res = c("lowres", "hires", "fullres", "none"),
   fill_args = list(),
   alpha = 0.3,
+  title_type = "gene_name",
   ...
 )
 }
@@ -28,8 +29,9 @@ data.}
 analysis. If NULL the first sample is selected.}
 
 \item{assay}{Character vector specifying the type of assay data
-to plot. Options are "counts" for raw counts and
-"logcounts" for log2-normalized counts. Default is
+to plot. Options are "counts" for raw counts,
+"logcounts" for log2-normalized counts, and "unNormLogCounts"
+for un-normalised log-2 transformed only counts. Default is
 "counts".}
 
 \item{minmax}{Numeric vector of length 2 specifying the minimum
@@ -53,6 +55,10 @@ colour palette.}
 
 \item{alpha}{Numeric value specifying the transparency level of
 the plotted polygons. Default is 0.3.}
+
+\item{title_type}{A character string indicating the label for the y-axis.
+It can be "gene_name" to use gene names or any other value
+to use Ensemble Gene IDs. Default is "gene_name".}
 
 \item{...}{Additional arguments to be passed to the plotting
 functions.}

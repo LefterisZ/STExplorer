@@ -2,9 +2,15 @@
 % Please edit documentation in R/gwr_STE.R
 \name{gwr_stats}
 \alias{gwr_stats}
+\alias{gwr_stats.gwrm}
+\alias{gwr_stats.SF}
 \title{GWR summary table}
 \usage{
-gwr_stats(gwr, stat)
+gwr_stats(gwr, stat = NULL)
+
+\method{gwr_stats}{gwrm}(gwr)
+
+\method{gwr_stats}{SF}(gwr, stat)
 }
 \arguments{
 \item{gwr}{A GWR object as created by \code{gwrSTE}, or the SDF data frame from

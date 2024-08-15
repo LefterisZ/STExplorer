@@ -85,8 +85,9 @@ plotNeighbourGraph <- function(msfe,
 #' @param sample_id A character string specifying the sample ID for
 #'                  analysis. If NULL the first sample is selected.
 #' @param assay Character vector specifying the type of assay data
-#'              to plot. Options are "counts" for raw counts and
-#'              "logcounts" for log2-normalized counts. Default is
+#'              to plot. Options are "counts" for raw counts,
+#'              "logcounts" for log2-normalized counts, and "unNormLogCounts"
+#'              for un-normalised log-2 transformed only counts. Default is
 #'              "counts".
 #' @param minmax Numeric vector of length 2 specifying the minimum
 #'               and maximum expression values to include in the
@@ -105,6 +106,9 @@ plotNeighbourGraph <- function(msfe,
 #'                  colour palette.
 #' @param alpha Numeric value specifying the transparency level of
 #'              the plotted polygons. Default is 0.3.
+#' @param title_type A character string indicating the label for the y-axis.
+#'                   It can be "gene_name" to use gene names or any other value
+#'                   to use Ensemble Gene IDs. Default is "gene_name".
 #' @param ... Additional arguments to be passed to the plotting
 #'            functions.
 #'
@@ -138,17 +142,30 @@ plotNeighbourGraph <- function(msfe,
 plotGeneExpression <- function(m_sfe,
                                genes,
                                sample_id = NULL,
-                               assay = c("counts", "logcounts"),
+                               assay = c("counts", "logcounts", "unNormLogCounts"),
                                minmax = c(0, Inf),
                                type = c("spot", "hex", "cntd"),
                                res = c("lowres", "hires", "fullres", "none"),
                                fill_args = list(),
                                alpha = 0.3,
+                               title_type = "gene_name",
                                ...) {
 
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
+  ## Check arguments
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (missing(res)) {
+    res <- "none"
+  }
+  if (missing(assay)) {
+    assay <- "counts"
+  }
+
+  ## Set geometry to use
   if (type == "hex") {
     stopifnot("spotHex" %in% names(colGeometries(sfe)))
     type <- "spotHex"
@@ -158,19 +175,21 @@ plotGeneExpression <- function(m_sfe,
     type <- "spotCntd"
   }
 
-  ## Fetch image if needed
+  ## Fetch image if needed and fix alpha
   if (!res == "none") {
     ## Fetch image data and transform to raster
     image <- .int_getImgDt(sfe = sfe, sample_id = sample_id, image_id = res)
     ## Get capture area limits
     limits_list <- .int_getImgLims(sfe = sfe)
+  } else {
+    alpha <- 1
   }
 
   ## Create legend title
   if (assay == "counts") {
-    fill <- "Raw counts"
+    lab <- "Raw counts"
   } else if (assay == "logcounts") {
-    fill <- "Log2-Normalised\ncounts"
+    lab <- "Log2-Normalised\ncounts"
   }
 
   ## Set fill arguments if not provided
@@ -180,45 +199,58 @@ plotGeneExpression <- function(m_sfe,
   }
 
   ## Fetch data
- data <- .int_prepareDataMap(sfe = sfe,
-                             assay = assay,
-                             genes = genes,
-                             minmax = minmax,
-                             type = type)
+  genes <- .int_matchNamesToEnsgID(sfe, genes)
+
+  data <- .int_prepareDataMap(sfe = sfe,
+                              assay = assay,
+                              genes = genes,
+                              minmax = minmax,
+                              type = type,
+                              title_type = title_type)
 
   ## Plot
- p <- ggplot()
+  p <- ggplot()
 
- if (!res == "none") {
-   p <- p +
-     tidyterra::geom_spatraster_rgb(data = image[[1]])
- }
+  if (!res == "none") {
+    p <- p +
+      tidyterra::geom_spatraster_rgb(data = image[[1]]) +
+      ggplot2::lims(x = limits_list[[1]],
+                    y = limits_list[[2]])
+  }
 
- if (type == "cntd") {
-   p <- p +
-     ggplot2::geom_sf(data = data,
-                      aes(geometry = geometry,
-                          fill = expression),
-                      alpha = alpha) +
-     do.call(scale_fill_viridis_c, c(list(), fill_args)) +
-     ggplot2::labs(fill = fill)
- } else {
-   p <- p +
-     ggplot2::geom_sf(data = data,
-                      aes(geometry = geometry,
-                          colour = expression),
-                      alpha = alpha,
-                      size = 0.5) +
-     do.call(scale_colour_viridis_c, c(list(), fill_args)) +
-     ggplot2::labs(colour = fill)
- }
+  if (!type == "cntd") {
+    p <- p +
+      ggplot2::geom_sf(data = data,
+                       aes(geometry = geometry,
+                           fill = expression),
+                       alpha = alpha) +
+      do.call(scale_fill_viridis_c, c(list(), fill_args)) +
+      ggplot2::labs(fill = lab)
+  } else {
+    p <- p +
+      ggplot2::geom_sf(data = data,
+                       aes(geometry = geometry,
+                           colour = expression),
+                       alpha = alpha,
+                       size = 0.5) +
+      do.call(scale_colour_viridis_c, c(list(), fill_args)) +
+      ggplot2::labs(colour = lab)
+  }
 
- p <- p +
-   ggplot2::coord_sf() +
-   ggplot2::facet_wrap(~gene, scales = "fixed", ncol = 1) +
-   ggplot2::theme_void()
+  if (length(unique(data$gene)) > 1) {
+    p <- p +
+      ggplot2::facet_wrap(~gene, scales = "fixed", ncol = 1)
+  } else {
+    p <- p +
+      labs(title = unique(data$gene))
+  }
 
- p
+  p <- p +
+    ggplot2::coord_sf() +
+    ggplot2::theme_void() +
+    theme(plot.title = ggplot2::element_text(hjust = 0.5))
+
+  p
 }
 
 
@@ -341,6 +373,8 @@ plotHeatmap <- function(m_sfe,
            fontsize_row = 3,
            ...)
 }
+
+
 # ---------------------------------------------------------------------------- #
 #  ############# INTERNAL FUNCTIONS ASSOCIATED WITH MISC PLOTS ##############
 # ---------------------------------------------------------------------------- #
@@ -489,6 +523,9 @@ plotHeatmap <- function(m_sfe,
 #' @param type Character vector specifying the type of spatial data
 #'             to use. Options are "spot" for spot geometry and "hex"
 #'             for hexagon geometry.
+#' @param title_type A character string indicating the label for the y-axis.
+#'                   It can be "gene_name" to use gene names or any other value
+#'                   to use Ensemble Gene IDs. Default is "gene_name".
 #'
 #' @return A data frame containing gene expression data prepared for
 #'         plotting on spatial feature experiment objects.
@@ -498,16 +535,21 @@ plotHeatmap <- function(m_sfe,
 #' @importFrom tidyr pivot_longer
 #' @importFrom Matrix t
 #'
-.int_prepareDataMap <- function(sfe, assay, genes, minmax, type) {
+.int_prepareDataMap <- function(sfe, assay,
+                                genes, minmax,
+                                type, title_type) {
   # genes_df <- assay(sfe, assay) %>%
   #   t() %>%
   #   as.data.frame() %>%
   #   dplyr::select(tidyr::all_of(genes)) %>%
   #   tibble::rownames_to_column(var = "rownames")
+
+  ## Export counts
   genes_df <- assay(sfe, assay) %>%
     Matrix::t() %>%
     as.data.frame()
 
+  ## Keep only selected genes
   genes_lst <- lapply(genes, FUN = function(x) {
     genes_df %>%
       dplyr::select(tidyr::all_of(x)) %>%
@@ -515,19 +557,28 @@ plotHeatmap <- function(m_sfe,
       filter(.data[[x]] > minmax[1] & .data[[x]] < minmax[2])
   })
 
+  ## Export geometries
   geoms <- data.frame(geometry = colGeometry(sfe, type)) %>%
     tibble::rownames_to_column(var = "rownames")
 
+  ## Add them to a list (it will help left-joining them later)
   geoms_lst <- list()
   geoms_lst[[1]] <- geoms
 
+  ## Put counts and geoms in a list
   data_lst <- c(geoms_lst, genes_lst)
 
+  ## Convert the list to a dataframe
   out <- purrr::reduce(data_lst, dplyr::left_join, by = 'rownames') %>%
     tibble::column_to_rownames(var = "rownames") %>%
     tidyr::pivot_longer(cols = -"geometry",
                         names_to = "gene",
                         values_to = "expression")
+
+  ## Convert EnsgIDs to Gene Names if needed
+  if (title_type == "gene_name") {
+    out$gene <- .int_EnsgIDtoName(sfe, out$gene)
+  }
 
   return(out)
 }

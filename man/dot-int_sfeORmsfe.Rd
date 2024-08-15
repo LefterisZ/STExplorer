@@ -23,5 +23,5 @@ returns a subset based on the provided sample IDs.
 This internal function checks the class type of the input object and returns
 either the original SpatialFeatureExperiment (SFE) object or, in the case of
 a MetaSpatialFeatureExperiment (MetaSFE), retrieves a subset based on the
-provided sample IDs.
+provided sample ID.
 }

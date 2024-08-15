@@ -31,7 +31,7 @@ data <- getMSigDBData("Homo sapiens")
 viewCollections()
 
 # Get term-to-gene data.table
-t2g <- getTerm2Gene(msig_data = data, cat = C1, subcat = "")
+t2g <- getTerm2Gene(msig_data = data, cat = C3, subcat = "")
 
 # Note in the above that if a category has no subcategory then we put "" in
 # the 'subcat' argument.

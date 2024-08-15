@@ -256,7 +256,7 @@ getSampleIDs <- function(x) {
 #' This internal function checks the class type of the input object and returns
 #' either the original SpatialFeatureExperiment (SFE) object or, in the case of
 #' a MetaSpatialFeatureExperiment (MetaSFE), retrieves a subset based on the
-#' provided sample IDs.
+#' provided sample ID.
 #'
 #' @param m_sfe An object of class SpatialFeatureExperiment or
 #' MetaSpatialFeatureExperiment.
@@ -274,7 +274,8 @@ getSampleIDs <- function(x) {
   metaSFE <- is(m_sfe, "MetaSpatialFeatureExperiment")
   if (SFE) {
     sfe <- m_sfe
-  } else if (metaSFE) {
+  }
+  if (metaSFE) {
     sfe <- getSFE(m_sfe, sample_id)
   }
 

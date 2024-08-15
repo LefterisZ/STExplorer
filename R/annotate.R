@@ -77,10 +77,12 @@
 annotateDataFrame <- function(data, biomart, add, id = 1, column = NA,
                               check.names = FALSE, output = "data.frame",
                               annot.col = NULL){
+  ## Check if the input 'data' is a Data Frame
+  if (!is.data.frame(data)) {
+    stop("Error: Input 'data' is not a Data Frame.")
+  }
 
-  ##ADD A FAIL SWITCH ---> IT HAS TO BE A DATA FRAME <----
-
-  #### Match input df rows with biomart rows ####
+  ## Match input df rows with biomart rows
   if (is.na(column)) {
     biom.dt <- match(rownames(data), biomart[[id]])
   } else if (is.numeric(column)) {
@@ -92,7 +94,7 @@ annotateDataFrame <- function(data, biomart, add, id = 1, column = NA,
          "the correct one.\n")
   }
 
-  #### Check if user provided specific columns in add argument ####
+  ## Check if user provided specific columns in add argument
   if (missing(add)) {
     add <- c("gene_name", "biotype", "description")
     if ("human_homolog" %in% names(biomart)) {
@@ -101,7 +103,7 @@ annotateDataFrame <- function(data, biomart, add, id = 1, column = NA,
     }
   }
 
-  #### Check if there was a successfull match between df and biomart ####
+  ## Check if there was a successfull match between df and biomart
   if (all(is.na(biom.dt)) && is.na(column)) {
     stop("Rownames in data do not match column ", id, " in biomart table.")
   } else if (all(is.na(biom.dt)) && is.integer(column)) {
@@ -121,7 +123,7 @@ annotateDataFrame <- function(data, biomart, add, id = 1, column = NA,
             "'version' parameter in the 'createBiomart' function.\n")
   }
 
-  #### Output the data ####
+  ## Output the data
   if (output == "data.frame") {
     out <- data.frame(id = rownames(data), # Combine to a new data frame
                       biomart[biom.dt,  add],
@@ -176,7 +178,7 @@ annotateDataFrame <- function(data, biomart, add, id = 1, column = NA,
 #'
 annotateVector <- function(data, biomart, add, id = 1, check.names = FALSE,
                            output = "data.frame", annot.col = NULL){
-  #### Match input vector with biomart rows ####
+  ## Match input vector with biomart rows
   if (!is.vector(data)) {
     stop("Please check your input data. It must be a vector. If you wish \n",
          "to annotate a data.frame then use `annotateDataFrame` function.\n")
@@ -184,7 +186,7 @@ annotateVector <- function(data, biomart, add, id = 1, check.names = FALSE,
     biom.dt <- match(data, biomart[[id]])
   }
 
-  #### Check if user provided specific columns in add argument ####
+  ## Check if user provided specific columns in add argument
   if (missing(add)) {
     # If not provided, give default columns.
     add <- c("gene_name", "biotype", "description")
@@ -194,7 +196,7 @@ annotateVector <- function(data, biomart, add, id = 1, check.names = FALSE,
     }
   }
 
-  #### Check if there was a successfull match between df and biomart ####
+  ## Check if there was a successful match between df and biomart
   if (all(is.na(biom.dt))) {
     stop("ENSG IDs in data do not match column ", id, " in biomart table")
   }
@@ -211,7 +213,7 @@ annotateVector <- function(data, biomart, add, id = 1, check.names = FALSE,
             "parameter in the `createBiomart` function.\n")
   }
 
-  #### Output the data ####
+  ## Output the data
   if (output == "data.frame") {
     out <- data.frame(id = data, # Combine to a new data frame
                       biomart[biom.dt,  add],
@@ -295,7 +297,7 @@ annotateVector <- function(data, biomart, add, id = 1, check.names = FALSE,
 createBiomart <- function(organism = "human", attributes, version = NULL,
                           patch = FALSE, mirror = NULL, ...){
 
-  #### Make a named vector with common organism names ####
+  ## Make a named vector with common organism names
   common.nms <- c(human     = "hsapiens",
                   mouse     = "mmusculus",
                   rat       = "rnorvegicus",
@@ -305,7 +307,7 @@ createBiomart <- function(organism = "human", attributes, version = NULL,
                   worm      = "celegans",
                   yeast     = "scerevisiae")
 
-  #### Check if organism is in the list ####
+  ## Check if organism is in the list
   if (organism %in% names(common.nms)) {
     organism <- common.nms[[organism]]
     message("BioMart organism used is: ", organism)
@@ -318,7 +320,7 @@ createBiomart <- function(organism = "human", attributes, version = NULL,
                 "name like hsapiens\n"))
   }
 
-  #### Prepare to search ####
+  ## Prepare to search
   organism <- paste0(organism, "_gene_ensembl")
   release <- version
   if (is.null(version)) {
@@ -331,13 +333,13 @@ createBiomart <- function(organism = "human", attributes, version = NULL,
     message("Using requested Ensembl release ", release)
   }
 
-  #### Get the organism specific ensembl biomart ####
+  ## Get the organism specific ensembl biomart
   ensembl.bm <- biomaRt::useEnsembl(biomart = "ensembl",
                                     dataset = organism,
                                     version = version,
                                     mirror = mirror)
 
-  #### Perform default search in the downloaded biomart ####
+  ## Perform default search in the downloaded biomart
   if (missing(attributes)) {
     # Build default attributes list
     default.attr <- c("ensembl_gene_id","external_gene_name",
@@ -394,4 +396,103 @@ createBiomart <- function(organism = "human", attributes, version = NULL,
   # Return a data frame
   bm <- tibble::as_tibble(bm)
   bm
+}
+
+
+# ---------------------------------------------------------------------------- #
+# # INTERNAL FUNCTIONS ASSOCIATED ANNOTATING/MATCHING GENENAMES <-> ENSGIDs ----
+# ---------------------------------------------------------------------------- #
+#' Internal Function: match gene names to EnsgIDs
+#'
+#' This internal function takes an SFE object and a vector of gene names or
+#' EnsgIDs, checks if there are gene names and returns their EnsgIDs from the
+#' SFE object.
+#'
+#' @param sfe An SFE object.
+#' @param genes A vector of EnsgIDs or gene names. A mixture of both throws an
+#' error.
+#'
+#' @returns a vector of EnsgIDs
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @rdname dot-int_matchNamesToEnsgID
+#'
+.int_matchNamesToEnsgID <- function(sfe, genes) {
+  ## Validate gene input
+  isEnsgID <- grepl("ENS", genes)
+  if (sum(isEnsgID) == length(genes)) {
+    inputType <- "all_ensg"
+  } else if (sum(isEnsgID) == 0) {
+    inputType <- "no_ensg"
+    # assuming all are gene names, check that are present
+    isExisting <- genes %in% rowData(sfe)[, "gene_name"]
+    allExisting <- isExisting == length(genes)
+  } else {
+    inputType <- "mixed"
+  }
+
+  ## Handle potential errors
+  ### A. Gene names not present in the SFE
+  if (inputType == "no_ensg") {
+    if (!allExisting) {
+      stop("Gene names not found in the SFE object: ",
+           paste(genes[!isExisting], collapse = " "))
+    }
+  }
+
+  ### B. Mix of EnsgIDs and Gene Names in the input
+  if (inputType == "mixed") {
+    stop("Check your genes input!\n",
+         "--> You have probably provided a mixture of ENSG IDs and gene names.",
+         "\n Please provide either ENSG IDs OR gene names. NOT both.")
+  }
+
+  ## Match gene names based on the validated input
+  if (inputType == "all_ensg") {
+    return(genes)
+  } else if (inputType == "no_ensg") {
+    match <- rowData(sfe)[, "gene_name"] %in% genes
+    return(rownames(sfe)[match])
+  }
+}
+
+#' Internal Function: match EnsgIDs to gene names without the use of a biomart
+#'
+#' This function uses the SFE object to translate a vector of ENSGIDs into gene
+#' names.
+#'
+#' @inheritParams .int_matchNamesToEnsgID
+#' @param genes A vector of EnsgIDs.
+#'
+#' @returns a vector of Gene Names
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @rdname dot-int_EnsgIDtoName
+#'
+.int_EnsgIDtoName <- function(sfe, genes) {
+  ## Check columns exist and if not, return a meaningful error
+  isExisting <- c("id", "gene_name") %in% colnames(rowData(sfe))
+  if (sum(isExisting) < 2) {
+    stop("The provided SFE object is missing column/s ",
+         c("id", "gene_name")[isExisting],
+         " from rowData.")
+  }
+  ## Find the EnsgID positions in the rowData and export alongside gene names
+  selection <- rowData(sfe)[["id"]] %in% genes
+  df <- rowData(sfe)[selection, c("id", "gene_name")] %>%
+    as.data.frame()
+
+  ## Left join the export with the genes vector
+  out <- genes %>%
+    as.data.frame() %>%
+    rename("id" = ".") %>%
+    left_join(df, by = "id") %>%
+    select("gene_name")
+
+  ## Return
+  ## It looks weird but tried as.vector and it returns a list maybe because out
+  ## is a list? See as.vector help page.
+  return(out[["gene_name"]])
 }

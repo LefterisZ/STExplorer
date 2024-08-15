@@ -279,8 +279,26 @@ head(colGeometries(msfe@sfe_data[["JBO022"]]))
 ##
 ##    Error in `.rowNamesDF<-`(x, value = value) : invalid 'row.names' length
 ##
-## Try changing the `flipped` argument from the default FALSE to TRUE. If this 
-## doesn't solve the problem, then please submit an issue on GitHub:
+## Try changing the `flipped` argument from the default FALSE to TRUE. 
+## 
+## If this is not solving the problem, have a look to see the image resolution 
+## used to generate the diameter. You can find this information stored in the 
+## metadata slot in the SFE object:
+##
+##    metadata(sfe)
+##
+## This should return something like this:
+##
+##    $spotDiameter
+##    $spotDiameter$`V19S23-092-C1`
+##    $spotDiameter$`V19S23-092-C1`$spot_diameter_lowres
+##    [1] 4.705987
+##
+## The "lowres" in the "spot_diameter_*" name means that the low resolution was 
+## used. Therefore, you should provide the 'res' argument in the 'addGeometries' 
+## function with "lowres" instead of the default "fullres".
+##
+## If either of those solve the problem, then please submit an issue on GitHub:
 ##
 ##    https://github.com/LefterisZ/STExplorer/issues
 ##
@@ -1050,7 +1068,7 @@ vars = top_hvgs[["JBO022"]]
 ## Set a fixed bandwidth
 ## bw is an important parameter as it defines the neighbourhood for which the 
 ##  PCA will be calculated. The distance is measured in ultra-high resolution 
-##  image pixels. The default is 6x the diameter of the Visium spot. Make sure 
+##  image pixels. The default is 3x the diameter of the Visium spot. Make sure 
 ##  to adjust it if it is too large or too small for your setting.
 bw = 3*sfe@metadata[["spotDiameter"]][["JBO022"]][["spot_diameter_fullres"]]
 ## Set the number of components to be retained
@@ -1418,6 +1436,12 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
 
 ```
 
+```{r global_moran_vis}
+plotSA_globalSum(sfe,
+                 genes = gs,
+                 statistic = "moran")
+```
+
 #### Calculating Local Moran's *I*
 
 After selecting genes of interest based on the Global Moran's I values, we can calculate the Local Moran's *I* statistic for each gene. This statistic evaluates the spatial autocorrelation at each location within the dataset, providing insights into local clustering patterns.
@@ -1459,7 +1483,8 @@ for (g in gs) {
              pVal = 0.05,
              type = "hex",
              title = "name",
-             clust_col = NULL)
+             clust_col = NULL,
+             locations = "significant")
   
   print(p)
 }
@@ -1512,6 +1537,13 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
 
 ```
 
+
+```{r global_geary_vis}
+plotSA_globalSum(sfe,
+                 genes = gs,
+                 statistic = "geary")
+```
+
 #### Calculating Local Geary's *C*
 
 Once we've selected relevant genes that exhibit putatively interesting patterns in space, we calculate the local Geary's *C* to assess spatial autocorrelation at each location within the dataset.
@@ -1549,7 +1581,8 @@ for (g in gs) {
              pVal = 0.05,
              type = "hex",
              title = "name",
-             clust_col = NULL)
+             clust_col = NULL,
+             locations = "significant")
   
   print(p)
 }
@@ -1599,6 +1632,13 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
 
 ```
 
+
+```{r global_getis_vis}
+plotSA_globalSum(sfe,
+                 genes = gs,
+                 statistic = "getis")
+```
+
 #### Calculating Local Getis & Ord's *G*
 
 Now that we selected the genes that exhibit putatively interesting patterns in space, we can calculate the local measure of SA (*here local Getis & Ord's G*) and visualise the results on a map of the tissue section.
@@ -1636,7 +1676,8 @@ for (g in gs) {
              pVal = 0.05,
              type = "hex",
              title = "name",
-             clust_col = NULL)
+             clust_col = NULL,
+             locations = "significant")
   
   print(p)
 }

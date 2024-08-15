@@ -22,6 +22,12 @@ function like \code{fgwc_findOptimumK}, sorts it by \code{k} (just to ensure it'
 in the correct order), and then calculates the angle between each pair of
 adjacent points. The point with the largest angle is considered the elbow
 point. The function returns the \code{k} value corresponding to this elbow point.
+
+The logic behind finding the maximum angle is that the "elbow" in a curve
+is where there is a significant change in the slope, typically from steep
+to shallow. This point often represents a balance between the complexity
+and variance explained, making it a useful heuristic in cluster analysis
+or other optimisation tasks.
 }
 \seealso{
 \code{\link{fgwc_findOptimumK}} for finding the optimal number of

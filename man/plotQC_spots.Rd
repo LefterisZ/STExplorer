@@ -5,7 +5,7 @@
 \title{Plot Quality Control of Spots in a SpatialFeatureExperiment}
 \usage{
 plotQC_spots(
-  sfe,
+  m_sfe,
   type = c("spot", "hex", "cntd"),
   sample_id = NULL,
   in_tissue = TRUE,
@@ -14,7 +14,7 @@ plotQC_spots(
 )
 }
 \arguments{
-\item{sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{type}{Character vector specifying the spot type, either "spot", "cntd"
 or "hex".}

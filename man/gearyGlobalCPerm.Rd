@@ -63,7 +63,7 @@ cores.}
 An SFE object with the below two columns added in the \code{rowData}:
 \itemize{
 \item{gearyC_perm}{the value of the observed Geary's C.}
-\item{gearyPval_perm}{the pseudo p-value of the test.}
+\item{gearyC_PvalPerm}{the pseudo p-value of the test.}
 }
 }
 \description{

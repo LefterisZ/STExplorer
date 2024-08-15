@@ -4,7 +4,7 @@
 \alias{.int_prepareDataMap}
 \title{Internal: prepare Data Map}
 \usage{
-.int_prepareDataMap(sfe, assay, genes, minmax, type)
+.int_prepareDataMap(sfe, assay, genes, minmax, type, title_type)
 }
 \arguments{
 \item{sfe}{An object of class 'SpatialFeatureExperiment' containing spatial
@@ -23,6 +23,10 @@ plot.}
 \item{type}{Character vector specifying the type of spatial data
 to use. Options are "spot" for spot geometry and "hex"
 for hexagon geometry.}
+
+\item{title_type}{A character string indicating the label for the y-axis.
+It can be "gene_name" to use gene names or any other value
+to use Ensemble Gene IDs. Default is "gene_name".}
 }
 \value{
 A data frame containing gene expression data prepared for

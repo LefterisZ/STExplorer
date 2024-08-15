@@ -5,7 +5,7 @@
 \title{Plot Tissue Image in a SpatialFeatureExperiment}
 \usage{
 plotQC_tissueImg(
-  sfe,
+  m_sfe,
   res = c("lowres", "hires", "fullres"),
   type = c("spot", "hex", "cntd", "none"),
   sample_id = NULL,
@@ -17,7 +17,7 @@ plotQC_tissueImg(
 )
 }
 \arguments{
-\item{sfe}{A SpatialFeatureExperiment object.}
+\item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{res}{Character vector specifying the image resolution, either
 "lowres", "hires", or "fullres".}
