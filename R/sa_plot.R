@@ -219,9 +219,16 @@ plotSA_local <- function(m_sfe,
   cf <- coord_fixed()
   cf$default <- TRUE
 
+  if (statistic == "geary") {
+    direction <- -1
+  } else {
+    direction <- 1
+  }
+
   ## Create the ggplot object
   p <- ggplot2::ggplot(data = data) +
-    ggplot2::scale_fill_viridis_c(option = viridis_col) +
+    ggplot2::scale_fill_viridis_c(option = viridis_col,
+                                  direction = direction) +
     cf +
     #ggplot2::coord_fixed() +
     ggplot2::theme_void() +
@@ -727,11 +734,13 @@ plotSA_localClust <- function(m_sfe,
 .int_getSAClustColours <- function(clust_col, clusters) {
   cols_list <- list("Low" = "#0066ff",
                     "High" = "#ff0000",
-                    "low-Low" = "#0066ff",
+                    "Low-Low" = "#0066ff",
                     "High-Low" = "#ffb3b3",
                     "Low-High" = "#99c2ff",
                     "High-High" = "#ff0000",
-                    "Not Signif." = "#E0E0E0")
+                    "Not Signif." = "#E0E0E0",
+                    "Other Positive" = "#99c2ff",
+                    "Negative" = "#ffb3b3")
 
   if (!is.null(clust_col)) {
     cols_list[names(clust_col)] <- clust_col

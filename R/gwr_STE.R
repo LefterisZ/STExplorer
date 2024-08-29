@@ -29,6 +29,8 @@
 #'     \item{boxcar}{wgt=1 if dist < bw, wgt=0 otherwise.}
 #'   }
 #'
+#' @param assay The counts assay to use. Defaults to "logcounts".
+#'
 #' @param adaptive If \code{TRUE}, calculate an adaptive kernel where the
 #'   bandwidth (\code{bw}) corresponds to the number of nearest neighbours
 #'   (i.e., adaptive distance); default is \code{FALSE}, where a fixed kernel
@@ -127,6 +129,7 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
                    bw,
                    kernel = c("bisquare", "gaussian", "exponential",
                               "tricube", "boxcar"),
+                   assay = "logcounts",
                    adaptive = FALSE,
                    p = 2,
                    dMat = NULL,
@@ -154,12 +157,12 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
   dMat <- .int_checkDMat(dMat, sfe)
 
   ## Prepare data for GWR
-  data <- .int_getGWRdata(sfe, type = "hex")
+  data <- .int_getGWRdata(sfe, formula = formula, type = "hex", assay = assay)
 
   ## Run GWR
   if (method == "basic") {
     ## basic GWR
-    return(GWmodel::gwr.basic(formula = formula,
+    res <- GWmodel::gwr.basic(formula = formula,
                               data = data,
                               # regression.points,
                               bw = bw,
@@ -173,11 +176,11 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
                               cv = cv,
                               W.vect = W.vect,
                               parallel.method = parallel.method,
-                              parallel.arg = parallel.arg))
+                              parallel.arg = parallel.arg)
 
   } else if (method == "gtwr") {
     ## GTWR: Geographically and Temporally Weighted Regression
-    return(GWmodel::gtwr(formula = formula,
+    res <- GWmodel::gtwr(formula = formula,
                          data = data,
                          # regression.points,
                          obs.tv = obs.tv,
@@ -191,11 +194,11 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
                          lamda = lamda,
                          t.units = t.units,
                          ksi = ksi,
-                         st.dMat = st.dMat))
+                         st.dMat = st.dMat)
 
   } else if (method == "gwr-lcr") {
     ## Locally compensated ridge GWR (GWR-LCR)
-    return(GWmodel::gwr.lcr(formula = formula,
+    res <- GWmodel::gwr.lcr(formula = formula,
                             data = data,
                             # regression.points,
                             bw = bw,
@@ -208,11 +211,11 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
                             theta = 0,
                             longlat = FALSE,
                             cv = cv,
-                            dMat = dMat))
+                            dMat = dMat)
 
   } else if (method == "gwr-generalised") {
     ## Generalised GWR model
-    return(GWmodel::ggwr.basic(formula = formula,
+    res <- GWmodel::ggwr.basic(formula = formula,
                                data = data,
                                family = family,
                                # regression.points,
@@ -226,9 +229,22 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
                                theta = 0,
                                longlat = FALSE,
                                dMat = dMat,
-                               dMat1 = NULL))
+                               dMat1 = NULL)
 
   }
+
+  ## The lm function used internally for the global regression stores also an
+  ## attribute named `.Environment` which can be very big in size taking up a
+  ## lot of memory. Also stores technically the exact same information in two
+  ## slots, one named `terms` and one named `model`. Here we remove the `terms`
+  ## slot completely and we remove the .Environment` attribute from the `model`
+  ## slot.
+  res$lm$terms <- NULL
+  attr(attr(res[["lm"]][["model"]], "terms"), ".Environment") <- NULL
+  res$lm$terms <- attr(res[["lm"]][["model"]], "terms")
+
+  ## Return the object
+  return(res)
 }
 
 
@@ -622,6 +638,8 @@ gwr_stats.SF <- function(gwr, stat) {
 #' @param type A character string specifying the type of geometry to use for GWR.
 #' Options are "spot" (spot geometry), "hex" (hexagon geometry), or "centroid"
 #' (centroid geometry).
+#' @param formula The formula for the regression.
+#' @param assay the counts assay to use
 #'
 #' @return A SpatialPointsDataFrame or SpatialPolygonsDataFrame object
 #' containing the prepared data for GWR.
@@ -637,20 +655,104 @@ gwr_stats.SF <- function(gwr, stat) {
 #' @importFrom sf st_as_sf
 #' @importFrom dplyr left_join
 #'
-.int_getGWRdata <- function(sfe, type) {
+.int_getGWRdata <- function(sfe, formula, type, assay) {
   ## Get geometries
   polygons <- data.frame(geometry = .int_selectGeom(sfe = sfe, type = type),
                          Barcode = rownames(colGeometries(sfe)$spotHex))
 
-  ## Add geometries and convert to sp format
-  dt <- assay(sfe, "logcounts") %>%
+  ## Extract values from formula
+  ## Split by "+" or "~" and remove whitespace
+  vars <- strsplit(formula, "\\s*(\\+\\s*|\\~\\s*)\\s*")[[1]]
+  var_gs <- grepl("ENS", vars)
+  var_loc <- !var_gs
+
+  ## Check whether the formula contains EnsgIDs, loc-specific values or both
+  if (sum(var_gs) > 0 && sum(var_loc) == 0) {
+    dt <- .int_getGWRdataGene(sfe = sfe, variables = vars, assay = assay)
+  } else if (sum(var_loc) > 0 && sum(var_gs) == 0) {
+    dt <- .int_getGWRdataLoc(sfe = sfe, variables = vars)
+  } else if (sum(var_gs) > 0 && sum(var_loc) > 0) {
+    dt <- left_join(.int_getGWRdataGene(sfe = sfe, variables = vars, assay = assay),
+                    .int_getGWRdataLoc(sfe = sfe, variables = vars),
+                    by = "Barcode")
+  }
+
+  ## Merge with polygons and convert to sp format
+  dt <- dt %>%            # barcodes from row names to column
+    dplyr::left_join(polygons, by = "Barcode") %>% # merge with geometries
+    tibble::column_to_rownames(var = "Barcode") %>% # barcodes back to row names
+    sf::st_as_sf(., sf_column_name = "geometry") %>% # data frame to sf
+    as(., "Spatial")
+
+  return(dt)
+}
+
+
+#' Internal: Retrieve Gene Data for GWR
+#'
+#' An internal function to extract gene expression data for use in
+#' Geographically Weighted Regression (GWR).
+#'
+#' @param sfe An object of class SpatialFeatureExperiment.
+#' @param variables A character vector of gene identifiers (e.g., ENSG IDs) to
+#' be included in the GWR.
+#' @param assay A character string specifying the assay to use for gene
+#' expression data.
+#'
+#' @return A data frame with barcodes as row names and the specified gene
+#' expression values as columns.
+#'
+#' @details This function retrieves gene expression data from the specified
+#' assay of a SpatialFeatureExperiment object, selecting only the genes
+#' specified in the variables parameter. The data is transposed to have
+#' barcodes as row names and gene expressions as columns, suitable for further
+#' processing in GWR.
+#'
+#' @author Eleftherios Zormpas
+#' @rdname dot-int_getGWRdataGene
+#' @importFrom dplyr select
+#' @importFrom tibble rownames_to_column
+#'
+.int_getGWRdataGene <- function(sfe, variables, assay) {
+  ## Fetch gene counts
+  dt <- assay(sfe, assay) %>%
     t() %>%
     as.data.frame() %>%
-    tibble::rownames_to_column(var = "Barcode") %>%            # barcodes from row names to column
-    dplyr::left_join(polygons, by = "Barcode") %>% # merge with geometries
-    tibble::column_to_rownames(var = "Barcode") %>%            # barcodes back to row names
-    sf::st_as_sf(., sf_column_name = "geometry") %>%       # data frame to sf
-    as(., "Spatial")                                   # sf to sp - GWmodel still works with sp objects
+    dplyr::select(variables) %>% # select the genes in the formula
+    tibble::rownames_to_column(var = "Barcode") # barcodes from row names to column
+
+  return(dt)
+}
+
+
+#' Internal: Retrieve Location Data for GWR
+#'
+#' An internal function to extract location-specific variables for use in
+#' Geographically Weighted Regression (GWR).
+#'
+#' @param sfe An object of class SpatialFeatureExperiment.
+#' @param variables A character vector of column names from colData to be
+#' included in the GWR.
+#'
+#' @return A data frame with barcodes as row names and the specified location
+#' variables as columns.
+#'
+#' @details This function extracts location-specific data from the colData of
+#' a SpatialFeatureExperiment object. It selects only the variables specified
+#' in the variables parameter. The resulting data frame is formatted with
+#' barcodes as row names, ready for integration into GWR analysis.
+#'
+#' @author Eleftherios Zormpas
+#' @rdname dot-int_getGWRdataLoc
+#' @importFrom dplyr select
+#' @importFrom tibble rownames_to_column
+#'
+.int_getGWRdataLoc <- function(sfe, variables) {
+  ## Fetch location variables
+  dt <- colData(sfe) %>%
+    as.data.frame() %>%
+    dplyr::select(variables) %>% # select the location vars from the formula
+    tibble::rownames_to_column(var = "Barcode") # sf to sp - GWmodel still works with sp objects
 
   return(dt)
 }

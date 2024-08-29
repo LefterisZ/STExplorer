@@ -11,6 +11,7 @@ gwrSTE(
   sample_id,
   bw,
   kernel = c("bisquare", "gaussian", "exponential", "tricube", "boxcar"),
+  assay = "logcounts",
   adaptive = FALSE,
   p = 2,
   dMat = NULL,
@@ -55,6 +56,8 @@ wgt=0 otherwise;}
 wgt=0 otherwise;}
 \item{boxcar}{wgt=1 if dist < bw, wgt=0 otherwise.}
 }}
+
+\item{assay}{The counts assay to use. Defaults to "logcounts".}
 
 \item{adaptive}{If \code{TRUE}, calculate an adaptive kernel where the
 bandwidth (\code{bw}) corresponds to the number of nearest neighbours

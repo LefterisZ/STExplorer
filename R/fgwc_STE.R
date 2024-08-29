@@ -973,7 +973,7 @@ fgwcuvSTE <- function(data,
       ## Calculate the convergence metric.
       conv <- c(conv, sum(uij^m * (Rfast::dista(data, vi, type = distance, p = order)^2)))
       ## Housekeeping because dists object gets huge and memory consuming
-      rm(dists, vi)
+      rm(dists)
     }
   }
 

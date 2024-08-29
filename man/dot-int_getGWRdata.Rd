@@ -4,14 +4,18 @@
 \alias{.int_getGWRdata}
 \title{Internal: Prepare Data for Geographically Weighted Regression (GWR)}
 \usage{
-.int_getGWRdata(sfe, type)
+.int_getGWRdata(sfe, formula, type, assay)
 }
 \arguments{
 \item{sfe}{An object of class SpatialFeatureExperiment.}
 
+\item{formula}{The formula for the regression.}
+
 \item{type}{A character string specifying the type of geometry to use for GWR.
 Options are "spot" (spot geometry), "hex" (hexagon geometry), or "centroid"
 (centroid geometry).}
+
+\item{assay}{the counts assay to use}
 }
 \value{
 A SpatialPointsDataFrame or SpatialPolygonsDataFrame object
