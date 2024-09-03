@@ -2072,6 +2072,9 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' @rdname dot-int_getAnnotsAndColoursFGWC
 #'
 .int_getAnnotsAndColoursFGWC <- function(fgwc, loc_annot, order_rows) {
+  if (loc_annot == "both") {
+    loc_annot <- c("annotation", "cluster")
+  }
   annotations <- fgwc$finaldata %>%
     dplyr::select(dplyr::all_of(loc_annot))
 

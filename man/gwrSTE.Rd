@@ -27,7 +27,8 @@ gwrSTE(
   obs.tv = NULL,
   lambda_lcr = 0,
   lambda.adjust = FALSE,
-  cn.thresh = NA
+  cn.thresh = NA,
+  scale = TRUE
 )
 }
 \arguments{

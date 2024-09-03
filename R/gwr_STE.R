@@ -145,7 +145,8 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
                    obs.tv = NULL,
                    lambda_lcr = 0,
                    lambda.adjust = FALSE,
-                   cn.thresh = NA) {
+                   cn.thresh = NA,
+                   scale = TRUE) {
   ## Check arguments
   method <- match.arg(gwr_method)
 
@@ -158,6 +159,13 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
 
   ## Prepare data for GWR
   data <- .int_getGWRdata(sfe, formula = formula, type = "hex", assay = assay)
+
+  ## Scale data for Regression
+  if (scale) {
+    for (i in 1:ncol(data)) {
+      data[[i]] <- base::scale(data[[i]], center = TRUE, scale = TRUE)
+    }
+  }
 
   ## Run GWR
   if (method == "basic") {
