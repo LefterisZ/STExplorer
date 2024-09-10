@@ -4,7 +4,7 @@
 \alias{.int_moran}
 \title{Internal Function: Calculate Moran's I}
 \usage{
-.int_moran(gene, sfe, listw, n, S0, zero.policy, NAOK)
+.int_moran(gene, sfe, assay, listw, n, S0, zero.policy, NAOK)
 }
 \description{
 This internal function calculates the I statistic for a vector of gene

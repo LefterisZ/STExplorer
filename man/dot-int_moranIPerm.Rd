@@ -7,6 +7,7 @@
 .int_moranIPerm(
   gene,
   sfe,
+  assay,
   listw,
   nsim,
   alternative,

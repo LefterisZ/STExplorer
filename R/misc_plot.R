@@ -180,7 +180,7 @@ plotGeneExpression <- function(m_sfe,
     ## Fetch image data and transform to raster
     image <- .int_getImgDt(sfe = sfe, sample_id = sample_id, image_id = res)
     ## Get capture area limits
-    limits_list <- .int_getImgLims(sfe = sfe)
+    limits_list <- .int_getImgLims(sfe = sfe, res = res)
   } else {
     alpha <- 1
   }
@@ -190,6 +190,10 @@ plotGeneExpression <- function(m_sfe,
     lab <- "Raw counts"
   } else if (assay == "logcounts") {
     lab <- "Log2-Normalised\ncounts"
+  } else if (assay == "unNormLogCounts") {
+    lab <- "Log2-UnNorm\ncounts"
+  } else {
+    lab <- assay
   }
 
   ## Set fill arguments if not provided

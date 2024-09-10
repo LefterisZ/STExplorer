@@ -8,6 +8,7 @@ moranGlobalI(
   m_sfe,
   sample_id = NULL,
   genes = TRUE,
+  assay = "logcounts",
   n = NULL,
   S0 = NULL,
   zero.policy = NULL,
@@ -26,6 +27,8 @@ MetaSpatialFeatureExperiment.}
 \item{genes}{TRUE or a named character vector with gene names for which the
 SA statistic needs to be calculated. If left to TRUE then the SA statistic
 is calculated for every gene.}
+
+\item{assay}{the counts assay to use. Defaults to "logcounts".}
 
 \item{n}{number of zones}
 

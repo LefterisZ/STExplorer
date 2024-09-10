@@ -194,9 +194,9 @@ getSAGlobalGenes <- function(m_sfe,
       message("These genes are not present in your dataset: \n\t",
               "ENSGIDs: ", paste(genes[!gs], collapse = " "), "\n\t",
               "Gene Names: ", paste(names(genes[!gs]), collapse = " "))
-      genes <- genes[gs]
-      names(genes) <- genes
     }
+    genes <- genes[gs]
+    names(genes) <- genes
   } else if (isTRUE(genes)) {
     genes <- rownames(rowData(sfe))
     names(genes) <- genes

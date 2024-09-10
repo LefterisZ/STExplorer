@@ -4,7 +4,7 @@
 \alias{.int_geary}
 \title{Internal Function: Calculate Geary's C}
 \usage{
-.int_geary(gene, sfe, listw, n, n1, S0, zero.policy)
+.int_geary(gene, sfe, assay, listw, n, n1, S0, zero.policy)
 }
 \description{
 This internal function calculates the C statistic for a vector of gene

@@ -7,6 +7,7 @@
 .int_gearyCPerm(
   gene,
   sfe,
+  assay,
   listw,
   nsim,
   alternative,

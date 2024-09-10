@@ -16,6 +16,7 @@
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param n Number of zones. If not provided, it is calculated as
 #' length(listw$neighbours).
 #' @param n1 \code{n - 1}. If not provided, it is calculated as
@@ -68,6 +69,7 @@
 gearyGlobalC <- function(m_sfe,
                          sample_id = NULL,
                          genes = TRUE,
+                         assay = "logcounts",
                          n = NULL,
                          n1 = NULL,
                          S0 = NULL,
@@ -96,6 +98,7 @@ gearyGlobalC <- function(m_sfe,
   res <- parallel::mclapply(genes,
                   .int_geary,
                   sfe = sfe,
+                  assay = assay,
                   listw = listw,
                   n = n,
                   n1 = n1,
@@ -137,6 +140,7 @@ gearyGlobalC <- function(m_sfe,
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param nsim Number of permutations.
 #' @param alternative a character string specifying the alternative hypothesis,
 #' must be one of "greater" (default), or "less"; this reversal corresponds to
@@ -198,6 +202,7 @@ gearyGlobalC <- function(m_sfe,
 gearyGlobalCPerm <- function(m_sfe,
                              sample_id = NULL,
                              genes = TRUE,
+                             assay = "logcounts",
                              nsim,
                              zero.policy = NULL,
                              alternative = "greater",
@@ -228,6 +233,7 @@ gearyGlobalCPerm <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_gearyCPerm,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             nsim = nsim,
                             alternative = alternative,
@@ -273,6 +279,7 @@ gearyGlobalCPerm <- function(m_sfe,
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param randomisation Variance of I calculated under the assumption of
 #' randomisation. If FALSE, normality.
 #' @param zero.policy Default is NULL. If not changed then internally, it is
@@ -339,6 +346,7 @@ gearyGlobalCPerm <- function(m_sfe,
 gearyGlobalCTest <- function(m_sfe,
                              sample_id = NULL,
                              genes = TRUE,
+                             assay = "logcounts",
                              randomisation=TRUE,
                              zero.policy = NULL,
                              alternative = "greater",
@@ -361,8 +369,9 @@ gearyGlobalCTest <- function(m_sfe,
 
   ## Call the geary.test function from spdep
   res <- parallel::mclapply(genes,
-                            .int_gearyTest,
+                            .int_gearyCTest,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             randomisation = randomisation,
                             alternative = alternative,
@@ -414,6 +423,7 @@ gearyGlobalCTest <- function(m_sfe,
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param nsim The number of simulations to be used for permutation test.
 #' @param alternative A character defining the alternative hypothesis. Must be
 #' one of "two.sided", "less" or "greater".
@@ -490,6 +500,7 @@ gearyGlobalCTest <- function(m_sfe,
 gearyLocalC <- function(m_sfe,
                         sample_id = NULL,
                         genes = TRUE,
+                        assay = "logcounts",
                         ...,
                         zero.policy = NULL,
                         mc.cores = getOption("mc.cores", 2L)) {
@@ -510,6 +521,7 @@ gearyLocalC <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_gearyLocalC,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             ...,
                             zero.policy = zero.policy,
@@ -546,6 +558,7 @@ gearyLocalC <- function(m_sfe,
 gearyLocalCPerm <- function(m_sfe,
                             sample_id = NULL,
                             genes = TRUE,
+                            assay = "logcounts",
                             nsim = 999,
                             alternative = "two.sided",
                             ...,
@@ -570,6 +583,7 @@ gearyLocalCPerm <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_gearyLocalCPerm,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             nsim = nsim,
                             alternative = alternative,
@@ -648,13 +662,14 @@ gearyLocalCPerm <- function(m_sfe,
 #' @aliases .int_geary
 .int_geary <- function(gene,
                        sfe,
+                       assay,
                        listw,
                        n,
                        n1,
                        S0,
                        zero.policy) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -684,6 +699,7 @@ gearyLocalCPerm <- function(m_sfe,
 #'
 .int_gearyCPerm <- function(gene,
                          sfe,
+                         assay,
                          listw,
                          nsim,
                          alternative,
@@ -692,7 +708,7 @@ gearyLocalCPerm <- function(m_sfe,
                          return_boot,
                          zero.policy) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -723,6 +739,7 @@ gearyLocalCPerm <- function(m_sfe,
 #'
 .int_gearyCTest <- function(gene,
                             sfe,
+                            assay,
                             listw,
                             randomisation,
                             alternative,
@@ -730,7 +747,7 @@ gearyLocalCPerm <- function(m_sfe,
                             adjust.n,
                             zero.policy) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -760,11 +777,12 @@ gearyLocalCPerm <- function(m_sfe,
 #'
 .int_gearyLocalC <- function(gene,
                              sfe,
+                             assay,
                              listw,
                              zero.policy,
                              ...) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -795,6 +813,7 @@ gearyLocalCPerm <- function(m_sfe,
 #'
 .int_gearyLocalCPerm <- function(gene,
                                  sfe,
+                                 assay,
                                  listw,
                                  nsim,
                                  alternative,
@@ -803,7 +822,7 @@ gearyLocalCPerm <- function(m_sfe,
                                  iseed,
                                  no_repeat_in_row) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)

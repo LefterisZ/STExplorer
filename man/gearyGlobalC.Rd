@@ -8,6 +8,7 @@ gearyGlobalC(
   m_sfe,
   sample_id = NULL,
   genes = TRUE,
+  assay = "logcounts",
   n = NULL,
   n1 = NULL,
   S0 = NULL,
@@ -26,6 +27,8 @@ MetaSpatialFeatureExperiment.}
 \item{genes}{TRUE or a named character vector with gene names for which the
 SA statistic needs to be calculated. If left to TRUE then the SA statistic
 is calculated for every gene.}
+
+\item{assay}{the counts assay to use. Defaults to "logcounts".}
 
 \item{n}{Number of zones. If not provided, it is calculated as
 length(listw$neighbours).}

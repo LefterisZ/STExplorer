@@ -4,7 +4,7 @@
 \alias{.int_gearyLocalC}
 \title{Internal Function: Calculate local Geary's C}
 \usage{
-.int_gearyLocalC(gene, sfe, listw, zero.policy, ...)
+.int_gearyLocalC(gene, sfe, assay, listw, zero.policy, ...)
 }
 \description{
 This internal function calculates the local Ci statistic for a vector of

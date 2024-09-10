@@ -7,6 +7,7 @@
 .int_moranITest(
   gene,
   sfe,
+  assay,
   listw,
   randomisation,
   alternative,

@@ -8,6 +8,7 @@ moranGlobalIPerm(
   m_sfe,
   sample_id = NULL,
   genes = TRUE,
+  assay = "logcounts",
   nsim = 999,
   zero.policy = NULL,
   alternative = "greater",
@@ -29,6 +30,8 @@ MetaSpatialFeatureExperiment.}
 \item{genes}{TRUE or a named character vector with gene names for which the
 SA statistic needs to be calculated. If left to TRUE then the SA statistic
 is calculated for every gene.}
+
+\item{assay}{the counts assay to use. Defaults to "logcounts".}
 
 \item{nsim}{Number of permutations}
 

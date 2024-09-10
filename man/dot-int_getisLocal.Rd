@@ -8,6 +8,7 @@
 .int_getisLocal(
   gene,
   sfe,
+  assay,
   listw,
   zero.policy,
   spChk,
@@ -19,6 +20,7 @@
 .int_getisLocalPerm(
   gene,
   sfe,
+  assay,
   listw,
   nsim,
   zero.policy,

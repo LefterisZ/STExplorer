@@ -9,6 +9,7 @@ gearyLocalC(
   m_sfe,
   sample_id = NULL,
   genes = TRUE,
+  assay = "logcounts",
   ...,
   zero.policy = NULL,
   mc.cores = getOption("mc.cores", 2L)
@@ -18,6 +19,7 @@ gearyLocalCPerm(
   m_sfe,
   sample_id = NULL,
   genes = TRUE,
+  assay = "logcounts",
   nsim = 999,
   alternative = "two.sided",
   ...,
@@ -38,6 +40,8 @@ MetaSpatialFeatureExperiment.}
 \item{genes}{TRUE or a named character vector with gene names for which the
 SA statistic needs to be calculated. If left to TRUE then the SA statistic
 is calculated for every gene.}
+
+\item{assay}{the counts assay to use. Defaults to "logcounts".}
 
 \item{...}{other arguments passed to methods. Have a look at
 \code{\link[spdep]{localC}}}

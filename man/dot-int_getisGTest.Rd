@@ -8,6 +8,7 @@ significance}
 .int_getisGTest(
   gene,
   sfe,
+  assay,
   listw,
   zero.policy,
   alternative,

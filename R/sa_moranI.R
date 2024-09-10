@@ -12,6 +12,7 @@
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param n number of zones
 #' @param S0 global sum of weights
 #' @param NAOK if 'TRUE' pass 'NA' or 'NaN' or 'Inf' to foreign function
@@ -61,6 +62,7 @@
 moranGlobalI <- function(m_sfe,
                          sample_id = NULL,
                          genes = TRUE,
+                         assay = "logcounts",
                          n = NULL,
                          S0 = NULL,
                          zero.policy = NULL,
@@ -88,6 +90,7 @@ moranGlobalI <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_moran,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             n = n,
                             S0 = S0,
@@ -123,6 +126,7 @@ moranGlobalI <- function(m_sfe,
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param nsim Number of permutations
 #' @param zero.policy Default is NULL. If not changed then internally, it is
 #' set to \code{attr(listw, "zero.policy")} as set when \code{listw} was
@@ -187,6 +191,7 @@ moranGlobalI <- function(m_sfe,
 moranGlobalIPerm <- function(m_sfe,
                              sample_id = NULL,
                              genes = TRUE,
+                             assay = "logcounts",
                              nsim = 999,
                              zero.policy = NULL,
                              alternative = "greater",
@@ -212,6 +217,7 @@ moranGlobalIPerm <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_moranIPerm,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             nsim = nsim,
                             alternative = alternative,
@@ -225,7 +231,7 @@ moranGlobalIPerm <- function(m_sfe,
   ## Import output into the SFE object's rowData
   res <- as.data.frame(rlist::list.rbind(res))
 
-  SummarizedExperiment::rowData(sfe)$moranI <- NaN
+  SummarizedExperiment::rowData(sfe)$moranI_stat <- NaN
   SummarizedExperiment::rowData(sfe)$moranI_PvalPerm <- NaN
 
   SummarizedExperiment::rowData(sfe)[rownames(res), "moranI_stat"] <- unlist(res$statistic)
@@ -256,6 +262,7 @@ moranGlobalIPerm <- function(m_sfe,
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param randomisation Variance of I calculated under the assumption of
 #' randomization. If FALSE, normality.
 #' @param zero.policy Default is NULL. If not changed then internally, it is
@@ -334,6 +341,7 @@ moranGlobalIPerm <- function(m_sfe,
 moranGlobalITest <- function(m_sfe,
                              sample_id = NULL,
                              genes = TRUE,
+                             assay = "logcounts",
                              zero.policy = NULL,
                              randomisation = TRUE,
                              alternative = "greater",
@@ -360,6 +368,7 @@ moranGlobalITest <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_moranITest,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             randomisation = randomisation,
                             alternative = alternative,
@@ -403,6 +412,7 @@ moranGlobalITest <- function(m_sfe,
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param zero.policy Default is NULL. If not changed then internally, it is
 #' set to \code{attr(listw, "zero.policy")} as set when \code{listw} was
 #' created. If TRUE, assign zero to the lagged value of zones without
@@ -538,6 +548,7 @@ moranGlobalITest <- function(m_sfe,
 moranLocalI <- function(m_sfe,
                         sample_id = NULL,
                         genes = TRUE,
+                        assay = "logcounts",
                         zero.policy = NULL,
                         na.action = na.fail,
                         conditional = TRUE,
@@ -563,6 +574,7 @@ moranLocalI <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_moranLocalI,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             na.action = na.action,
                             conditional = conditional,
@@ -603,6 +615,7 @@ moranLocalI <- function(m_sfe,
 moranLocalIPerm <- function(m_sfe,
                             sample_id = NULL,
                             genes = TRUE,
+                            assay = "logcounts",
                             nsim = 999,
                             zero.policy = NULL,
                             na.action = na.fail,
@@ -631,6 +644,7 @@ moranLocalIPerm <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_moranLocalIPerm,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             nsim = nsim,
                             zero.policy = zero.policy,
@@ -675,13 +689,14 @@ moranLocalIPerm <- function(m_sfe,
 #' @aliases .int_moran
 .int_moran <- function(gene,
                        sfe,
+                       assay,
                        listw,
                        n,
                        S0,
                        zero.policy,
                        NAOK) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -711,6 +726,7 @@ moranLocalIPerm <- function(m_sfe,
 #'
 .int_moranIPerm <- function(gene,
                             sfe,
+                            assay,
                             listw,
                             nsim,
                             alternative,
@@ -720,7 +736,7 @@ moranLocalIPerm <- function(m_sfe,
                             return_boot,
                             zero.policy) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -752,6 +768,7 @@ moranLocalIPerm <- function(m_sfe,
 #'
 .int_moranITest <- function(gene,
                             sfe,
+                            assay,
                             listw,
                             randomisation,
                             alternative,
@@ -762,7 +779,7 @@ moranLocalIPerm <- function(m_sfe,
                             drop.EI2,
                             zero.policy) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -795,6 +812,7 @@ moranLocalIPerm <- function(m_sfe,
 #'
 .int_moranLocalI <- function(gene,
                              sfe,
+                             assay,
                              listw,
                              zero.policy,
                              na.action,
@@ -804,7 +822,7 @@ moranLocalIPerm <- function(m_sfe,
                              spChk,
                              adjust.x) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -844,6 +862,7 @@ moranLocalIPerm <- function(m_sfe,
 #'
 .int_moranLocalIPerm <- function(gene,
                                  sfe,
+                                 assay,
                                  listw,
                                  nsim,
                                  alternative,
@@ -856,7 +875,7 @@ moranLocalIPerm <- function(m_sfe,
                                  iseed,
                                  no_repeat_in_row) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)

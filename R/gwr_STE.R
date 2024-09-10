@@ -666,23 +666,44 @@ gwr_stats.SF <- function(gwr, stat) {
 .int_getGWRdata <- function(sfe, formula, type, assay) {
   ## Get geometries
   polygons <- data.frame(geometry = .int_selectGeom(sfe = sfe, type = type),
-                         Barcode = rownames(colGeometries(sfe)$spotHex))
+                         Barcode = rownames(colGeometries(sfe)[[1]]))
 
   ## Extract values from formula
   ## Split by "+" or "~" and remove whitespace
   vars <- strsplit(formula, "\\s*(\\+\\s*|\\~\\s*)\\s*")[[1]]
   var_gs <- grepl("ENS", vars)
-  var_loc <- !var_gs
+  var_loc <- vars %in% colnames(colData(sfe))
+  var_non_gene_assay <- !var_gs & !var_loc
 
   ## Check whether the formula contains EnsgIDs, loc-specific values or both
-  if (sum(var_gs) > 0 && sum(var_loc) == 0) {
-    dt <- .int_getGWRdataGene(sfe = sfe, variables = vars, assay = assay)
-  } else if (sum(var_loc) > 0 && sum(var_gs) == 0) {
-    dt <- .int_getGWRdataLoc(sfe = sfe, variables = vars)
-  } else if (sum(var_gs) > 0 && sum(var_loc) > 0) {
-    dt <- left_join(.int_getGWRdataGene(sfe = sfe, variables = vars, assay = assay),
-                    .int_getGWRdataLoc(sfe = sfe, variables = vars),
-                    by = "Barcode")
+  if (sum(var_gs) > 0 && sum(var_loc) == 0 && sum(var_non_gene_assay) == 0) {
+    dt <- .int_getGWRdataGene(sfe = sfe, variables = vars[var_gs], assay = assay)
+  } else if (sum(var_loc) > 0 && sum(var_gs) == 0 && sum(var_non_gene_assay) == 0) {
+    dt <- .int_getGWRdataLoc(sfe = sfe, variables = vars[var_loc])
+  } else if (sum(var_non_gene_assay) > 0 && sum(var_gs) == 0 && sum(var_loc) == 0) {
+    dt <- .int_getGWRdataNonGeneAssay(sfe = sfe, variables = vars[var_non_gene_assay], assay = assay)
+  } else {
+    ## Get data for gene (if present)
+    dt_gene <- if (sum(var_gs) > 0)
+      .int_getGWRdataGene(sfe = sfe,
+                          variables = vars[var_gs],
+                          assay = assay) else NULL
+    ## Get data for location (if present)
+    dt_loc <- if (sum(var_loc) > 0)
+      .int_getGWRdataLoc(sfe = sfe,
+                         variables = vars[var_loc]) else NULL
+    ## Get data for non-gene variables (if present)
+    dt_non_gene_assay <- if (sum(var_non_gene_assay) > 0)
+      .int_getGWRdataNonGeneAssay(sfe = sfe,
+                                  variables = vars[var_non_gene_assay],
+                                  assay = assay) else NULL
+
+    ## Filter out NULL values before using Reduce
+    dfs <- list(dt_gene, dt_loc, dt_non_gene_assay)
+    non_null_dfs <- Filter(Negate(is.null), dfs)
+
+    dt <- Reduce(function(x, y) dplyr::left_join(x, y, by = "Barcode"),
+                 non_null_dfs)
   }
 
   ## Merge with polygons and convert to sp format
@@ -761,6 +782,41 @@ gwr_stats.SF <- function(gwr, stat) {
     as.data.frame() %>%
     dplyr::select(variables) %>% # select the location vars from the formula
     tibble::rownames_to_column(var = "Barcode") # sf to sp - GWmodel still works with sp objects
+
+  return(dt)
+}
+
+
+#' Internal: Retrieve Non-Gene Assay Data for GWR
+#'
+#' An internal function to extract non-gene assay data for use in
+#' Geographically Weighted Regression (GWR).
+#'
+#' @param sfe An object of class SpatialFeatureExperiment.
+#' @param variables A character vector of non-gene assay identifiers to
+#' be included in the GWR.
+#' @param assay A character string specifying the assay to use for non-gene
+#' data.
+#'
+#' @return A data frame with barcodes as row names and the specified non-gene
+#' assay values as columns.
+#'
+#' @details This function retrieves non-gene data from the specified
+#' assay of a SpatialFeatureExperiment object, selecting only the variables
+#' specified in the variables parameter. The data is transposed to have
+#' barcodes as row names and non-gene assay values as columns, suitable for further
+#' processing in GWR.
+#'
+#' @importFrom dplyr select
+#' @importFrom tibble rownames_to_column
+#'
+.int_getGWRdataNonGeneAssay <- function(sfe, variables, assay) {
+  ## Fetch non-gene assay data
+  dt <- assay(sfe, assay) %>%
+    t() %>%
+    as.data.frame() %>%
+    dplyr::select(variables) %>% # select the non-gene variables in the formula
+    tibble::rownames_to_column(var = "Barcode") # barcodes from row names to column
 
   return(dt)
 }

@@ -13,6 +13,7 @@
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param zero.policy Default is NULL. If not changed then internally, it is
 #' set to \code{attr(listw, "zero.policy")} as set when \code{listw} was
 #' created. If TRUE, assign zero to the lagged value of zones without
@@ -87,6 +88,7 @@
 getisGlobalGTest <- function(m_sfe,
                              sample_id = NULL,
                              genes = TRUE,
+                             assay = "logcounts",
                              zero.policy = NULL,
                              alternative = "greater",
                              spChk = NULL,
@@ -112,6 +114,7 @@ getisGlobalGTest <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_getisGTest,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             zero.policy = zero.policy,
                             alternative = alternative,
@@ -159,6 +162,7 @@ getisGlobalGTest <- function(m_sfe,
 #' @param genes TRUE or a named character vector with gene names for which the
 #' SA statistic needs to be calculated. If left to TRUE then the SA statistic
 #' is calculated for every gene.
+#' @param assay the counts assay to use. Defaults to "logcounts".
 #' @param zero.policy Default is NULL. If not changed then internally, it is
 #' set to \code{attr(listw, "zero.policy")} as set when \code{listw} was
 #' created. If TRUE, assign zero to the lagged value of zones without
@@ -258,6 +262,7 @@ getisGlobalGTest <- function(m_sfe,
 getisLocalG <- function(m_sfe,
                         sample_id = NULL,
                         genes = TRUE,
+                        assay = "logcounts",
                         zero.policy = NULL,
                         spChk = NULL,
                         GeoDa = FALSE,
@@ -281,6 +286,7 @@ getisLocalG <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_getisLocal,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             zero.policy = zero.policy,
                             spChk = spChk,
@@ -322,6 +328,7 @@ getisLocalG <- function(m_sfe,
 getisLocalGPerm <- function(m_sfe,
                             sample_id = NULL,
                             genes = TRUE,
+                            assay = "logcounts",
                             nsim = 999,
                             zero.policy = NULL,
                             spChk = NULL,
@@ -347,6 +354,7 @@ getisLocalGPerm <- function(m_sfe,
   res <- parallel::mclapply(genes,
                             .int_getisLocalPerm,
                             sfe = sfe,
+                            assay = assay,
                             listw = listw,
                             nsim = nsim,
                             zero.policy = zero.policy,
@@ -389,6 +397,7 @@ getisLocalGPerm <- function(m_sfe,
 #'
 .int_getisGTest <- function(gene,
                             sfe,
+                            assay,
                             listw,
                             zero.policy,
                             alternative,
@@ -398,7 +407,7 @@ getisLocalGPerm <- function(m_sfe,
                             adjust.x,
                             Arc_all_x) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -430,6 +439,7 @@ getisLocalGPerm <- function(m_sfe,
 #'
 .int_getisLocal <- function(gene,
                             sfe,
+                            assay,
                             listw,
                             zero.policy,
                             spChk,
@@ -437,7 +447,7 @@ getisLocalGPerm <- function(m_sfe,
                             alternative,
                             return_internals) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
@@ -478,6 +488,7 @@ getisLocalGPerm <- function(m_sfe,
 #'
 .int_getisLocalPerm <- function(gene,
                                 sfe,
+                                assay,
                                 listw,
                                 nsim,
                                 zero.policy,
@@ -487,7 +498,7 @@ getisLocalGPerm <- function(m_sfe,
                                 fix_i_in_Gstar_permutations,
                                 no_repeat_in_row) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, "logcounts")[gene,]
+  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)

@@ -10,3 +10,4 @@ data/example_data/*
 data/test_data/*
 data/test.RData
 .env
+data/*

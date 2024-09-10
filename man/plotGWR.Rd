@@ -4,7 +4,7 @@
 \alias{plotGWR}
 \title{Plot Geographically Weighted Regression (GWR) Results}
 \usage{
-plotGWR(gwr, predictorVar = NULL)
+plotGWR(gwr, predictorVar = NULL, globalModel = FALSE, title = NULL)
 }
 \arguments{
 \item{gwr}{A GWR object returned by the GWR fitting function \code{gwrSTE}.}
@@ -13,6 +13,12 @@ plotGWR(gwr, predictorVar = NULL)
 variable to plot. If \code{NULL}, the function will automatically select the
 first predictor variable from the model formula. If the model contains
 multiple variables as predictors, only the first one will be used.}
+
+\item{globalModel}{TRUE or FALSE. Indicates whether a table with the global
+model's summary statistics has to be printed.}
+
+\item{title}{A character string for the plot's title. Defaults to NULL where
+a title made from the formula is used.}
 }
 \value{
 A \code{ggplot} object containing the plot of GWR coefficients and a

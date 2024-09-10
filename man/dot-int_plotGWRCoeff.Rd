@@ -4,20 +4,17 @@
 \alias{.int_plotGWRCoeff}
 \title{Internal Function: Plot GWR Coefficients}
 \usage{
-.int_plotGWRCoeff(gwr_sf, i, predictorVar)
+.int_plotGWRCoeff(gwr_sf, i, Var)
 }
 \arguments{
 \item{gwr_sf}{A Simple Features (sf) object containing the spatial data and
 the GWR coefficients. This object should include columns for the
 coefficients and their significance, as well as the geometry information.}
 
-\item{i}{An integer (0 or 1) indicating whether to plot the intercept (0) or
-the predictor variable (1) coefficients.}
+\item{i}{An integer.}
 
-\item{predictorVar}{A character string specifying the name of the predictor
-variable to plot. If \code{NULL}, the function will automatically select the
-first predictor variable from the model formula. If the model contains
-multiple variables as predictors, only the first one will be used.}
+\item{Var}{A character string indicating the variable to be selected for
+plotting.}
 }
 \value{
 A \code{ggplot} object representing the spatial distribution of the
@@ -42,6 +39,9 @@ intended for direct use by end-users.
 }
 \seealso{
 \code{\link{plotGWR}}, \code{\link{gwr_toSF}}
+}
+\author{
+Eleftherios (Lefteris) Zormpas
 }
 \keyword{GWR}
 \keyword{coefficients}

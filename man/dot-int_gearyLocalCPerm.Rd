@@ -7,6 +7,7 @@
 .int_gearyLocalCPerm(
   gene,
   sfe,
+  assay,
   listw,
   nsim,
   alternative,

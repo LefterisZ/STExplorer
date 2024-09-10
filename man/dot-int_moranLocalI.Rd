@@ -7,6 +7,7 @@
 .int_moranLocalI(
   gene,
   sfe,
+  assay,
   listw,
   zero.policy,
   na.action,
