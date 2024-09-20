@@ -219,8 +219,8 @@ gwpca_FunctionalClustering <- function(gwpca,
   doParallel::registerDoParallel(my.cl)
 
   list <- foreach::foreach(X = 1:nrow(inputGSEA)) %dopar% {
-    X <- X # scope thing
-    STExplorer:::.int_runGSEA(inputGSEA = inputGSEA,
+    STExplorer:::.int_runGSEA(X = X,
+                              inputGSEA = inputGSEA,
                               minGSSize = minGSSize,
                               pvalueCutoff = pvalueCutoff,
                               TERM2GENE = TERM2GENE,
