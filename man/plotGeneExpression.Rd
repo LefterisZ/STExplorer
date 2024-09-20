@@ -9,7 +9,7 @@ plotGeneExpression(
   genes,
   sample_id = NULL,
   assay = c("counts", "logcounts", "unNormLogCounts"),
-  minmax = c(0, Inf),
+  minmax = NULL,
   type = c("spot", "hex", "cntd"),
   res = c("lowres", "hires", "fullres", "none"),
   fill_args = list(),
@@ -36,8 +36,9 @@ for un-normalised log-2 transformed only counts. Default is
 
 \item{minmax}{Numeric vector of length 2 specifying the minimum
 and maximum expression values to include in the
-plot. Default is c(0, Inf), meaning all values
-above 0 will be included.}
+plot. Default is NULL, meaning all values will be included.
+The function will use "geneExpress > min AND geneExpress < max"
+to filter locations.}
 
 \item{type}{Character vector specifying the type of spatial data
 to use for plotting. Options are "spot" for spot

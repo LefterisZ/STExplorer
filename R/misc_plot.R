@@ -91,8 +91,9 @@ plotNeighbourGraph <- function(msfe,
 #'              "counts".
 #' @param minmax Numeric vector of length 2 specifying the minimum
 #'               and maximum expression values to include in the
-#'               plot. Default is c(0, Inf), meaning all values
-#'               above 0 will be included.
+#'               plot. Default is NULL, meaning all values will be included.
+#'               The function will use "geneExpress > min AND geneExpress < max"
+#'               to filter locations.
 #' @param type Character vector specifying the type of spatial data
 #'             to use for plotting. Options are "spot" for spot
 #'             geometry and "hex" for hexagon geometry. Default is
@@ -143,7 +144,7 @@ plotGeneExpression <- function(m_sfe,
                                genes,
                                sample_id = NULL,
                                assay = c("counts", "logcounts", "unNormLogCounts"),
-                               minmax = c(0, Inf),
+                               minmax = NULL,
                                type = c("spot", "hex", "cntd"),
                                res = c("lowres", "hires", "fullres", "none"),
                                fill_args = list(),
@@ -555,10 +556,15 @@ plotHeatmap <- function(m_sfe,
 
   ## Keep only selected genes
   genes_lst <- lapply(genes, FUN = function(x) {
-    genes_df %>%
+    gdf <- genes_df %>%
       dplyr::select(tidyr::all_of(x)) %>%
-      tibble::rownames_to_column(var = "rownames") %>%
-      filter(.data[[x]] > minmax[1] & .data[[x]] < minmax[2])
+      tibble::rownames_to_column(var = "rownames")
+
+    if (!is.null(minmax)) {
+      gdf <- gdf %>%
+        filter(.data[[x]] > minmax[1] & .data[[x]] < minmax[2])
+    }
+    return(gdf)
   })
 
   ## Export geometries
