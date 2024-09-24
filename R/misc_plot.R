@@ -177,11 +177,27 @@ plotGeneExpression <- function(m_sfe,
   }
 
   ## Fetch image if needed and fix alpha
-  if (!res == "none") {
+  if (res != "none") {
     ## Fetch image data and transform to raster
     image <- .int_getImgDt(sfe = sfe, sample_id = sample_id, image_id = res)
     ## Get capture area limits
     limits_list <- .int_getImgLims(sfe = sfe, res = res)
+    ## Get max col value to accurately plot the image
+    max_list <- lapply(image,
+                       function(l){
+                         max <- l@ptr$range_max[1]
+                         if (is.na(max)) {
+                           max <- max(l[,,1])
+                         }
+                         if (max <= 1) {
+                           max_col_value <- 1
+                         } else if (max <= 255) {
+                           max_col_value <- 255
+                         } else if (max <= 65536) {
+                           max_col_value <- 65536
+                         }
+                       }
+                      )
   } else {
     alpha <- 1
   }
@@ -216,14 +232,15 @@ plotGeneExpression <- function(m_sfe,
   ## Plot
   p <- ggplot()
 
-  if (!res == "none") {
+  if (res != "none") {
     p <- p +
-      tidyterra::geom_spatraster_rgb(data = image[[1]]) +
+      tidyterra::geom_spatraster_rgb(data = image[[1]],
+                                     max_col_value = max_list[[1]]) +
       ggplot2::lims(x = limits_list[[1]],
                     y = limits_list[[2]])
   }
 
-  if (!type == "cntd") {
+  if (type != "cntd") {
     p <- p +
       ggplot2::geom_sf(data = data,
                        aes(geometry = geometry,
@@ -492,8 +509,21 @@ plotHeatmap <- function(m_sfe,
                              limits_list) {
   ## Plot with or without the tissue image
   if (plotImage) {
+    ## Get max col value to accurately plot the image
+    max <- image@ptr$range_max[1]
+    if (is.na(max)) {
+      max <- max(image[,,1])
+    }
+    if (max <= 1) {
+      max_col_value <- 1
+    } else if (max <= 255) {
+      max_col_value <- 255
+    } else if (max <= 65536) {
+      max_col_value <- 65536
+    }
     p <- ggplot() +
-      tidyterra::geom_spatraster_rgb(data = image_list[[id]]) +
+      tidyterra::geom_spatraster_rgb(data = image_list[[id]],
+                                     max_col_value = max_col_value) +
       ggplot2::geom_sf(data = nb_data_list[[id]])
   } else {
     p <- ggplot() +

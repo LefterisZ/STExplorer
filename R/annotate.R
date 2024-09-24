@@ -344,8 +344,7 @@ createBiomart <- function(organism = "human", attributes, version = NULL,
     # Build default attributes list
     default.attr <- c("ensembl_gene_id","external_gene_name",
                       "gene_biotype", "chromosome_name", "start_position",
-                      "end_position", "strand", "description",
-                      "transcript_count")
+                      "end_position", "strand", "description")
     # Get the biomart
     bm <- biomaRt::getBM(attributes = default.attr, mart = ensembl.bm, ...)
 
