@@ -190,19 +190,87 @@ getSAGlobalGenes <- function(m_sfe,
     # keep only genes that are present in the SFE object.
     # Otherwise throws an error downstream.
     gs <- genes %in% rownames(sfe)
-    if (length(genes) > sum(gs)) {
-      message("These genes are not present in your dataset: \n\t",
-              "ENSGIDs: ", paste(genes[!gs], collapse = " "), "\n\t",
-              "Gene Names: ", paste(names(genes[!gs]), collapse = " "))
+
+    # If gs == 0 check if these are variables from colData
+    if (sum(gs) == 0) {
+      itIs <- genes %in% colnames(colData(sfe))
+      if (length(itIs) > sum(itIs)) {
+        message("These variables are not present in your dataset: \n\t",
+                "Variable: ", paste(genes[!itIs], collapse = " "),
+                collapse = " ")
+      } else if (length(itIs) == sum(itIs)) {
+        # If it is make sure the vector is named
+        names(genes) <- genes
+      } else {
+        stop("None of the variables in the `genes` argument are either in ",
+             "the `rownames(sfe)` or in the `colnames(colData(sfe))!")
+      }
+
+    # If gs != 0 check in genes
+    } else if (sum(gs) != 0) {
+      if (length(genes) > sum(gs)) {
+        message("These genes are not present in your dataset: \n\t",
+                "ENSGIDs: ", paste(genes[!gs], collapse = " "), "\n\t",
+                "Gene Names: ", paste(names(genes[!gs]), collapse = " "))
+      }
+      genes <- genes[gs]
+      names(genes) <- genes
     }
-    genes <- genes[gs]
-    names(genes) <- genes
+
   } else if (isTRUE(genes)) {
     genes <- rownames(rowData(sfe))
     names(genes) <- genes
+
   } else {
     stop("Invalid `genes` argument input")
   }
 
   return(genes)
 }
+
+
+#' Internal: Retrieve SpatialFeatureExperiment Data for Spatial Autocorrelation
+#'
+#' This internal function retrieves data from a `SpatialFeatureExperiment`
+#' object based on the type of variable specified. The function determines
+#' whether the variable corresponds to Ensembl Gene IDs, location-specific
+#' values, or other non-gene assay data.
+#'
+#' @param sfe A `SpatialFeatureExperiment` object.
+#' @param var A character string representing the variable name to be retrieved.
+#' @param assay A character string specifying the assay to be used for data
+#' extraction.
+#'
+#' @return Returns a data vector corresponding to the specified variable, which
+#' could be from gene expression assays or location-specific metadata.
+#'
+#' @keywords internal
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_getSAdata
+#'
+.int_getSAdata <- function(sfe, var, assay) {
+  var_gs <- grepl("ENS", var)
+  var_loc <- var %in% colnames(colData(sfe))
+  var_non_gene_assay <- !var_gs & !var_loc
+
+  ## Check whether the formula contains EnsgIDs, loc-specific values or both
+  if (sum(var_gs) > 0 && sum(var_loc) == 0 && sum(var_non_gene_assay) == 0) {
+    dt <- SummarizedExperiment::assay(sfe, assay)[var,]
+  } else if (sum(var_loc) > 0 && sum(var_gs) == 0 && sum(var_non_gene_assay) == 0) {
+    dt <- colData(sfe) %>%
+      as.data.frame() %>%
+      # dplyr::select(var)
+      .[[var]]
+  } else if (sum(var_non_gene_assay) > 0 && sum(var_gs) == 0 && sum(var_loc) == 0) {
+    dt <- SummarizedExperiment::assay(sfe, assay) %>%
+      t() %>%
+      as.data.frame() %>%
+      # dplyr::select(var)
+      .[[var]]
+  }
+
+  return(dt)
+}
+
+

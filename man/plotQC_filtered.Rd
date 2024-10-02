@@ -6,9 +6,11 @@
 \usage{
 plotQC_filtered(
   m_sfe,
-  metric = c("libsize", "mito", "NAs", "detected", "cellCount", "discard"),
+  metric = c("libsize", "mito", "NAs", "detected", "cellCount", "discard", "custom"),
   sample_id = TRUE,
   type = c("spot", "hex", "cntd"),
+  metric_name = NULL,
+  metric_lab = NULL,
   ...
 )
 }
@@ -16,7 +18,9 @@ plotQC_filtered(
 \item{m_sfe}{A SpatialFeatureExperiment or MetaSFE object.}
 
 \item{metric}{Character vector specifying the metric, either "libsize",
-"mito", "NAs", "detected", "cellCount", or "discard".}
+"mito", "NAs", "detected", "cellCount", "discard", or custom. If custom is
+selected then you have to provide the \code{metric_name} and \code{metric_lab}
+arguments too.}
 
 \item{sample_id}{Character string, TRUE, or NULL specifying sample/image
 identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
@@ -24,6 +28,11 @@ the first available entry.}
 
 \item{type}{Character vector specifying the spot type, either "spot", "cntd"
 or "hex".}
+
+\item{metric_name}{Character string. The custom metric's column name as
+found in the \code{colData}.}
+
+\item{metric_lab}{Character string. The title you want for the map's legend.}
 
 \item{...}{Additional arguments to be passed to the underlying \code{geom_sf}
 plotting function.}

@@ -589,7 +589,7 @@ moranLocalI <- function(m_sfe,
   DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
   DFrame@listData <- res
   rownames(DFrame) <- colnames(sfe)
-  SpatialFeatureExperiment::localResults(sfe, name = "localMoranI") <- res
+  localResults(sfe, name = "localMoranI") <- res
 
   ## Check and output either an msfe or an sfe object
   out <- .int_checkAndOutput(m_sfe = m_sfe, sfe = sfe, sample_id = sample_id)
@@ -657,7 +657,7 @@ moranLocalIPerm <- function(m_sfe,
                             iseed = iseed,
                             no_repeat_in_row = no_repeat_in_row,
                             mc.cores = mc.cores)
-
+  assign("res", res, envir = .GlobalEnv)
   ## Import output into the SFE object's localResults
   DFrame <- make_zero_col_DFrame(nrow = ncol(sfe))
   DFrame@listData <- res
@@ -875,7 +875,8 @@ moranLocalIPerm <- function(m_sfe,
                                  iseed,
                                  no_repeat_in_row) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
+  # x <- SummarizedExperiment::assay(sfe, assay)[gene,]
+  x <- .int_getSAdata(sfe = sfe, var = gene, assay = assay)
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)

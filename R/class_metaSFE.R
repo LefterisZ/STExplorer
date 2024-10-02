@@ -95,12 +95,26 @@ getSFE <- function(x, sample_id = NULL) {
 #'
 #' @return An updated MetaSpatialFeatureExperiment object with the added SFEs.
 #'
+#' @importFrom terra unwrap
+#' @importFrom SpatialFeatureExperiment SpatRasterImage
+#'
 #' @export
 addMultiSFE <- function(x, sfe) {
   ## Get sample IDs
   ids <- .int_getSmplIDs(sfe = sfe, sample_id = TRUE)
 
-  for (id in ids) {
+  for (i in seq_along(ids)) {
+    id <- ids[i]
+
+    ## If the multi-sample SFE object was saved and loaded again into the
+    ## environment, the images are going to be of class "PackedRasterImage". If
+    ## this is the case, we need to "unwrap" the packaged images.
+    is_Packed <- inherits(imgData(sfe)$data[[i]], "PackedRasterImage")
+    if (is_Packed) {
+      img <- SpatRasterImage(unwrap(imgData(sfe)$data[[i]]))
+      sfe@int_metadata$imgData$data[[i]] <- img
+    }
+
     ## Subset per sample
     sfe_int <- sfe[, colData(sfe)$sample_id == id]
 
@@ -118,7 +132,21 @@ addMultiSFE <- function(x, sfe) {
 #' @param sample_ids Character string. The sample IDs from the SFE objects to
 #' be combined and retrieved as one SFE object
 #'
+#' @details
+#' During merging the SFE objects, the common columns from the rowData are
+#' removed to allow merging. However, the unique rowData columns from each SFE
+#' object are kept. Additionally, the "gene_name", "id", "mean", "detected",
+#' and "total" columns are generated again. Only this time, the "mean",
+#' "detected", and "total" values are calculated based on the gene counts in
+#' ALL samples and NOT in a per sample way.
+#'
+#' The colData are easier to merge since there we are performing an rbind
+#' instead of the cbind we have to do in the rowData. As a result all columns
+#' are kept.
+#'
 #' @return An SFE object with multiple samples inside.
+#'
+#' @importFrom SpatialFeatureExperiment cbind
 #'
 #' @export
 getMultiSFE <- function(x, sample_ids) {
@@ -141,11 +169,56 @@ getMultiSFE <- function(x, sample_ids) {
     x@sfe_data[[id]] <- sfe
   }
 
+  ## Get some data to place back into the rowData
+  gene_name <- rowData(x@sfe_data[[1]])[["gene_name"]]
+
+  ## Extract all rowData from sfe objects
+  all_row_data <- lapply(x@sfe_data, rowData)
+
+  ## Determine common columns
+  # Assuming all sfe objects have the same columns for simplicity
+  # If not, we'll need to find the intersection of column names
+  common_cols <- Reduce(intersect, lapply(all_row_data, colnames))
+
+  ## Remove common columns from each sfe object's rowData
+  x@sfe_data <- lapply(x@sfe_data, function(sfe) {
+    # Only keep columns that are not common
+    rowData(sfe) <- rowData(sfe)[, !colnames(rowData(sfe)) %in% common_cols, drop = FALSE]
+    return(sfe)
+  })
+
   ## Extract SFE objects based on sample_ids
   sfe_list <- lapply(sample_ids, function(id) getSFE(x, id))
 
   ## Use Reduce with cbind to combine SFE objects
-  sfe_out <- Reduce(cbind, sfe_list)
+  sfe_out <- Reduce(SpatialFeatureExperiment::cbind, sfe_list)
+
+  ## Export the unique columns to put them back after we add the gene-QC metrics
+  ## Otherwise it interferes with the columns added by `scater::addPerFeatureQC`
+  rowdata <- rowData(sfe_out)
+
+  ## Empty the rowData from the sfe_out
+  rowData(sfe_out) <- NULL
+
+  ## Place columns back into rowData
+  rowData(sfe_out)[["symbol"]] <- gene_name
+
+  ## Add basic gene-QC metrics --> but now calculated for all samples as one
+  sfe_out <- addPerGeneQC(sfe_out,
+                          sample_id = id,
+                          assay = "counts",
+                          version = NULL,
+                          mirror = NULL,
+                          add = "none")
+
+  ## Place back the unique columns in the rowData
+  rowData(sfe_out) <- merge(rowData(sfe_out),
+                            rowdata,
+                            by = "row.names",
+                            sort = FALSE) %>%
+    data.frame() %>%
+    column_to_rownames(var = "Row.names") %>%
+    DataFrame()
 
   return(sfe_out)
 }

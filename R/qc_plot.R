@@ -758,12 +758,17 @@ plotQC_map <- function(m_sfe,
 #'
 #' @param m_sfe A SpatialFeatureExperiment or MetaSFE object.
 #' @param metric Character vector specifying the metric, either "libsize",
-#' "mito", "NAs", "detected", "cellCount", or "discard".
+#' "mito", "NAs", "detected", "cellCount", "discard", or custom. If custom is
+#' selected then you have to provide the `metric_name` and `metric_lab`
+#' arguments too.
 #' @param sample_id Character string, TRUE, or NULL specifying sample/image
 #' identifier(s). TRUE is equivalent to all samples/images, and NULL specifies
 #' the first available entry.
 #' @param type Character vector specifying the spot type, either "spot", "cntd"
 #'             or "hex".
+#' @param metric_name Character string. The custom metric's column name as
+#'                    found in the `colData`.
+#' @param metric_lab Character string. The title you want for the map's legend.
 #' @param ... Additional arguments to be passed to the underlying `geom_sf`
 #'            plotting function.
 #'
@@ -789,10 +794,12 @@ plotQC_map <- function(m_sfe,
 #'
 #' @export
 plotQC_filtered <- function(m_sfe,
-                            metric = c("libsize", "mito", "NAs",
-                                       "detected", "cellCount", "discard"),
+                            metric = c("libsize", "mito", "NAs", "detected",
+                                       "cellCount", "discard", "custom"),
                             sample_id = TRUE,
                             type = c("spot", "hex", "cntd"),
+                            metric_name = NULL,
+                            metric_lab = NULL,
                             ...) {
 
   ## Check SFE or MSFE?
@@ -838,9 +845,12 @@ plotQC_filtered <- function(m_sfe,
   } else if (metric == "NAs") {
     fill <- "qc_NA_spots"
     title <- "Filter for locations without annotation"
-  }else if (metric == "discard") {
+  } else if (metric == "discard") {
     fill <- "qc_discard"
     title <- "Overall Low Quality"
+  } else if (metric == "custom") {
+    fill <- metric_name
+    title <- metric_lab
   }
 
   if (metric == "discard") {

@@ -20,3 +20,15 @@ An SFE object with multiple samples inside.
 Method to retrieve multiple SFE objects as a single SFE object from within
 an MSFE object
 }
+\details{
+During merging the SFE objects, the common columns from the rowData are
+removed to allow merging. However, the unique rowData columns from each SFE
+object are kept. Additionally, the "gene_name", "id", "mean", "detected",
+and "total" columns are generated again. Only this time, the "mean",
+"detected", and "total" values are calculated based on the gene counts in
+ALL samples and NOT in a per sample way.
+
+The colData are easier to merge since there we are performing an rbind
+instead of the cbind we have to do in the rowData. As a result all columns
+are kept.
+}

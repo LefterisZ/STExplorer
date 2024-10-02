@@ -191,7 +191,8 @@ plotSA_local <- function(m_sfe,
   }
 
   ## Validate genes input
-  feature <- .int_matchNamesToEnsgID(sfe, feature)
+  feature <- .int_checkVarNames(sfe, feature)
+  # feature <- .int_matchNamesToEnsgID(sfe, feature)
 
   ## Construct plot's title
   title <- .int_getTitle(sfe = sfe, feature = feature, title = title)
@@ -359,7 +360,8 @@ plotSA_localClust <- function(m_sfe,
   }
 
   ## Validate genes input
-  feature <- .int_matchNamesToEnsgID(sfe, feature)
+  feature <- .int_checkVarNames(sfe, feature)
+  # feature <- .int_matchNamesToEnsgID(sfe, feature)
 
   ## Construct plot's title
   title <- .int_getTitle(sfe = sfe, feature = feature, title = title)
@@ -751,4 +753,32 @@ plotSA_localClust <- function(m_sfe,
 
   return(out)
 
+}
+
+#' Internal: Check Variable Names in SpatialFeatureExperiment
+#'
+#' This internal function checks if a specified variable name exists in the
+#' `colData` of a `SpatialFeatureExperiment` object. If the variable is not found
+#' in `colData`, it attempts to match the variable to an ENSG (Ensembl Gene)
+#' ID.
+#'
+#' @param sfe A `SpatialFeatureExperiment` object.
+#' @param var A character string representing the variable name to be checked.
+#'
+#' @return Returns the variable name if it is found in `colData`. If not, it
+#' attempts to match and return the corresponding ENSG ID.
+#'
+#' @keywords internal
+#'
+#' @author Eleftherios (LEFteris) Zormpas
+#' @rdname dot-int_checkVarNames
+#'
+.int_checkVarNames <- function(sfe, var) {
+  ## First check if feature is in colData
+  isColData <- var %in% colnames(colData(sfe))
+  if (sum(isColData) != 0) {
+    return(var)
+  } else {
+    return(.int_matchNamesToEnsgID(sfe = sfe, genes = var))
+  }
 }

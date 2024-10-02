@@ -822,7 +822,8 @@ gearyLocalCPerm <- function(m_sfe,
                                  iseed,
                                  no_repeat_in_row) {
   ## Select gene expression input
-  x <- SummarizedExperiment::assay(sfe, assay)[gene,]
+  # x <- SummarizedExperiment::assay(sfe, assay)[gene,]
+  x <- .int_getSAdata(sfe = sfe, var = gene, assay = assay)
 
   ## Check input validity
   .int_checkSAInput(x = x, listw = listw)
