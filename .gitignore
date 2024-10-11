@@ -3,11 +3,13 @@
 .RData
 .Ruserdata
 .DS_Store
+.env
 inst/doc
 test.RData
 STExplorer.Rproj
 data/example_data/*
 data/test_data/*
 data/test.RData
-.env
 data/*
+
+

@@ -1,7 +1,7 @@
 Package: STExplorer
 Type: Package
 Title: A package to explore Spatial Transcriptomics data using geographical methods
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: person(given = "Eleftherios", 
            family = "Zormpas", 
            email = "zormpaslef@outlook.com", 
