@@ -485,10 +485,10 @@ load_visium_msfe <- function(dataset) {
   }
 
   ## Use the `data` function to load the object
-  data(list = object_name, package = "STExplorer")
+  data(object_name, package = "STExplorer")
 
   ## The object is now loaded into the environment, but we need to assign it to a variable
-  msfe <- get(object_name)
+  msfe <- get(object_name, envir = .GlobalEnv)
 
   ## Get the sample names and directories
   sampleNames <- unlist(msfe@sample_ids)

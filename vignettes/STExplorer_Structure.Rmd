@@ -16,7 +16,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r knitr-setUp, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>", 
@@ -54,7 +54,7 @@ vignettes/
 
 ## Install package
 
-```{r eval=FALSE}
+```{r install, eval=FALSE}
 ## To install the stable version of the package from Bioconductor run the below:
 # if (!require("BiocManager", quietly = TRUE))
 #     install.packages("BiocManager")
@@ -68,12 +68,11 @@ if (!require("devtools", quietly = TRUE))
 
 devtools::install_github("LefterisZ/STExplorer")
 
-
-## To load the package use:
-library(STExplorer)
 ```
 
-```{r setup, echo=FALSE, eval=FALSE, message=FALSE}
+```{r setup, echo=FALSE, eval=TRUE, message=FALSE}
+devtools::document()
+# library(STExplorer)
 # library(SpatialFeatureExperiment)
 # library(tidyverse)
 # library(scran)
