@@ -46,6 +46,7 @@ if (!require("devtools", quietly = TRUE))
     install.packages("devtools")
 
 devtools::install_github("LefterisZ/STExplorer",
+                         auth_token = AUTH_TOKEN,
                          force = TRUE)
 
 

@@ -467,7 +467,6 @@ moranGlobalITest <- function(m_sfe,
 #' \code{TRUE}, sample conditionally in each row without
 #' replacements to avoid duplicate values,
 #' \url{https://github.com/r-spatial/spdep/issues/124}.
-
 #'
 #' @details The values of local Moran's I are divided by the variance (or
 #' sample variance) of the variable of interest to accord with Table 1, p. 103,
@@ -483,7 +482,7 @@ moranGlobalITest <- function(m_sfe,
 #' contains the per location Ii statistics values for each gene:
 #' \itemize{
 #' \item{ENSG***.Ii}{Numeric vector containing Local Moran statistic
-#' with attribute
+#' with attribute}
 #' \item{ENSG***.IiFDR}{(Only for gearyLocalCPerm) \code{rank()} and
 #' \code{punif()} of observed statistic rank for [0, 1] p-values using
 #' \code{alternative=}}

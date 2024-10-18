@@ -71,8 +71,7 @@ devtools::install_github("LefterisZ/STExplorer")
 ```
 
 ```{r setup, echo=FALSE, eval=TRUE, message=FALSE}
-devtools::document()
-# library(STExplorer)
+library(STExplorer)
 # library(SpatialFeatureExperiment)
 # library(tidyverse)
 # library(scran)
