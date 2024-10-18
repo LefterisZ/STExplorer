@@ -429,6 +429,119 @@ readCurioSeeker <- function(samples,
   return(sfe_out)
 }
 
+#' Load and Process Visium SpatialFeatureExperiment (SFE) Data
+#'
+#' This function loads and processes SpatialFeatureExperiment (SFE) data from
+#' within the package's `extdata` folder. It addresses the issue of missing
+#' image data when using the `usethis::use_data` function to store SFE objects
+#' in `.rda` format. The function ensures that the data is loaded correctly and
+#' that the images are reloaded from the external data located in the package's
+#' `inst/extdata/visium/` directory.
+#'
+#' Depending on the dataset specified, the function loads relevant data objects
+#' (`msfe_2` for lung data or `msfe` for prostate data), processes each sample
+#' by adding the corresponding low-resolution spatial tissue images, and applies
+#' the appropriate scale factors. It also mirrors the images as part of the
+#' processing.
+#'
+#' This function is essential for working with spatial data, as it reconstructs
+#' the image pointers (which are lost when saving SFE objects via
+#' `usethis::use_data`) and ensures the correct association between images and
+#' sample data.
+#'
+#' @param dataset A character string specifying the dataset to load. Must be
+#'   either `"lung"` or `"prostate"`. Based on this input, the function loads
+#'   the corresponding SFE object and processes the associated data.
+#'
+#' @details
+#' For the `"lung"` dataset, the function loads the `msfe_2` object and
+#' processes samples located in the `inst/extdata/visium/lung/Fibrotic/` and
+#' `inst/extdata/visium/lung/Healthy/` directories. For the `"prostate"`
+#' dataset, it loads the `msfe` object and processes the sample located in
+#' `inst/extdata/visium/prostate/H2_5/`.
+#'
+#' The function retrieves scale factors from the `scalefactors_json.json` file
+#' within each sample's directory and adds the corresponding low-resolution
+#' tissue image to the SFE object. It also mirrors the image using the
+#' `SpatialFeatureExperiment::mirrorImg` function.
+#'
+#' @return Returns the updated SFE object after processing, with images properly
+#' reloaded and associated with the corresponding samples.
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#'
+#' @importFrom jsonlite fromJSON
+#' @importFrom SpatialFeatureExperiment addImg mirrorImg
+#'
+#' @export
+load_visium_msfe <- function(dataset) {
+  ## Update object name based on the dataset
+  if (dataset == "lung") {
+    object_name <- "msfe_2"
+  } else if (dataset == "prostate") {
+    object_name <- "msfe"
+  } else {
+    stop("Unsupported dataset. Please choose either 'lung' or 'prostate'.")
+  }
+
+  ## Use the `data` function to load the object
+  data(list = object_name, package = "STExplorer")
+
+  ## The object is now loaded into the environment, but we need to assign it to a variable
+  msfe <- get(object_name)
+
+  ## Get the sample names and directories
+  sampleNames <- unlist(msfe@sample_ids)
+  names(sampleNames) <- sampleNames  # Ensure sampleNames is named with its items
+
+  ## Define the base directory for the sample data
+  sampleDir_base <- system.file("extdata", "visium", package = "STExplorer")
+
+  ## Define sampleDir based on the dataset
+  if (dataset == "lung") {
+    sampleDir <- list(
+      Fibrotic = file.path(sampleDir_base, "lung", "Fibrotic"),
+      Healthy  = file.path(sampleDir_base, "lung", "Healthy")
+    )
+  } else if (dataset == "prostate") {
+    sampleDir <- list(H2_5 = file.path(sampleDir_base, "prostate", "H2_5"))
+  }
+
+  ## Process each sample
+  for (id in sampleNames) {
+    # Retrieve the SFE object for the current sample
+    sfe <- getSFE(msfe, id)
+
+    # Remove existing image data
+    sfe@int_metadata$imgData <- NULL
+
+    # Load the scale factors from the JSON file
+    scaleF <- fromJSON(txt = file.path(sampleDir[[id]],
+                                       "outs/spatial",
+                                       "scalefactors_json.json"))
+
+    # Add the low-resolution image to the SFE object
+    sfe <- addImg(sfe,
+                  file.path(sampleDir[[id]],
+                            "outs/spatial/tissue_lowres_image.png"),
+                  sample_id = id,
+                  image_id = "lowres",
+                  scale_fct = scaleF[["tissue_lowres_scalef"]])
+
+    # Mirror the image for the SFE object
+    sfe <- mirrorImg(sfe, sample_id = id, image_id = "lowres")
+
+    # Add the modified SFE object back to the msfe object
+    msfe <- addSFE(msfe, sfe, id)
+
+    # Housekeeping: Remove the temporary SFE object from memory
+    rm(sfe)
+  }
+
+  ## Assign the updated msfe object back to the global environment
+  assign(object_name, msfe, envir = .GlobalEnv)
+}
+
 # ---------------------------------------------------------------------------- #
 #  ########## INTERNAL FUNCTIONS ASSOCIATED WITH DISTANCE MATRIX ############
 # ---------------------------------------------------------------------------- #

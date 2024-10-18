@@ -1051,9 +1051,15 @@ plotQC_sizeFactors <- function(m_sfe,
   }
 
   ## Create the ggplot object
+
+  ## To silence the 'coordinate system already present' warning as per:
+  ## https://github.com/tidyverse/ggplot2/issues/2799
+  cf <- coord_fixed()
+  cf$default <- TRUE
+
   p <- ggplot2::ggplot() +
     ggplot2::scale_fill_manual(values = colours) +
-    ggplot2::coord_fixed() +
+    cf +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
     ggplot2::labs(title = "Spatial coordinates",
@@ -1122,9 +1128,15 @@ plotQC_sizeFactors <- function(m_sfe,
   }
 
   ## Create the ggplot object
+
+  ## To silence the 'coordinate system already present' warning as per:
+  ## https://github.com/tidyverse/ggplot2/issues/2799
+  cf <- coord_fixed()
+  cf$default <- TRUE
+
   p <- ggplot2::ggplot() +
     ggplot2::scale_colour_manual(values = colours) +
-    ggplot2::coord_fixed() +
+    cf +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
     ggplot2::labs(title = "Spatial coordinates",
@@ -1193,9 +1205,15 @@ plotQC_sizeFactors <- function(m_sfe,
   }
 
   ## Create the ggplot object
+
+  ## To silence the 'coordinate system already present' warning as per:
+  ## https://github.com/tidyverse/ggplot2/issues/2799
+  cf <- coord_fixed()
+  cf$default <- TRUE
+
   p <- ggplot2::ggplot() +
     ggplot2::scale_fill_manual(values = colours) +
-    ggplot2::coord_fixed() +
+    cf +
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "right") +
     ggplot2::labs(title = "Spatial coordinates",
@@ -1555,13 +1573,18 @@ plotQC_sizeFactors <- function(m_sfe,
     max_col_value <- 65536
   }
 
+  ## To silence the 'coordinate system already present' warning as per:
+  ## https://github.com/tidyverse/ggplot2/issues/2799
+  cf <- coord_fixed()
+  cf$default <- TRUE
+
   p <- ggplot() +
     tidyterra::geom_spatraster_rgb(data = image,
                                    max_col_value = max_col_value) +
     ggplot2::labs(subtitle = image_name) +
     ggplot2::lims(x = limits_list[[1]],
                   y = limits_list[[2]]) +
-    ggplot2::coord_sf() +
+    cf +
     ggplot2::theme_void() +
     theme(plot.subtitle = ggplot2::element_text(hjust = 0.5))
 

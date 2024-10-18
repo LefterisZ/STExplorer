@@ -170,7 +170,19 @@ getMultiSFE <- function(x, sample_ids) {
   }
 
   ## Get some data to place back into the rowData
-  gene_name <- rowData(x@sfe_data[[1]])[["gene_name"]]
+  ## At the next step we keep only the unique columns from each sample. As a
+  ## result, the gene_names column will be lost. We need to export it now and
+  ## add it back again later. The if-else statement takes care the possibility
+  ## that the gene_name column is still called symbol as when first loaded.
+  exists <- ifelse("gene_name" %in% colnames(rowData(x@sfe_data[[1]])),
+                   TRUE,
+                   FALSE)
+  if (exists) {
+    gene_name <- rowData(x@sfe_data[[1]])[["gene_name"]]
+  } else {
+    gene_name <- rowData(x@sfe_data[[1]])[["symbol"]]
+  }
+
 
   ## Extract all rowData from sfe objects
   all_row_data <- lapply(x@sfe_data, rowData)
@@ -390,4 +402,3 @@ getSampleIDs <- function(x) {
   # Return the resulting object
   return(out)
 }
-
