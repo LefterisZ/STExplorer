@@ -124,7 +124,7 @@ which contains a DataFrame named \code{localMoranI}/\code{localMoranIPerm} that
 contains the per location Ii statistics values for each gene:
 \itemize{
 \item{ENSG***.Ii}{Numeric vector containing Local Moran statistic
-with attribute
+with attribute}
 \item{ENSG***.IiFDR}{(Only for gearyLocalCPerm) \code{rank()} and
 \code{punif()} of observed statistic rank for \link{0, 1} p-values using
 \code{alternative=}}
