@@ -12,15 +12,18 @@ output:
 bibliography: [references.bib]
 vignette: >
   %\VignetteIndexEntry{STExplorer}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r knitr-setUp, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>", 
-  eval = TRUE
+  eval = TRUE,
+  global = TRUE
 )
 ```
 
