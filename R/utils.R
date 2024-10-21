@@ -472,14 +472,15 @@ readCurioSeeker <- function(samples,
 #'
 #' @importFrom jsonlite fromJSON
 #' @importFrom SpatialFeatureExperiment addImg mirrorImg
+#' @importFrom rlang expr
 #'
 #' @export
 load_visium_msfe <- function(dataset) {
   ## Update object name based on the dataset
   if (dataset == "lung") {
-    object_name <- "msfe_2"
+    object_name <- rlang::expr(`msfe_2`)
   } else if (dataset == "prostate") {
-    object_name <- "msfe"
+    object_name <- rlang::expr(`msfe`)
   } else {
     stop("Unsupported dataset. Please choose either 'lung' or 'prostate'.")
   }
