@@ -480,18 +480,14 @@ load_visium_msfe <- function(dataset) {
   if (dataset == "lung") {
     object_name <- "msfe_2"
     data("msfe_2", package = "STExplorer",
-         envir = .GlobalEnv, verbose = TRUE)
+         envir = .GlobalEnv, verbose = FALSE)
   } else if (dataset == "prostate") {
     object_name <- "msfe"
     data("msfe", package = "STExplorer",
-         envir = .GlobalEnv, verbose = TRUE)
+         envir = .GlobalEnv, verbose = FALSE)
   } else {
     stop("Unsupported dataset. Please choose either 'lung' or 'prostate'.")
   }
-
-  ## Use the `data` function to load the object
-  # data("msfe_2", package = "STExplorer",
-  #      envir = .GlobalEnv, verbose = TRUE)
 
   ## The object is now loaded into the environment, but we need to assign it to a variable
   msfe <- get(object_name, envir = .GlobalEnv)
