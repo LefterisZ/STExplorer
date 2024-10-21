@@ -478,16 +478,20 @@ readCurioSeeker <- function(samples,
 load_visium_msfe <- function(dataset) {
   ## Update object name based on the dataset
   if (dataset == "lung") {
-    object_name <- rlang::expr(`msfe_2`)
+    object_name <- "msfe_2"
+    data("msfe_2", package = "STExplorer",
+         envir = .GlobalEnv, verbose = TRUE)
   } else if (dataset == "prostate") {
-    object_name <- rlang::expr(`msfe`)
+    object_name <- "msfe"
+    data("msfe", package = "STExplorer",
+         envir = .GlobalEnv, verbose = TRUE)
   } else {
     stop("Unsupported dataset. Please choose either 'lung' or 'prostate'.")
   }
 
   ## Use the `data` function to load the object
-  data(object_name, package = "STExplorer",
-       envir = .GlobalEnv, verbose = TRUE)
+  # data("msfe_2", package = "STExplorer",
+  #      envir = .GlobalEnv, verbose = TRUE)
 
   ## The object is now loaded into the environment, but we need to assign it to a variable
   msfe <- get(object_name, envir = .GlobalEnv)
