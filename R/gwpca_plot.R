@@ -937,6 +937,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
 #'                   the ENSG IDs you provided in the `genes` argument.
 #'                   IMPORTANT: the order of names must match that of the ENSG
 #'                   IDs.
+#' @param absolute TRUE/FALSE. Absolute leading scores or not?
 #'
 #' @details
 #' About using custom colours:
@@ -962,7 +963,8 @@ plotGWPCA_leadingScores <- function(gwpca,
                                     type = c("spot", "hex"),
                                     colours = c("viridis", "custom"),
                                     col_args = list(),
-                                    gene_names) {
+                                    gene_names,
+                                    absolute = FALSE) {
   ## DEV. NOTE: maybe add a locs argument to give specific locations for which
   ## to collect data and make the plot?
 
@@ -983,7 +985,8 @@ plotGWPCA_leadingScores <- function(gwpca,
                               comps = comps,
                               genes = genes,
                               type = type,
-                              gene_names = gene_names)
+                              gene_names = gene_names,
+                              absolute = absolute)
 
   ## Set some defaults if not provided
   if (missing(colours)) {
@@ -1003,12 +1006,19 @@ plotGWPCA_leadingScores <- function(gwpca,
 
   if (colours == "viridis") { # Which colours?
     p <- p + do.call(scale_fill_viridis_c, c(list(), col_args))
-  } else if (colours == "custom") {
+  } else if (absolute & colours == "custom") {
     p <- p + do.call(scale_fill_gradientn, c(list(), col_args))
+  } else if (!absolute & colours == "custom") {
+    p <- p + do.call(scale_fill_gradient2, c(list(), col_args))
+  }
+
+  if (absolute) {
+    p <-  p + ggplot2::labs(fill = "Absolute\nLeading\nscore")
+  } else {
+    p <-  p + ggplot2::labs(fill = "Leading\nscore")
   }
 
   p + # finalise plot
-    ggplot2::labs(fill = "Absolute\nLeading\nscore") +
     ggplot2::coord_sf() +
     ggplot2::theme_void()
 }
@@ -1104,6 +1114,8 @@ plotGWPCA_leadingScores <- function(gwpca,
 #' @param type Character vector specifying the type of spatial data
 #'             to use. Options are "spot" for spot geometry and "hex"
 #'             for hexagon geometry.
+#' @param gene_names The gene names
+#' @param absolute TRUE/FALSE. Absolute leading scores or not?
 #'
 #' @return A data frame containing leading score gene data prepared for
 #'         plotting on a map.
@@ -1123,7 +1135,8 @@ plotGWPCA_leadingScores <- function(gwpca,
                                 genes,
                                 comps,
                                 type,
-                                gene_names) {
+                                gene_names,
+                                absolute) {
   genes_ar <- gwpca$loadings[, genes, comps, drop = FALSE]
 
   if (!is.null(gene_names)) {
@@ -1145,10 +1158,10 @@ plotGWPCA_leadingScores <- function(gwpca,
                         values_to = "leadScore") %>%
     dplyr::mutate(leadScore = abs(leadScore))
 
-  if (!is.null(gene_names)) {
-    out <- out %>%
-      dplyr::mutate(gene = factor(gene, levels = gene_names))
-  }
+#   if (!is.null(gene_names)) {
+#     out <- out %>%
+#       dplyr::mutate(gene = factor(gene, levels = gene_names))
+#   }
 
   return(out)
 }
