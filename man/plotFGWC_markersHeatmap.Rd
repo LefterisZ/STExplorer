@@ -11,6 +11,8 @@ plotFGWC_markersHeatmap(
   markers,
   cluster_no,
   cutree_cols = NA,
+  annot_colours = NULL,
+  ph.color = NULL,
   ...
 )
 }
@@ -27,6 +29,14 @@ and Subtype.}
 \item{cluster_no}{The cluster number for which the heatmap is generated.}
 
 \item{cutree_cols}{Optional, cutree result for columns.}
+
+\item{annot_colours}{Annotation colours passed to the \code{annotation_colors}
+argument of \code{pheatmap}. Default is NULL and colours are automatically
+selected. If you wish to provide your own colours make sure is in a named
+list like this one: list(Type = c(colours here), Subtype = c(colours here)).}
+
+\item{ph.color}{A colour vector used in heatmap. Passed to the \code{color}
+argument in \code{pheatmap}. More info in \code{?pheatmap}.}
 
 \item{...}{Arguments passed to \code{pheatmap}.}
 }
@@ -55,7 +65,7 @@ plotFGWC_markersHeatmap(fgwc_result, m_sfe, sample_id, markers_data, cluster_no)
 }
 \seealso{
 \code{\link{fgwc_nmf}}, \code{\link{plotFGWC_single}},
-\code{\link{plotFGWC_multi}}
+\code{\link{plotFGWC_multi}}, \code{\link{pheatmap}}
 
 Other plotting functions: 
 \code{\link{plotFGWC_multiMap}()},

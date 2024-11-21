@@ -1,88 +1,68 @@
 
-![STExplorer](vignettes/images/STExplorer_logo_hex.png)
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# STExplorer v1
+# STExplorer
 
 <!-- badges: start -->
-![GitHub R package version](https://img.shields.io/github/r-package/v/LefterisZ/STExplorer)
-![GitHub branch status](https://img.shields.io/github/checks-status/LefterisZ/STExplorer/main)
-![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/LefterisZ/STExplorer)
-![CRAN Version](https://www.r-pkg.org/badges/version/STExplorer)
+
+[![GitHub
+issues](https://img.shields.io/github/issues/LefterisZ/STExplorer)](https://github.com/LefterisZ/STExplorer/issues)
+[![GitHub
+pulls](https://img.shields.io/github/issues-pr/LefterisZ/STExplorer)](https://github.com/LefterisZ/STExplorer/pulls)
 <!-- badges: end -->
 
-The goal of STExplorer is to utilise Geography's spatial data analysis techniques to perform spatially-aware analysis of spatial transcriptomics data. 
+The goal of `STExplorer` is to utilise Geography’s spatial data analysis
+techniques to perform spatially-aware analysis of spatial
+transcriptomics data.
 
-## Installation
+## Installation instructions
 
-### GitHub Development version
-You can install the development version of STExplorer from [GitHub](https://github.com/) with:
+Get the latest stable `R` release from
+[CRAN](http://cran.r-project.org/). Then install `STExplorer` from
+[Bioconductor](http://bioconductor.org/) using the following code:
+
+This option is still **NOT** available. Please use the GitHub
+installation from below. The package is Bioconductor-compatible and we
+are working towards submitting it to Bioconductor as soon as possible.
 
 ``` r
-# To install the package run the below:
-# install.packages("devtools")
-devtools::install_github("LefterisZ/STExplorer")
+# if (!requireNamespace("BiocManager", quietly = TRUE)) {
+#     install.packages("BiocManager")
+# }
+# 
+# BiocManager::install("STExplorer")
 ```
 
-### Bioconductor stable version
-This option is still **NOT** available. Please use the GitHub installation from above. The package is Bioconductor-compatible and we are working towards submitting it to Bioconductor as soon as possible.
-You will be able to install the stable version of STExplorer from [Bioconductor](https://bioconductor.org/) with:
+And the development version from
+[GitHub](https://github.com/LefterisZ/STExplorer) with:
 
 ``` r
-# To install the package run the below:
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("STExplorer")
-```
-## Loading
-
-To load the package in R (or RStudio) follow the usual route:
-
-``` r
-# Load package to use it
-library(STExplorer)
+BiocManager::install("LefterisZ/STExplorer")
 ```
 
 ## Example
 
-The package includes a comprehensive set of vignettes with a variety of examples and use cases. Please refer to the vignettes.
+The package includes a comprehensive set of vignettes with a variety of
+examples and use cases. Please refer to the vignettes.
 
-# Release Notes
-## Version 1.0.0
-This is the release version of STExplorer (*as of /10/2024*)
+## Citation
 
-In this version STExplorer includes the below functionalities: 
+Below is the citation output from using `citation('STExplorer')` in R.
+Please run this yourself to check for any updates on how to cite
+**STExplorer**.
 
-1. Analysis methods
-    - Geographically Weighted PCA (GWPCA)
-    - Fuzzy Geographically Weighted Clustering (FGWC)
-    - Geographically Weighted Regression (GWR)
-    - Spatial Autocorrelation (SA) statistics [Global and Local]
-      - Moran's I
-      - Getis & Ord's G
-      - Geary's C
-2. Infrastructure
-    - Utilises [SpatialFeatureExperiment](https://bioconductor.org/packages/devel/bioc/html/SpatialFeatureExperiment.html) (SFE) package for the data structure
-    - Introduces the MetaSpatialFeatureExperiment S4 class objects which are essentially lists of SFE objects expected to include one sample each. This is done to allow smooth operation of STExplorer's geospatial methods.
-3. Dependencies on geospatial packages
-    - [spdep](https://cran.r-project.org/web/packages/spdep/index.html)
-    - [sf](https://cran.r-project.org/web/packages/sf/index.html)
-    - [GWmodel](https://cran.r-project.org/web/packages/GWmodel/index.html)
-4. Dependencies on other single cell/spatial omics packages
-    - [scran](https://bioconductor.org/packages/release/bioc/html/scran.html) used in modelling gene variance and selecting high variable genes
-    - [scater](https://bioconductor.org/packages/release/bioc/html/scater.html) used in adding QC metrics in col- and rowData
-5. Interoperability
-    - Vignette explaining how STExplorer can work around [Seurat](https://satijalab.org/seurat/).
-6. Examples of use
-    - Vignette 1: STExplorer structure
-    - Vignette 2: STExplorer pipeline with comments on the process
-    - Vignette 3: STExplorer pipeline without comments (for those who are busy)
-    - Vignette 4: GWPCA in detail
-    - Vignette 5: FGWC in detail
-    - Vignette 6: GWR in detail
-    - Vignette 7: SA in detail
-5. Future/upcoming work
-    - Submission to Bioconductor (however the package is compatible with other Bioconductor packages)
-    - Introduce more vignettes analysing other data types (VisiumHD, Xenium, CosMx, etc.)
+``` r
+print(citation('STExplorer'), bibtex = TRUE)
+#> <0-length citation>
+```
 
+Please note that the `STExplorer` was only made possible thanks to many
+other R and bioinformatics software authors, which are cited either in
+the vignettes and/or the paper(s) describing this package.
 
+## Code of Conduct
+
+Please note that the `STExplorer` project is released with a
+[Contributor Code of
+Conduct](http://bioconductor.org/about/code-of-conduct/). By
+contributing to this project, you agree to abide by its terms.

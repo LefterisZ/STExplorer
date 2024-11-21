@@ -957,7 +957,7 @@ fgwcuvSTE <- function(data,
     old_uij <- matrix(0, n, ncluster)
     ## Start the iterative process.
     while (max(abs(uij - old_uij)) > error && iter < max.iter) {
-      message("Iteration: ", iter, "/", max.iter)
+      # message("Iteration: ", iter, "/", max.iter) --> used for troubleshooting
       ## Update 'old_uij' to keep the previous state of 'uij' to compare changes between iterations.
       old_uij <- uij
       ## Compute the new centroids 'vi' using the current state of 'uij'.
@@ -1552,20 +1552,21 @@ abcfgwcSTE <- function(data,
   index_data$FPC <- (index_data$FPC - min(index_data$FPC)) /
     (max(index_data$FPC) - min(index_data$FPC))
 
-  index_data$CE <- (max(index_data$CE) - index_data$CE) /
-    (max(index_data$CE) - min(index_data$CE))
-
   index_data$SC <- (index_data$SC - min(index_data$SC)) /
     (max(index_data$SC) - min(index_data$SC))
+
+  index_data$CE <- (max(index_data$CE) - index_data$CE) /
+    (max(index_data$CE) - min(index_data$CE))
 
   index_data$XB <- (max(index_data$XB) - index_data$XB) /
     (max(index_data$XB) - min(index_data$XB))
 
-  ## Calculate a composite score for each k
-  index_data$CompositeScore <- Rfast::rowmeans(index_data[,c("FPC", "CE", "SC", "XB")])
+  ## Convert to matrix --> solving Rfast::rowmeans error:
+  ### Not compatible with requested type: [type=list; target=double]
+  index_data_mtx <- as.matrix(index_data[, c("FPC", "CE", "SC", "XB")])
 
-  ## Delete after
-  # assign("index_data", index_data, envir = .GlobalEnv)
+  ## Calculate a composite score for each k
+  index_data$CompositeScore <- Rfast::rowmeans(index_data_mtx)
 
   ## Format data frame
   index_data <- data.frame(k = index_data$k,

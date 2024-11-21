@@ -303,6 +303,8 @@ plotFGWC_multiViolin <- function(fgwc, m_sfe, sample_id = NULL) {
 #'   Defaults to `"none"`.
 #' @param subset_row subset rows (locations) using a boolean vector of length
 #' equal to the number of locations.
+#' @param colour The colour parameter passed to the `colour` argument in
+#' `pheatmap`.
 #' @param ... Arguments passed to `pheatmap`.
 #'
 #' @returns A heatmap plot of cluster membership % with optional annotations.
@@ -328,6 +330,7 @@ plotFGWC_multiHeatmap <- function(fgwc,
                                   order_rows = c("annotation", "cluster",
                                                  "none"),
                                   subset_row = NULL,
+                                  colour = NULL,
                                   ...) {
   ## Check fgwc argument is of class fgwc
   .int_checkFGWCClass(fgwc)
@@ -340,16 +343,18 @@ plotFGWC_multiHeatmap <- function(fgwc,
     order_rows <- "none"
   }
   scale <- "none" # not yet sure whether the user needs to have power over that
-  colour <- rev(cols4all::c4a(palette = "viridis.viridis", n = 9))
+  if (is.null(colour)) {
+    colour <- cols4all::c4a(palette = "matplotlib.viridis", n = 100)
+  }
 
   ## Prepare data for heatmap
   data_in <- .int_getMembershipData(fgwc = fgwc, subset_row = subset_row)
 
   ## Prepare location annotations
   if (loc_annot != "none") {
-    if (loc_annot == "both") {
-      loc_annot <- c("annotation", "cluster")
-    }
+    # if (loc_annot == "both") {
+    #   loc_annot <- c("annotation", "cluster")
+    # }
     annotations_and_colours <- .int_getAnnotsAndColoursFGWC(fgwc = fgwc,
                                                             loc_annot = loc_annot,
                                                             order_rows = order_rows)
@@ -1053,6 +1058,12 @@ plotFGWC_pie <- function(fgwc,
 #' and Subtype.
 #' @param cluster_no The cluster number for which the heatmap is generated.
 #' @param cutree_cols Optional, cutree result for columns.
+#' @param annot_colours Annotation colours passed to the `annotation_colors`
+#' argument of `pheatmap`. Default is NULL and colours are automatically
+#' selected. If you wish to provide your own colours make sure is in a named
+#' list like this one: list(Type = c(colours here), Subtype = c(colours here)).
+#' @param ph.color A colour vector used in heatmap. Passed to the `color`
+#' argument in `pheatmap`. More info in `?pheatmap`.
 #' @param ... Arguments passed to `pheatmap`.
 #'
 #' @return A pheatmap object.
@@ -1071,7 +1082,7 @@ plotFGWC_pie <- function(fgwc,
 #'
 #' @seealso
 #' \code{\link{fgwc_nmf}}, \code{\link{plotFGWC_single}},
-#' \code{\link{plotFGWC_multi}}
+#' \code{\link{plotFGWC_multi}}, \code{\link{pheatmap}}
 #'
 #' @details
 #' Additional details about the function or its behaviour can be added here.
@@ -1091,6 +1102,8 @@ plotFGWC_markersHeatmap <- function(fgwc,
                              markers,
                              cluster_no,
                              cutree_cols = NA,
+                             annot_colours = NULL,
+                             ph.color = NULL,
                              ...) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
@@ -1126,22 +1139,38 @@ plotFGWC_markersHeatmap <- function(fgwc,
   annot_row <- annot_row %>%
     filter(rownames(.) %in% rownames(pheat_in)) %>%
     arrange(.data[["Type"]])
-  col_type <- length(unique(markers$Type))
-  col_subT <- length(unique(markers$Subtype))
-  annot_colours <- list(Type = getColours(col_type),
-                        Subtype = c4a(palette = "carto.pastel", n = col_subT))
-  names(annot_colours$Type) <- unique(markers$Type)
-  names(annot_colours$Subtype) <-  unique(markers$Subtype)
+  ## Set default colours if not provided
+  if (is.null(annot_colours)) {
+    types <- unique(annot_row$Type)
+    subT <- unique(annot_row$Subtype)
+    col_type <- length(types)
+    col_subT <- length(subT)
+    annot_colours <- list(Type = c4a(palette = "carto.pastel", n = col_type),
+                          Subtype = getColours(col_subT))
+    names(annot_colours$Type) <- types
+    names(annot_colours$Subtype) <- subT
+  } else { # if a coloured list is provided
+    ## Remove labels that are not in the input due to genes not being present
+    types <- unique(annot_row$Type)
+    subT <- unique(annot_row$Subtype)
+    keep_t <- names(annot_colours[["Type"]]) %in% types
+    keep_sT <- names(annot_colours[["Subtype"]]) %in% subT
+    annot_colours[["Type"]] <- annot_colours[["Type"]][keep_t]
+    annot_colours[["Subtype"]] <- annot_colours[["Subtype"]][keep_sT]
+  }
+
 
   ## group rows
   gaps_row <- utils::head(as.numeric(cumsum(table(annot_row$Type))), -1)
 
   ## Heatmap colour and set it around zero
   paletteLength <- 25
-  c4a_palette <- c4a(palette = "tol.sunset")[c(1,5,9)]
+  if (is.null(ph.color)) {
+    c4a_palette <- c4a(palette = "tol.sunset")[c(1,5,9)]
   ph.color <- colorRampPalette(c(c4a_palette[1],
                                  "white",
                                  c4a_palette[3]))(paletteLength)
+  }
   ph.breaks <- c(seq(min(pheat_in),
                      0,
                      length.out = ceiling(paletteLength/2) + 1),
@@ -1193,6 +1222,7 @@ plotFGWC_markersHeatmap <- function(fgwc,
 #'
 #' @importFrom sf st_polygon
 #' @importFrom ggplot2 scale_colour_manual
+#' @importFrom dplyr rename
 #'
 #' @examples
 #' \dontrun{
@@ -1208,9 +1238,13 @@ plotFGWC_markersHeatmap <- function(fgwc,
 #' @author Eleftherios (Lefteris) Zormpas
 #'
 #' @export
-plotFGWC_subClust <- function(heatmap, k, clust,
-                              m_sfe, sample_id,
-                              annot_cols = NULL, subClust_cols = NULL) {
+plotFGWC_subClust <- function(heatmap,
+                              k,
+                              clust,
+                              m_sfe,
+                              sample_id,
+                              annot_cols = NULL,
+                              subClust_cols = NULL) {
   ## Plot sub-clusters in map
 
   ## Check SFE or MSFE?
@@ -1228,7 +1262,7 @@ plotFGWC_subClust <- function(heatmap, k, clust,
     Barcode = rownames(sfe_data),
     geometry = spot_hex_geometry,
     gTruth = sfe_data$annotation,
-    geometry_subC = spot_hex_geometry
+    geometry_subC = spot_hex_geometry[["geometry"]]
   ) %>%
     dplyr::left_join(subclusts, by = "Barcode") %>%
     dplyr::mutate(
@@ -1236,7 +1270,7 @@ plotFGWC_subClust <- function(heatmap, k, clust,
                         paste0(clust, LETTERS[.data$subclust]),
                         NA)
     ) %>%
-    rename("geometry_subC" = "geometry.1")
+    dplyr::rename("geometry_subC" = "geometry.1")
   subclust_map$geometry_subC[is.na(subclust_map$subclust)] <- st_polygon()
 
   ## Extract colours
@@ -1287,6 +1321,12 @@ plotFGWC_subClust <- function(heatmap, k, clust,
 #' generated.
 #' @param cutree_cols Number of columns for cutree to cut the sample tree of the
 #'  heatmap. If NA, the tree will not be cut.
+#' @param annot_colours Annotation colours passed to the `annotation_colors`
+#' argument of `pheatmap`. Default is NULL and colours are automatically
+#' selected. If you wish to provide your own colours make sure is in a named
+#' list like this one: list(Type = c(colours here), Subtype = c(colours here)).
+#' @param ph.color A colour vector used in heatmap. Passed to the `color`
+#' argument in `pheatmap`. More info in `?pheatmap`.
 #' @param ... Arguments passed to `pheatmap`.
 #'
 #' @return A pheatmap object representing the gene expression heatmap for the
@@ -1317,6 +1357,8 @@ plotFGWC_subHeatmap <- function(heatmap,
                                 sample_id,
                                 cluster_no,
                                 cutree_cols = NA,
+                                annot_colours = NULL,
+                                ph.color = NULL,
                                 ...) {
   ## Check SFE or MSFE?
   sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
@@ -1346,23 +1388,38 @@ plotFGWC_subHeatmap <- function(heatmap,
   ## Remove genes that might not be present in the input
   annot_row <- annot_row %>%
     filter(rownames(.) %in% rownames(pheat_in)) %>%
-    arrange(.data$Type)
-  col_type <- length(unique(markers$Type))
-  col_subT <- length(unique(markers$Subtype))
-  annot_colours <- list(Type = getColours(col_type),
-                        Subtype = c4a(palette = "carto.pastel", n = col_subT))
-  names(annot_colours$Type) <- unique(markers$Type)
-  names(annot_colours$Subtype) <-  unique(markers$Subtype)
+    arrange(.data[["Type"]])
+  ## Set default colours if not provided
+  if (is.null(annot_colours)) {
+    types <- unique(annot_row$Type)
+    subT <- unique(annot_row$Subtype)
+    col_type <- length(types)
+    col_subT <- length(subT)
+    annot_colours <- list(Type = c4a(palette = "carto.pastel", n = col_type),
+                          Subtype = getColours(col_subT))
+    names(annot_colours$Type) <- types
+    names(annot_colours$Subtype) <- subT
+  } else { # if a coloured list is provided
+    ## Remove labels that are not in the input due to genes not being present
+    types <- unique(annot_row$Type)
+    subT <- unique(annot_row$Subtype)
+    keep_t <- names(annot_colours[["Type"]]) %in% types
+    keep_sT <- names(annot_colours[["Subtype"]]) %in% subT
+    annot_colours[["Type"]] <- annot_colours[["Type"]][keep_t]
+    annot_colours[["Subtype"]] <- annot_colours[["Subtype"]][keep_sT]
+  }
 
   ## group rows
   gaps_row <- utils::head(as.numeric(cumsum(table(annot_row$Type))), -1)
 
   ## Heatmap colour and set it around zero
   paletteLength <- 25
-  c4a_palette <- c4a(palette = "tol.sunset")[c(1,5,9)]
-  ph.color <- colorRampPalette(c(c4a_palette[1],
-                                 "white",
-                                 c4a_palette[3]))(paletteLength)
+  if (is.null(ph.color)) {
+    c4a_palette <- c4a(palette = "tol.sunset")[c(1,5,9)]
+    ph.color <- colorRampPalette(c(c4a_palette[1],
+                                   "white",
+                                   c4a_palette[3]))(paletteLength)
+  }
   ph.breaks <- c(seq(min(pheat_in),
                      0,
                      length.out = ceiling(paletteLength/2) + 1),
@@ -1802,8 +1859,17 @@ plotFGWC_subHeatmap <- function(heatmap,
 #'
 .int_removeDuplicates <- function(markers, column) {
   markers <- markers %>%
-    dplyr::mutate(dups = BiocGenerics::duplicated({{ column }})) %>%
+    dplyr::mutate(dups = BiocGenerics::duplicated(.data[[column]])) %>%
     dplyr::filter(!.data$dups)
+
+  ## solution to append a number after every duplicate from here
+  ## https://stackoverflow.com/questions/72701949/iterate-through-a-column-for-duplicates-append-a-number-to-duplicate-column-val:
+  # df |>
+  #   mutate(dupl = if_else(duplicated(Promoter), 1, 0)) |>
+  #   group_by(Promoter) |>
+  #   mutate(dupl = cumsum(dupl),
+  #          Promoter = paste(Promoter, dupl, sep = "_")) |>
+  #   select(-dupl)
 
   return(markers)
 }
@@ -1858,7 +1924,7 @@ plotFGWC_subHeatmap <- function(heatmap,
 #'
 .int_getColSubset <- function(no1, no2) {
   colours <- getColours(no1 + no2)
-  out <- colours[no2:length(colours)]
+  out <- colours[(no1+1):length(colours)]
 
   return(out)
 }

@@ -9,7 +9,7 @@ author:
     affiliation:
       - "School of Biomedical, Nutritional and Sport Sciences, Newcastle University, UK"
     email: simon.cockell@newcastle.ac.uk
-# package: STExplorerDev
+package: STExplorer
 output: 
   BiocStyle::html_document:
     toc_float: true
@@ -23,7 +23,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>", eval = FALSE
+  comment = "#>", 
+  eval = TRUE
 )
 ```
 
@@ -42,20 +43,20 @@ Welcome to the vignette of STExplorer. STExplorer is a package the performs geog
 
 
 ## To install the development version of the package form GitHub run the below:
-if (!require("devtools", quietly = TRUE))
-    install.packages("devtools")
+# if (!require("devtools", quietly = TRUE))
+#     install.packages("devtools")
+# 
+# devtools::install_github("LefterisZ/STExplorer",
+#                          force = TRUE)
 
-devtools::install_github("LefterisZ/STExplorer",
-                         auth_token = AUTH_TOKEN,
-                         force = TRUE)
-
-
-## To load the package use:
-library(STExplorer)
 ```
 
 ```{r setup, echo=FALSE, eval=FALSE, message=FALSE}
+## To load the package use:
+library(STExplorer)
+## Additional packages for the vignette:
 library(readr)
+library(RColorBrewer)
 # library(SpatialFeatureExperiment)
 # library(tidyverse)
 # library(scran)
@@ -76,7 +77,6 @@ library(readr)
 # library(parallel)
 # library(cols4all)
 # library(pheatmap)
-library(RColorBrewer)
 ```
 
 The STExplorer package utilises methods from Geography's spatial data analysis techniques and packages to perform a spatially-aware and spatially-weighted analysis of spatial transcriptomics data. Below is a series of packages from the field of Geography that STExplorer depends on in one way or another.
@@ -972,10 +972,10 @@ If no subtype exists, add an empty character string using: `""`.
 
 ```{r fgwc_plot-heatmap}
 ## Load the liver markers example dataset
-# markers <- data(markers)
+data(markers)
 
 ## Plot the heatmap
-heatmap <- plotFGWC_markersHeatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 2, cutree_cols = 5)
+heatmap <- plotFGWC_markersHeatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "Fibrotic", markers = markers, cluster_no = 2, cutree_cols = 5)
 
 ```
 

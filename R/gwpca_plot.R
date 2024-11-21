@@ -1124,7 +1124,7 @@ plotGWPCA_leadingScores <- function(gwpca,
                                 comps,
                                 type,
                                 gene_names) {
-  genes_ar <- gwpca$loadings[,genes,comps]
+  genes_ar <- gwpca$loadings[, genes, comps, drop = FALSE]
 
   if (!is.null(gene_names)) {
     if (is.character(gene_names)) {
@@ -1145,9 +1145,9 @@ plotGWPCA_leadingScores <- function(gwpca,
                         values_to = "leadScore") %>%
     dplyr::mutate(leadScore = abs(leadScore))
 
-  if (gene_names) {
+  if (!is.null(gene_names)) {
     out <- out %>%
-      dplyr::mutate()
+      dplyr::mutate(gene = factor(gene, levels = gene_names))
   }
 
   return(out)

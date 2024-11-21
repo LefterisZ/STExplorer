@@ -490,7 +490,7 @@ load_visium_msfe <- function(dataset) {
   }
 
   ## The object is now loaded into the environment, but we need to assign it to a variable
-  msfe <- get(object_name, envir = .GlobalEnv)
+  msfe <- get(object_name, pos = .GlobalEnv)
 
   ## Get the sample names and directories
   sampleNames <- unlist(msfe@sample_ids)

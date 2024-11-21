@@ -676,8 +676,13 @@ wpca.ste <- function(x, wt, ...) {
 #'
 robustSvd.ste <- function(x, alpha = 0.75) {
   cov_matrix <- covMcd(x, alpha = alpha)$cov
-  pc <- princomp(covmat = cov_matrix)
-  return(list(v = pc$loadings, d = pc$sdev))
+  if (nrow(x) >= ncol(x)) {
+    pc <- princomp(covmat = cov_matrix)
+    return(list(v = pc$loadings, d = pc$sdev))
+  } else {
+    pc <- prcomp(covmat = cov_matrix)
+    return(list(v = pc$rotation, d = pc$sdev))
+  }
 }
 # ---------------------------------------------------------------------------- #
 #' Calculate a distance weighted median for use in Robust WPCA.
@@ -885,7 +890,7 @@ int.gwpca.FLoop <- function(i,
 #'
 #' @returns A list of class "gwpca".
 #'
-#' @importFrom stats princomp
+#' @importFrom stats princomp prcomp
 #' @importFrom foreach foreach
 #' @importFrom Matrix rowSums
 #' @importFrom sp SpatialPointsDataFrame
@@ -979,7 +984,12 @@ int.gwpca <- function(.sfe,
   }
 
   ## Run a global PCA
-  pca.res <- princomp(x, cor = TRUE, scores = .scores)
+  if (nrow(x) >= ncol(x)) {
+    pca.res <- princomp(x, cor = TRUE, scores = .scores)
+  } else {
+    pca.res <- prcomp(base::scale(x), scale = FALSE)
+    .scores <- FALSE
+  }
 
   ## Pre-allocate memory for the loop
   w <- array(data = NA, c(ep.n, var.n, .k))
@@ -991,7 +1001,7 @@ int.gwpca <- function(.sfe,
   }
 
   ## Select the type of WPCA
-  if (.robust == FALSE) {
+  if (!.robust) {
     pcafun = wpca.ste
   } else {
     pcafun = rwpca.ste

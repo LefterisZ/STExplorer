@@ -12,6 +12,8 @@ plotFGWC_subHeatmap(
   sample_id,
   cluster_no,
   cutree_cols = NA,
+  annot_colours = NULL,
+  ph.color = NULL,
   ...
 )
 }
@@ -33,6 +35,14 @@ generated.}
 
 \item{cutree_cols}{Number of columns for cutree to cut the sample tree of the
 heatmap. If NA, the tree will not be cut.}
+
+\item{annot_colours}{Annotation colours passed to the \code{annotation_colors}
+argument of \code{pheatmap}. Default is NULL and colours are automatically
+selected. If you wish to provide your own colours make sure is in a named
+list like this one: list(Type = c(colours here), Subtype = c(colours here)).}
+
+\item{ph.color}{A colour vector used in heatmap. Passed to the \code{color}
+argument in \code{pheatmap}. More info in \code{?pheatmap}.}
 
 \item{...}{Arguments passed to \code{pheatmap}.}
 }

@@ -510,9 +510,9 @@ plotHeatmap <- function(m_sfe,
   ## Plot with or without the tissue image
   if (plotImage) {
     ## Get max col value to accurately plot the image
-    max <- image@ptr$range_max[1]
+    max <- image_list[[id]]@ptr$range_max[1]
     if (is.na(max)) {
-      max <- max(image[,,1])
+      max <- max(image_list[[id]][,,1])
     }
     if (max <= 1) {
       max_col_value <- 1

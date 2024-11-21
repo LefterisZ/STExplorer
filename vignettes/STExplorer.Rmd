@@ -33,10 +33,16 @@ Welcome to the vignette of STExplorer. STExplorer is a package the performs geog
 
 This vignette is an introduction to STExplorer's interface as well as to the main geographical components used through the `SpatialFeatureExperiment` objects.
 
-**STExplorer** comes with a set of vignettes to help you get the grips with and understand the methods. ALl vignettes are present in the `vignettes` folder on the GitHub repo. Below is a list of all available vignettes and their content:
+**STExplorer** comes with a set of vignettes to help you get the grips with and understand the methods. All vignettes are present in the `vignettes` folder on the GitHub repo. Below is a list of all available vignettes and their content:
 
 ```         
 vignettes/
+├── STExplorer.Rmd 
+│    --> Start here. General introduction to STExplorer, structure and geometries.
+├── STExplorer_Analysis_commented.Rmd
+│    The pipeline start-to-finish with comments.
+├── STExplorer_Analysis_noComments.Rmd
+│    The pipeline start-to-finish without comments (for those who want to jump into the code).
 ├── STExplorer_Analysis_FGWC.Rmd
 │    Deep dive into FGWC analysis.
 ├── STExplorer_Analysis_GWPCA.Rmd
@@ -45,12 +51,6 @@ vignettes/
 │    Deep dive into GWR analysis.
 ├── STExplorer_Analysis_SA.Rmd
 │    Deep dive into SA statistics.
-├── STExplorer_Analysis_commented.Rmd
-│    The pipeline start-t-finish with comments.
-├── STExplorer_Analysis_noComments.Rmd
-│    The pipeline start-t-finish without comments (for those who want to jump into the code).
-├── STExplorer_Structure.Rmd 
-│    --> Start here. General introduction to STExplorer, structure and geometries.
 └── STExplorer_and_Seurat.Rmd
      About working with Seurat and STExplorer (this vignette wil be updated soon)
 ```
@@ -74,7 +74,13 @@ devtools::install_github("LefterisZ/STExplorer")
 ```
 
 ```{r setup, echo=FALSE, eval=TRUE, message=FALSE}
+## Load STExplorer
 library(STExplorer)
+
+## Load additional pakages for this vignette
+library(SummarizedExperiment)
+library(tidyterra)
+library(ggplot2)
 # library(SpatialFeatureExperiment)
 # library(tidyverse)
 # library(scran)
@@ -83,8 +89,6 @@ library(STExplorer)
 # library(sf)
 # library(spdep)
 # library(GWmodel)
-# library(tidyterra)
-# library(ggplot2)
 # library(igraph)
 # library(pheatmap)
 # library(ggExtra)
@@ -253,7 +257,7 @@ However, such objects:
 
 ## MetaSpatialFeatureExperiment class
 
-For the purpose of the analyses performed by STExplorer we decided to "expand" the SFE object but allow it to operate within the Bioconductor environment. The `MetaSpatialFeatureExperiment` object class or `MSFE`, is nothing more than a list of `SFE` objects. Despite the fact that an `SFE` object can encompass multiple samples (tissue slices), in an `MSFE` object, each `SFE` object contains only one sample. There are some opinionated reasons why we did this which we will explain later.
+For the purpose of the analyses performed by STExplorer we decided to *"expand"* the SFE object but allow it to operate within the Bioconductor environment. The `MetaSpatialFeatureExperiment` object class or `MSFE`, is nothing more than a list of `SFE` objects. Despite the fact that an `SFE` object can encompass multiple samples (tissue slices), in an `MSFE` object, each `SFE` object contains only one sample. There are some opinionated reasons why we did this which we will explain later.
 
 An overview of the `SpatialFeatureExperiment` object structure is presented in \@ref(fig:MSpFeExp-overview) below.
 
@@ -318,7 +322,7 @@ SummarizedExperiment::assayNames(sfe)
 
 ```{r 01_counts-inspect, message=FALSE}
 ## Have a look at the counts table
-assay(sfe)[1:6,1:4]
+SummarizedExperiment::assay(sfe)[1:6,1:4]
 ```
 
 As we can see here the counts table is an object of class `dgTMatrix` which is a sparse matrix. This is because much like scRNA-seq data, STx data include many zeros. As a result, to make the counts table as light as possible we resort to using sparse matrices. This next code chunk examines a part of the matrix that includes genes with some level of expression:

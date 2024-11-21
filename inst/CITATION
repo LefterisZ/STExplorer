@@ -1,0 +1,26 @@
+citHeader("To cite Seurat in publications, please use:")
+
+bibentry(
+  bibtype  = "article",
+  author   = c(
+  as.person("Eleftherios Zormpas"),
+  as.person("Nikolaos I. Vlachogiannis"),
+  as.person("Anastasia Resteu"),
+  as.person("Adrienne Unsworth"),
+  as.person("Simon Tual-Chalot"),
+  as.person("Birthe Dorgau"),
+  as.person("Rachel Queen"),
+  as.person("Majlinda Lako"),
+  as.person("Alexis Comber"),
+  as.person("Quentin M. Anstee"),
+  as.person("Antonis Giakountis"),
+  as.person("Simon J. Cockell")
+  ),
+  title    = "STExplorer: Navigating the Micro-Geography of Spatial Omics Data",
+  journal  = "",
+  year     = "2024",
+  doi      = "",
+  url      = "",
+  textVersion = "Zormpas et al. STExplorer: Navigating the Micro-Geography of Spatial Omics Data. "" (2024) [STExplorer V1]
+)
+

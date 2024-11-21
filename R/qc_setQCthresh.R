@@ -998,11 +998,14 @@ setQCtoDiscard_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' @rdname dot-int_custom_1
 #'
 .int_custom_1 <- function(sfe, qcMetric, qc_name) {
-  # id <- unique(sfe$sample_id)
-  #
-  # qcMetric <- qcMetric[[id]]
+  ## Extract sample ID from the SFE object
+  id <- unique(sfe$sample_id)
 
-  rowData(sfe)[[qc_name]] <- qcMetric
+  ## Check if qcMetric is a list; if so, extract the correct vector
+  qcMetric_for_sample <- .int_get_qcMetric_for_sample(qcMetric, id)
+
+  ## Apply the QC metric to the rowData of the SFE object
+  rowData(sfe)[[qc_name]] <- qcMetric_for_sample
 
   return(sfe)
 }
@@ -1035,11 +1038,26 @@ setQCtoDiscard_feat.MetaSpatialFeatureExperiment <- function(m_sfe,
 #' @rdname dot-int_custom_2
 #'
 .int_custom_2 <- function(sfe, qcMetric, qc_name) {
+  ## Extract sample ID from the SFE object
   id <- unique(sfe$sample_id)
 
-  qcMetric <- qcMetric[[id]]
+  ## Check if qcMetric is a list; if so, extract the correct vector
+  qcMetric_for_sample <- .int_get_qcMetric_for_sample(qcMetric, id)
 
-  colData(sfe)[[qc_name]] <- qcMetric
+  ## Apply the QC metric to the colData of the SFE object
+  colData(sfe)[[qc_name]] <- qcMetric_for_sample
 
   return(sfe)
+}
+
+#' Internal: Get the qcMetric for the sample
+#'
+#' @author Eleftherios (Lefteris) Zormpas
+#' @rdname dot-int_get_qcMetric_for_sample
+.int_get_qcMetric_for_sample <- function(qcMetric, id = NULL) {
+  if (is.list(qcMetric)) {
+    return(qcMetric[[id]])
+  } else {
+    return(qcMetric)
+  }
 }

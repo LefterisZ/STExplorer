@@ -23,7 +23,10 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>", eval = FALSE
+  comment = "#>", 
+  eval = TRUE,
+  message = FALSE,
+  warning = FALSE
 )
 ```
 
@@ -33,7 +36,7 @@ Welcome to the vignette of STExplorer. STExplorer is a package the performs geog
 
 ## Install/Load package
 
-```{r }
+```{r eval=FALSE}
 ## To install the stable version of the package from Bioconductor run the below:
 # if (!require("BiocManager", quietly = TRUE))
 #     install.packages("BiocManager")
@@ -46,16 +49,17 @@ if (!require("devtools", quietly = TRUE))
     install.packages("devtools")
 
 devtools::install_github("LefterisZ/STExplorer",
-                         auth_token = AUTH_TOKEN,
                          force = TRUE)
 
-
-## To load the package use:
-library(STExplorer)
 ```
 
 ```{r setup, echo=FALSE, eval=FALSE, message=FALSE}
+## To load the package use:
+library(STExplorer)
+## Additional packages for the vignette:
 library(readr)
+library(RColorBrewer)
+library(cols4all)
 # library(SpatialFeatureExperiment)
 # library(tidyverse)
 # library(scran)
@@ -74,9 +78,7 @@ library(readr)
 # library(foreach)
 # library(progressr)
 # library(parallel)
-# library(cols4all)
 # library(pheatmap)
-library(RColorBrewer)
 ```
 
 The STExplorer package utilises methods from Geography's spatial data analysis techniques and packages to perform a spatially-aware and spatially-weighted analysis of spatial transcriptomics data. Below is a series of packages from the field of Geography that STExplorer depends on in one way or another.
@@ -97,13 +99,13 @@ So far we had an introduction to the data structures used in the `STExplorer` an
 
 ## Loading a dataset
 
-For this vignette we will be using the human steatotic liver dataset from the [Liver Atlas](https://livercellatlas.org/index.php) [@GUILLIAMS2022379]. Specifically we use the JBO019 and JBO022 samples (parts of these samples) to showcase the STExplorer use. The JBO019 sample is steatotic (diseased) while the JBO022 is healthy.
+For this vignette we will be using the human fibrotic lung dataset from [Franzen et. al., 2024, Nat. Genet.](https://doi.org/10.1038/s41588-024-01819-2) []. The Healthy and Fibrotic samples here are samples V10T31-015-A1 and V19S23-092-D1 respectively from the publication.
 
 First we generate the `MetaSpatialFeaturesExperiment` (msfe) object which includes two `SpatialFeaturesExperiment` (sfe) objects that include 1 sample each.
 
-**NOTE 1:** At the moment, the SFE class is not behaving right when we include multiple samples in it. It has some problems with saving the images inside RDS/RDA files, subsetting the sfe object and adding annotations inside colData(). It looks like a `SpatialFeatureExperiment` package problem that we don't have the time to investigate further at the moment. As a result, we kindly ask you to use *ONE sfe object for ONE sample*.
+**NOTE 1:** At the moment, we kindly ask you to use *ONE sfe object for ONE sample*.
 
-**NOTE 2:** The `read10xVisiumSFE` function expects a specific folder structure. Please make sure your folders look like this:
+**NOTE 2:** The `read10xVisiumSFE` function is from the `SpatialFeaturesExperiment` package and expects a specific folder structure. Please make sure your folders look like this:
 
 -   data
     -   Healthy
@@ -161,8 +163,7 @@ for (i in seq_along(sampleNames)) {
 ##
 ## If you see this, then it is because of two reasons:
 ##    1. You are missing a folder named 'outs' at the end of the pathway you provided earlier. --> add outs folder
-##    2. If path is correct, then try running it in the console -I don't know why it behaves like 
-##       this-
+##    2. If path is correct, then try running it in the console
 
 ## NOTE1: when formatting the ground truth table to import it make sure that:
 ##      (a) the table includes the column names "Barcode", "sample_id", and "annotation"
@@ -171,16 +172,13 @@ for (i in seq_along(sampleNames)) {
 ##          Remove the "_1" from the end.
 ## NOTE2: make sure at the end to have a separate data frame with annotations per sample.
 ##        Below I am loading them into a list.
-ground_truth <- read_table("../data/test_data/Visium_Human_Liver/spotZonationGroup.txt")
 
-gTruth_list <- list(JBO022 = ground_truth[ground_truth$sample_id == "JBO022",],
-                    JBO019 = ground_truth[ground_truth$sample_id == "JBO019",])
+## Load annotations in the environment
+gTruth_list <- list(Fibrotic = read_csv(system.file("extdata/visium/lung/fibrotic_sample_annotation.csv", package = "STExplorer")),
+                    Healthy = read_csv(system.file("extdata/visium/lung/healthy_sample_annotation.csv", package = "STExplorer"))
+                    )
 
 str(gTruth_list)
-## If the data frames in the list are empty, please check you have no typos in the sample ids.
-## Example. the sample_id names in the .txt file are missing the "0". We can solve this by
-## typing the below command:
-##        ground_truth$sample_id <- gsub("JBO", "JBO0", ground_truth$sample_id)
 ```
 
 ## Spot-level Quality Control
@@ -197,9 +195,9 @@ We can identify low-quality spots using several characteristics that are also us
 
 Low library size or low number of expressed features can indicate poor mRNA capture rates, e.g. due to cell damage and missing mRNAs, or low reaction efficiency. A high proportion of mitochondrial reads indicates cell damage, e.g. partial cell lysis leading to leakage and missing cytoplasmic mRNAs, with the resulting reads therefore concentrated on the remaining mitochondrial mRNAs that are relatively protected inside the mitochondrial membrane. Unusually high numbers of cells per spot can indicate problems during cell segmentation.
 
->**Important consideration:** In this vignette we suggest using quantiles for setting the lower and higher thresholds. This is an attempt to assist in streamlining the QC steps. However, we strongly recomend that you check the QC thresholds individually for each tissue section as it is likely that some of those sections have different QC requirements than the standard suggestions.
+> **Important consideration:** In this vignette we suggest using quantiles for setting the lower and higher thresholds. This is an attempt to assist in streamlining the QC steps. However, we strongly recomend that you check the QC thresholds individually for each tissue section as it is likely that some of those sections have different QC requirements than the standard suggestions.
 
->**Important consideration:** Underfiltering can be as bad as overfiltering your dataset.
+> **Important consideration:** Underfiltering can be as bad as overfiltering your dataset.
 
 The idea of using scRNA-seq QC metrics in STx data comes from the fact that if we remove space and effectively treat each spot as a single cell, the two datasets share common features. We need to bear in mind, however, that the expected distributions for high-quality *spots* are different (compared to high-quality *cells* in scRNA-seq), since spots may contain zero, one, or multiple cells.
 
@@ -207,7 +205,7 @@ A few publications for further reading that can help you understand the quality 
 
 ### Calculating QC metrics
 
-We will calculate the three main QC metrics described above using methods from the `scater` [@McCarthy2017Apr] package, and investigate their influence on the healthy liver (JBO022) dataset with some plots from `STExplorer`, inspired by `scater` and `ggspavis`. The difference is that `STExplorer` plots are easily modified to the user's likeness.
+We will calculate the three main QC metrics described above using methods from the `scater` [@McCarthy2017Apr] package, and investigate their influence on the fibrotic lung dataset with some plots from `STExplorer`, inspired by `scater` and `ggspavis`. The difference is that `STExplorer` plots are easily modified to the user's likeness.
 
 At present, the dataset contains only on-tissue spots. However, datasets may have the off-tissue spots still present. For any future analysis though we are only interested in the on-tissue spots. Therefore, before we run any calculations we want to remove the off-tissue spots, if existing.
 
@@ -222,6 +220,8 @@ for (id in sampleNames) {
 ```
 
 The next thing we need to do before we make decisions on how to quality *"trim"* the dataset is to calculate the percentage per spot of mitochodrial gene expression and store this information inside the `colData`. First of all, find the mitochrondrial genes - their gene names start with "MT-" or "mt-".
+
+> **NOTE:** The mitochondiral gene expression levels are used as a standard approach inherited from scRNA-seq analysis pipelines aiming to remove dying cells (or spots comprising of dying cells in our case).
 
 Then find what proportion of reads in a spot's library are attributable to the expression of these genes. This uses a function, `addPerCellQC()` from `scater` (which in this instance is actually a wrapper around `scuttle`).
 
@@ -251,7 +251,7 @@ for (id in sampleNames) {
                         samples = sampleDir[id], 
                         sample_id = id, 
                         res = "fullres",
-                        flipped = TRUE)
+                        flipped = FALSE)
   message("\tAdded geometries")
   
   ## Add gene/feature-related statistics
@@ -259,7 +259,8 @@ for (id in sampleNames) {
                        sample_id = id, 
                        assay = "counts", 
                        version = NULL, 
-                       mirror = NULL)
+                       mirror = NULL,
+                      add = "zeroexpr")
   message("\tAdded gene/feature-related statistics")
 }
 ## Keep in-tissue locations
@@ -267,9 +268,9 @@ for (id in sampleNames) {
 # sfe <- filterInTissue(sfe, sample_id = TRUE)
 
   
-head(colData(msfe@sfe_data[["JBO022"]]), 4)
-head(rowData(msfe@sfe_data[["JBO022"]]), 4)
-head(colGeometries(msfe@sfe_data[["JBO022"]]))
+head(colData(msfe@sfe_data[["Fibrotic"]]), 4)
+head(rowData(msfe@sfe_data[["Fibrotic"]]), 4)
+head(colGeometries(msfe@sfe_data[["Fibrotic"]]))
 
 ## If you get the below error when running the `addGeometries`:
 ##
@@ -308,7 +309,7 @@ After calculating a required metric, we need to apply a cut-off threshold for th
 
 The healthy liver sample JBO022 comes with a set of annotations from the [liver cell atlas](https://www.livercellatlas.org/). We can use this information to make sure that our quality control is not removing any obvious biology from the tissue. This "obvious" biology could be a specific zone from a zonated tissue, or a histological feature (i.e., a vein). If our dataset doesn't have this, then a pathologist's annotation can help.
 
-> **NOTE:** To save the plots, we suggest using the below code chunk. Save them in SVG format at 300dpi resolution.ssss
+> **NOTE:** To save the plots, we suggest using the below code chunk. Save them in SVG format at 300dpi resolution.
 
 > **NOTE:** To introduce a consistency framework, we also suggest using the name structure in the code chunk's example.
 
@@ -331,7 +332,7 @@ ggsave(paste0("../data/graphics_out/", prfx, main, sfx, other, ".svg"),
 > We suggest you set one of the MetaSFE object's SFE obect and move on with the analysis like below. Alternatively you can replace the subsequent `sfe` instances with `msfe@sample_data[["YourSampleID"]]`
 
 ```{r}
-sfe <- getSFE(msfe, "JBO022")
+sfe <- getSFE(msfe, "Fibrotic")
 ```
 
 > **NOTE:** The below chunks contain multiple examples per function for illustrative purposes. It is intended to showcase all the possible combinations you can use. You don't have to run all of them each time.
@@ -339,20 +340,18 @@ sfe <- getSFE(msfe, "JBO022")
 ```{r 02_plot-maps-gTruth, fig.show = 'hold', out.width="50%", fig.height=5, fig.width=4, warning=FALSE}
 ## Plot spatial coordinates without annotations
 plotQC_spots(sfe, type = "spot", sample_id = NULL, in_tissue = TRUE)
-plotQC_spots(sfe, type = "hex", sample_id = "JBO022", in_tissue = TRUE)
+plotQC_spots(sfe, type = "hex", sample_id = "Fibrotic", in_tissue = TRUE)
 
 ## Plot spatial coordinates with annotations
 plotQC_spotsAnnotation(sfe, type = "spot", sample_id = NULL)
-plotQC_spotsAnnotation(sfe, type = "hex", sample_id = "JBO022")
+plotQC_spotsAnnotation(sfe, type = "hex", sample_id = "Fibrotic")
 ```
 
 ### Plot manual annotation with tissue image
 
 ```{r 03_QC_sfe2, message=FALSE, warning=FALSE}
 plotQC_tissueImg(sfe, res = "lowres", type = "spot", sample_id = NULL, annotate = TRUE, alpha = 0.3)
-plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = "JBO022", annotate = TRUE, alpha = 0.3)
-
-
+plotQC_tissueImg(sfe, res = "lowres", type = "hex", sample_id = "Fibrotic", annotate = TRUE, alpha = 0.3)
 ```
 
 ### Library size threshold
@@ -369,8 +368,13 @@ The horizontal red line (argument `threshold` in the `plotQC` function) shows a 
 # ----------------------------------------------- #
 ## Density and histogram of library sizes
 plotQC_hist(sfe, metric = "libsize")
-plotQC_hist(sfe, metric = "libsize", limits = c(500, 35000))
-plotQC_hist(sfe, metric = "libsize", limits = c(2000, 36500),
+
+## Select some thresholds to check
+min_t = quantile(sfe@colData$sum, probs = c(.001)) # lower cut-off: 0.1%
+max_t = quantile(sfe@colData$sum, probs = c(.999)) # upper cut-off suggest to skip it --> set to NA
+
+plotQC_hist(sfe, metric = "libsize", limits = c(min_t, max_t))
+plotQC_hist(sfe, metric = "libsize", limits = c(min_t, NA),
             hist_args = list(bins = 100),
             dens_args = list(alpha = 0.5,
                              adjust = 0.5))
@@ -385,14 +389,14 @@ plotQC_map(sfe, metric = "libsize")
 
 ## Select threshold
 sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE,
-                           min_t = quantile(sfe@colData$sum, probs = c(.15)),
-                           max_t = quantile(sfe@colData$sum, probs = c(.999)))
+                           min_t = min_t,
+                           max_t = NA)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
 
 ## An idea to automate the thresholding by Antonis Giakountis
-##
+## put the below in a for-loop:
 # msfe@sfe_data[[i]] <- setQCthresh_LibSize(msfe@sfe_data[[i]], 
 #                                           sample_id = TRUE, 
 #                                           min_t = quantile(msfe@sfe_data[[i]]@colData$sum, probs = c(.005)), 
@@ -403,17 +407,20 @@ We need to keep in mind here that the threshold is, to an extent, arbitrary. It 
 
 ### Number of expressed genes
 
-As we did with the library sizes, we can plot a histogram of the number of expressed genes across spots. A gene is "expressed" in a spot if it has at least one count in it. We can find this information in the `detected` column in the `colData`.
+As we did with the library sizes, we can plot a histogram of the number of expressed genes across spots. A gene is "expressed" in a spot if it has at least one UMI count in it. We can find this information in the `detected` column in the `colData`.
 
 We will follow the same logic for the plots as we did for the library size earlier.
-
-Finally, again as before, we apply the chosen threshold to flag spots with (in this case) fewer than 250 expressed genes.
 
 ```{r 03_QC_sfe4}
 # ----------------------------------------------- #
 ## Density and histogram of expressed genes
 plotQC_hist(sfe, metric = "detected")
-plotQC_hist(sfe, metric = "detected", limits = c(500, NA))
+
+## Select some thresholds to check
+min_t = quantile(sfe@colData$detected, probs = c(.001)) # lower cut-off: 0.1%
+max_t = quantile(sfe@colData$detected, probs = c(.999)) # upper cut-off suggest to skip it --> set to NA
+
+plotQC_hist(sfe, metric = "detected", limits = c(min_t, NA))
 
 ## Scatter plot expressed genes vs number of cells
 ## Use this only if your dataset has information about the number of cells per spot
@@ -425,14 +432,14 @@ plotQC_map(sfe, metric = "detected")
 
 ## Select threshold
 sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE,
-                           min_t = quantile(sfe@colData$sum, probs = c(.15)),
-                           max_t = quantile(sfe@colData$sum, probs = c(.999)))
+                           min_t = min_t,
+                           max_t = NA)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "detected", sample_id = TRUE)
 ```
 
-**NOTE:** For reference, remember the ground truth layers in this dataset [that we plotted](#plot-tissue-map) at the beginning of this session.
+> **NOTE:** For reference, remember the ground truth areas in this dataset [that we plotted](#plot-tissue-map) at the beginning of this session.
 
 ### Percentage of mitochondrial expression
 
@@ -500,24 +507,6 @@ We still need to check if there is a spatial pattern to the discarded spots. If 
 
 All the steps so far have flagged spots with potential issues - before proceeding with analysis, we want to remove these spots from our SpatialFeatureExperiment object. Since we have calculated different spot-level QC metrics and selected thresholds for each one, we can combine them to identify a set of low-quality spots, and remove them from our `sfe` object in a single step.
 
-If the dataset has also manual annotation ([remember](#plot-tissue-map))) we see that there are locations that are not annotated (marked with `NA`). We could further remove those locations to reduce potential noise and further increase the quality of the dataset.
-
-Before doing so, it is sensible first to have a look at the areas annotated with `NA`s. In our example (healthy liver sample JBO022) the `NA`s cover almost 1/4 of the tissue. As a result it is not advised to remove them on the basis of their annotation.
-
-However, id we were to do so, we would use the below two code chunks.
-
-```{r 02_notAnnotSpots, eval=FALSE, fig.height=4}
-## Select locations without annotation
-sfe <- setQCthresh_NAs(sfe, sample_id = TRUE)
-```
-
-We can also check once more that the combined set of discarded spots does not correspond to any obvious biologically relevant group of spots.
-
-```{r 02_notAnnotSpotscheck, eval=FALSE, fig.height=4}
-## Check putative spatial patterns of removed spots
-plotQC_filtered(sfe, metric = "NAs", sample_id = TRUE)
-```
-
 Now that we finished setting our thresholds for each individual metric, we can combine them to mark the spots/locations we need to remove. Of course, we need to check that our thresholds combined don't remove any obvious biology. If we are satisfied with our QC, then we can apply our thresholds. This final step, will remove any spots/locations selected for their low quality.
 
 The `setQCtoDiscard_loc` includes the `filters` argument that allows you to select which filters will be taken into account for the final selection. If left to `TRUE` then all filters are used. If, for whatever reason, you want to use only part of the filters from earlier, then you can provide a character vector with the column names of the QC metrics to consider for filtering locations. QC metric columns begin with "qc\_". You can always remind yourself of the column names by typing `colnames(colData(sfe))` in the console.
@@ -543,7 +532,7 @@ As a good practise we suggest to add the quality-controlled `SFE` object back in
 msfe <- addSFE(msfe, sfe)
 ```
 
-> At this point, we suggest you run the preprocess steps for all other samples before you move on.
+> At this point, we suggest you run the preprocess steps for all other samples before you move on. Look in the ["Putting it all together"](#put-it-together) section to find the QC process coded in a for-loop without comments and plots
 
 ## Normalisation of counts
 
@@ -560,7 +549,7 @@ Here we will be using methods from the `scater` [@McCarthy2017Apr] and `scran` [
 
 The `STExplorer`'s functions `computeLibSizeFactors` and `normaliseCounts` are wrappers of the `computeLibraryFactors` and `logNormCounts` functions from the `scater` package that enable them to be used with an `SpatialFeatureExperiment` object.
 
-> **NOTE:** this is a point of confusion. So far, we have exported a single `SFE` object from the `MSFE`, applied our filters to it and updated it in the `MSFE`. For the gene-level QC and counts normalisation, we suggest you do it using the msfe objects to save you time since it is slightly more standard. For the visualisations you can always select for which sample you want a plot providing `msfe@sfe-data[["sampleID"]]` instead of an `SFE` object.
+> **NOTE:** this is a point of confusion. So far, we have exported a single `SFE` object from the `MSFE`, applied our filters to it and updated it in the `MSFE`. For the gene-level QC and counts normalisation, we suggest you do it using the msfe objects to save you time since it is slightly more standardised. For the visualisations you can always select for which sample you want a plot providing `msfe@sfe-data[["sampleID"]]` instead of an `SFE` object.
 
 > **NOTE:** for future updates, we should change this and let the user run everything from within the `MSFE`. That way it creates less confussion.
 
@@ -573,18 +562,16 @@ msfe <- computeLibSizeFactors(msfe)
 
 ```{r 03_LogNorm_sfe2}
 ## Density and histogram of library sizes
-  p1 <- plotQC_sizeFactors(msfe@sfe_data[["JBO022"]])
+  p1 <- plotQC_sizeFactors(msfe@sfe_data[["Fibrotic"]])
 
   ## Map library sizes
-  p2 <- plotQC_map(msfe@sfe_data[["JBO022"]], 
+  p2 <- plotQC_map(msfe@sfe_data[["Fibrotic"]], 
                    metric = "custom", 
-                   sample_id = "JBO022", 
+                   sample_id = "Fibrotic", 
                    metric_name = "sizeFactor", 
                    metric_lab = "Size factor")
   
   p1 + p2
-
-## NOTE for developer: need to give option to plot size factor distribution for all samples at once too.
 ```
 
 The log-transformation that takes place is a log2-transformation and in order to avoid *- Infinity* values we add a pseudo value of 1. Both the log2- transformation and the pseudocount of 1 are defaults in this method.
@@ -594,28 +581,10 @@ The log-transformation that takes place is a log2-transformation and in order to
 msfe <- normaliseCounts(msfe)
 
 ## Check that a new assay has been added
-SummarizedExperiment::assayNames(msfe@sfe_data[["JBO022"]])
+SummarizedExperiment::assayNames(msfe@sfe_data[["Fibrotic"]])
 ```
 
 ## Gene-level Quality Control
-
-### Calculating extra QC metrics
-The calculation of the mean of log counts over the number of locations a gene is present, is an optional metric that attempts to find genes with a low number of log counts on average. This attempts to identify genes that are putative noise. To calculate this metric you need to provide the `add` argument in the `addPerGeneQC` function with `c("zeroexpr", "exprstats")`. Otherwise the below error will occur:
-
-```
-Error in `[[<-`(`*tmp*`, colnameLogM, value = list(sLogMean = numeric(0))) : 
-  0 elements in value to replace 32738 elements
-```
-
-You can skip this step. Make sure though to also skip the related LogLowMean line in the next code chunk where you will be setting the thresholds to filter out genes.
-
-```{r 03_GeneQC_sfe1}
-## Calculate the mean of log counts over the number of locations a gene is present
-msfe <- perGeneLogMean(msfe)
-
-## Look for the `s_logMean` column in the `rowData`
-colnames(rowData(msfe@sfe_data[["JBO022"]]))
-```
 
 ### Set and apply filters
 
@@ -628,10 +597,6 @@ colnames(rowData(msfe@sfe_data[["JBO022"]]))
 ```{r 03_GeneQC_sfe2}
 ## Zero expression genes
 msfe <- setQCthresh_ZeroExpr(msfe)
-
-## Lowly expressed (noise?!) genes
-## Do not run this line if you haven't calculated the logLowMean in the previous code chunk.
-msfe <- setQCthresh_LowLogMean(msfe, threshold = 1)
 
 ## Remove mitochondrial and other genes
 ##    Use it only if you feel it is right for your dataset
@@ -646,8 +611,6 @@ msfe <- setQCtoDiscard_feat(msfe, filters = TRUE)
 msfe <- applyQCthresh_feat(msfe)
 ```
 
-In this dataset, the mitochondrial genes are too highly expressed and are not of major biological interest. As a result, if we are to identify true HVGs, we first need to remove the mitochondrial genes.
-
 ## Selecting genes
 
 ### Background
@@ -658,7 +621,7 @@ It is important to note that HVGs are identified solely from the gene expression
 
 ### Highly Variable Genes (HVGs)
 
-Here we will be using methods from the `scran` package [@Lun2016Oct] to identify a set of HVGs. Again, here we need to remember that `scran` methods were developed for scRNA-seq and we are performing the analysis under the assumption that the spots of an STx experiment can be treated as single cells.
+Here, under STExplorer's hood, we will be using methods from the `scran` package [@Lun2016Oct] to identify a set of HVGs. Again, here we need to remember that `scran` methods were developed for scRNA-seq and we are performing the analysis under the assumption that the spots of an STx experiment can be treated as single cells.
 
 Then, we apply methods from `scran` that give a list of HVGs, which can be used for further downstream analyses.
 
@@ -671,21 +634,21 @@ dec <- modelGeneVariance(msfe, sample_id = TRUE, method = "Var")
 ## Select top HVGs
 top_hvgs <- getTopHighVarGenes(dec,
                                var.field = "bio",
-                               prop = 0.4,
+                               prop = 0.1,
                                var.threshold = 0,
-                               fdr.threshold = 0.1)
+                               fdr.threshold = NULL)
 
 ## Visualize mean-variance relationship
 plotGeneVariance(dec = dec, hvgs = top_hvgs)
 ```
 
-The `trend` function that we used above is returned from the `modelGeneVar` function and returns the fitted value of the trend at any value of the mean. The "biological" variance of a gene is what remains when the fitted variance for a gene of that expression value is subtracted from the total variance (so genes above the blue trend line have a positive biological variance).
+internally, the `trend` function that is returned from the `scran`'s `modelGeneVar` function, returns the fitted value of the trend at any value of the mean. The "biological" variance of a gene is what remains when the fitted variance for a gene of that expression value is subtracted from the total variance (so genes above the blue trend line have a positive biological variance).
 
-We select the top 10% of genes based on their biological variability The parameter `prop` defines how many HVGs we want. For example `prop = 0.1` returns the top 10% of genes. `prop = 1.0` would return all genes with a positive biological variability.
+We select the top 10% of genes based on their biological variability. The parameter `prop` defines how many HVGs we want. For example `prop = 0.1` returns the top 10% of genes. `prop = 1.0` would return all genes with a positive biological variability.
 
 ### Spatially variable genes (SVGs)
 
-SVGs are genes with a highly spatially correlated pattern of expression, which varies along with the spatial distribution of a tissue structure of interest. This phenomenon is also called *spatial autocorrelation* and underlies all types of spatial data, as we will discuss later.
+SVGs are genes with a highly spatially correlated pattern of expression, which varies along with the spatial distribution of a tissue structure of interest. This phenomenon is also called *spatial autocorrelation* and underlies all types of spatial data, as we will discuss later (you can read more about the aspects of spatial data in our paper [Zormpas et al., Cell (2023)](https://doi.org/10.1016/j.cell.2023.11.003) [Zormpas2023Cell].
 
 The field of geography has developed some statistical measures to calculate spatial autocorrelation. Examples of these are Moran's *I* [@Moran1950Jun] and Geary's *C* [@Geary1954Nov] that can be used to rank genes by the observed spatial autocorrelation to identify SVGs.
 
@@ -736,35 +699,61 @@ knitr::include_graphics("images/gwmodel_kernel_math.png")
 knitr::include_graphics("images/gwmodel_kernel_graphs.png")
 ```
 
-In the below we choose one of the many possible ways of building a neighbour graph for the steatotic liver data set. In this example we are using a k-nearest neighbours approach with row-standardised distance-based weights.
+In the below we choose one of the many possible ways of building a neighbour graph for the fibrotic lung data set. In this example we are using a k-nearest neighbours approach with row-standardised distance-based weights.
 
 ```{r 03_spatial_weights_to_sfe}
 ## Add a neighbour graph using a weighted distance matrix
 msfe <- addSpatialNeighGraphs(msfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
 
-colGraphs(msfe@sfe_data[["JBO022"]])
+colGraphs(msfe@sfe_data[["Fibrotic"]])
 
 ## Calculate a simple distance matrix
 msfe <- addDistMat(msfe, p = 2)
 
 ## Check distance matrix was successfully added
-msfe@sfe_data[["JBO022"]]@metadata[["dMat"]][["euclidean"]][1:10,1:5]
+msfe@sfe_data[["Fibrotic"]]@metadata[["dMat"]][["euclidean"]][1:10,1:5]
 
 ```
 
-We can use a `geom` from the `tidyterra` package (commonly used for map visualisations) to plot the neighbour graph we generated in the previous step.
+We can use the `plotNeighbourGraph` from `STExplorer` to plot the neighbour graph we generated in the previous step. `STExplorer` is using internally the `tidyterra` package geoms (commonly used for map visualisations) to plot the maps.
 
 ```{r 03_visualise_neighbours}
 ## Plot the neighbours graph
 plotNeighbourGraph(msfe, sample_id = TRUE,
                    res = "lowres", plotImage = TRUE)
-plotNeighbourGraph(msfe, sample_id = "JBO022",
+plotNeighbourGraph(msfe, sample_id = "Fibrotic",
                    res = "lowres", plotImage = TRUE)
-plotNeighbourGraph(msfe, sample_id = "JBO019",
+plotNeighbourGraph(msfe, sample_id = "Healthy",
                    res = "lowres", plotImage = FALSE)
 ```
 
-Now that we have a fully QC-ed dataset with spatial weights and a neighbour graph applied, we have prepared our data fully for the application of geospatial methods - specifically in practical 4, geogrpahically weighted principal components analysis (GWPCA).
+Now that we have a fully QC-ed dataset with spatial weights and a neighbour graph applied, we have prepared our data fully for the application of geospatial methods:
+
+-   geographically weighted principal components analysis (GWPCA)
+-   fuzzy geographically weighted clustering (FGWC)
+-   geographically weighted regression (GWR)
+-   spatial autocorrelation (SA)
+
+## Checkpoint
+
+Geographical methods can be time and computing-resources consuming. For the purpose of the vignette only we are going to subset the Fibrotic sample and keep 1/10 of it to allow package building generate the vignette faster. When you are using `STExplorer` for your data analysis, please **DO NOT RUN** this step.
+
+```{r subset-example}
+## Export the Fibrotic sample
+sfe <- msfe@sfe_data$Fibrotic
+
+## Select the Barcodes for a subset of the sample
+selection <- spatialCoords(sfe)[, "pxl_row_in_fullres"] > 8000 & spatialCoords(sfe)[, "pxl_col_in_fullres"] < 7000
+
+## Subset the SFE object
+sfe <- sfe[, selection]
+
+## Fix the distance matrix
+sfe@metadata$dMat$euclidean <- sfe@metadata$dMat$euclidean[selection, selection]
+
+## Regenerate the Neighbour Graph
+sfe <- addSpatialNeighGraphs(sfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
+```
 
 ## Fuzzy Geographically Weighted Clustering (FGWC)
 
@@ -816,13 +805,13 @@ If you do not define a certain parameter, the parameter will be set to its defau
 
 ```{r fgwc_nmf}
 best_k_nmf <- fgwc_nmfFactorNumber(sfe, 
-                          sample_id = "JBO022", 
-                          top_hvgs = top_hvgs[["JBO022"]],
+                          sample_id = "Fibrotic", 
+                          top_hvgs = top_hvgs[["Fibrotic"]],
                           loss = "mse")
 
 sfe_nmf <- fgwc_nmf(sfe, 
-                    sample_id = "JBO022", 
-                    top_hvgs = top_hvgs[["JBO022"]],
+                    sample_id = "Fibrotic", 
+                    top_hvgs = top_hvgs[["Fibrotic"]],
                     ncomponents = best_k_nmf$k)
 
 ```
@@ -840,7 +829,7 @@ fgwc_param <- fgwc_params(algorithm = "classic", ncluster = 5)
 
 Before running FGWC it is advisable to identify the best k for the number of clusters. To do so, you can use the `fgwc_findOptimumK` function. The function uses one of many different index statistics that are calculated by the `fgwcSTE` function and allows to use any of the elbow method, the biggest angle method or your intuition by looking at the index plot to identify the most suitable number of clusters for your data.
 
-> **NOTE:** the function input should be exactly the same as the input you will use to run FGWC in the next step.
+> **NOTE:** the `fgwc_findOptimumK` function input should be exactly the same as the input you will use to run FGWC in the next step.
 
 ```{r fgwc_bestK}
 k <- fgwc_findOptimumK(fgwc_in = sfe_nmf,
@@ -849,28 +838,30 @@ k <- fgwc_findOptimumK(fgwc_in = sfe_nmf,
                        elbow_method = "knee",
                        m_sfe = sfe,
                        algorithm = "classic",
-                       parameters = fgwc_param)
+                       parameters = fgwc_param, 
+                       verbose = TRUE)
 
 ## update the parameters input
 fgwc_param <- fgwc_params(algorithm = "classic", ncluster = k)
 ```
 
 ```{r fgwc}
-fgwc <- fgwcSTE(sfe, "JBO022", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", parameters = fgwc_param)
+fgwc <- fgwcSTE(sfe, "Fibrotic", data = sfe_nmf, dMetric = "euclidean", algorithm = "classic", parameters = fgwc_param)
 
 ```
 
 ### Plot the highest membership clusters
 
 ```{r fgwc_plot-single}
-plotFGWC_singleMap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+plotFGWC_singleMap(fgwc = fgwc, m_sfe = sfe, sample_id = "Fibrotic")
 
 ```
 
 Since FGWC is a method that assigns membership percentages to each cluster, we can select and plot the cluster with the highest percentage of membership in each location and create a map of clusters. If we contrast the highest membership cluster map with the tissue histology (see below) and the scRNA-seq-based annotation we will see that the clustering result resembles, at least, the annotation.
 
-```{r fgwc-tisue_annot, echo=FALSE, out.height="20%", fig.show='hold',fig.align='center', fig.cap="Left: sample image. Right: sample annotation."}
-knitr::include_graphics("./images/tissue_annotation_gtruth.png")
+```{r fgwc-tisue_annot, echo=FALSE, out.height="20%", out.width="50%", fig.show='hold', fig.cap="Left: sample image. Right: sample annotation."}
+plotQC_tissueImg(sfe, type = "none")
+plotQC_spotsAnnotation(sfe)
 ```
 
 ### Plot the membership percentages
@@ -878,7 +869,7 @@ knitr::include_graphics("./images/tissue_annotation_gtruth.png")
 Nevertheless, this is not an accurate depiction of the clustering results. A more accurate representation is the one shown below. There, we show maps of percentages from all clusters side-by-side, and we can investigate the ecotones that might exist between clusters.
 
 ```{r fgwc_plot-multi}
-plotFGWC_multiMap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+plotFGWC_multiMap(fgwc = fgwc, m_sfe = sfe, sample_id = "Fibrotic")
 
 ```
 
@@ -886,14 +877,15 @@ The membership percentages can be plotted as a heatmap too with optional selecti
 
 ```{r fgwc_plot-multi}
 plotFGWC_multiHeatmap(fgwc = fgwc,
-                      loc_annot = "both")
+                      loc_annot = "both",
+                      show_rownames = FALSE)
 
 ```
 
 We can also plot membership percentages from FGWC per annotation or winning cluster. This can be helpful to identify if any annotation group is connected more closely to a specific FGWC cluster.
 
 ```{r fgwc_plot-multi-violin}
-plotFGWC_multiViolin(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022")
+plotFGWC_multiViolin(fgwc = fgwc, m_sfe = sfe, sample_id = "Fibrotic")
 
 ```
 
@@ -919,7 +911,7 @@ plotFGWC_pie(fgwc = fgwc,
 knitr::include_graphics("./images/ecotones.png") 
 ```
 
-In the multiple membership plot earlier we can see an example of ecotones. Clusters 3 and 5 present the ecotone as a blurred gradient of intermediate percentages between the two clusters. The ecotone though is not always the same size. For example, in clusters like cluster 4, the ecotone is much thinner.
+In the multiple membership plot earlier we can see an example of ecotones. Clusters 1 and 3 present the ecotone as a blurred gradient of intermediate percentages between the two clusters. The ecotone though is not always the same size. Sometimes the ecotone is much thinner or non existent. Ecotones can also mean a 'grey zone' between different biological "states" or underlying signatures that are not completely visible as a change in tissue structure.
 
 ### Examine NMF metagene signatures and their connection to FGWC clusters
 
@@ -939,7 +931,8 @@ A similar way to showcase this, is by plotting a heatmap alongside spot annotati
 
 ```{r fgwc_nmf02}
 plotFGWC_nmfFactorsHeatmap(fgwc = fgwc,
-                           loc_annot = "both")
+                           loc_annot = "both",
+                           show_rownames = FALSE)
 
 ```
 
@@ -948,30 +941,45 @@ Another important piece of information that can be retrieved from the NMF are th
 We can plot this information (or we can save it in an object since it is a `pheatmap` object)
 
 ```{r fgwc_nmf03}
-plotFGWC_nmfMetagenesHeatmap(fgwc = fgwc)
+plotFGWC_nmfMetagenesHeatmap(fgwc = fgwc,
+                             show_rownames = FALSE)
 ```
 
 ### Plot a heatmap of established biomarkers
 
 For this plot to be generated, it required from the user to provide a data frame (table) with four (4) columns that includes the below information and the specific column names:
 
-1.  **"gene.name"**: gene names (e.g., APOE)\
-2.  **"ensg.ID"**: ENSGene IDs (e.g., ENSG00000130203)\
-3.  **"Type"**: Cell type (e.g., Hepatocytes)\
-4.  **"Subtype"**: Cell subtype (e.g., Stellate cells)\
+1.  **"gene.name"**: gene names (e.g., ACTA2)\
+2.  **"ensg.ID"**: ENSGene IDs (e.g., ENSG00000107796)\
+3.  **"Type"**: Cell type (e.g., Mesenchymal)\
+4.  **"Subtype"**: Cell subtype (e.g., Myofibroblasts)\
 
 If no subtype exists, add an empty character string using: `""`.
 
-**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them. 
+**NOTE!:** if the column names do not match, an error will be returned with a prompt to fix them.
 
-**NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thισ code will help you format the `Subtype` marker genes data frame: `marker_genes$Subtype <- ""`
+**NOTE!:** make sure your `Subtype` column contains only character strings. Either names (i.e., "subtype_name_example") or empty (i.e., ""). Anything else will break the code with an error at `pheatmap`'s `cut.default` function. If you don't have (or don't want) subtypes, thιs code will help you format the `Subtype` marker genes data frame: `marker_genes$Subtype <- ""`
 
 ```{r fgwc_plot-heatmap}
-## Load the liver markers example dataset
-# markers <- data(markers)
+## Load the lung markers example dataset in the .Globalenv
+data(markers)
+## Here we will keep only the columns needed otherwise `plotFGWC_markersHeatmap` will throw an error.
+markers_final <- markers[,1:4]
 
+## Custom colours for cell type annotations:
+annotation_colours <- list(Type = c4a(palette = "carto.pastel", n = 4),
+                           Subtype = getColours(36))
+names(annotation_colours$Type) <- unique(markers$Type)
+names(annotation_colours$Subtype) <-  unique(markers$Subtype)
+    
 ## Plot the heatmap
-heatmap <- plotFGWC_markersHeatmap(fgwc = fgwc, m_sfe = sfe, sample_id = "JBO022", markers = markers, cluster_no = 2, cutree_cols = 5)
+heatmap <- plotFGWC_markersHeatmap(fgwc = fgwc, 
+                                   m_sfe = sfe, 
+                                   sample_id = "Fibrotic", 
+                                   markers = markers_final, 
+                                   cluster_no = 1, 
+                                   cutree_cols = 10, 
+                                   annot_colours = annotation_colours)
 
 ```
 
@@ -979,10 +987,10 @@ In cases where the unit of measurement is an area encompassing more than one cel
 
 ### Visualise subclusters
 
-This approach generates a blurred clustering of the data points and provides us with a way to see inside the spots. Utilising established cell-type markers, specific to the liver tissue, we can examine the intra-cluster cell-type heterogeneity that the ecotone suggested, by subdividing each cluster into subclusters according to their cell-type mixture.
+This approach generates a blurred clustering of the data points and provides us with a way to see inside the spots. Utilising established cell-type markers, specific to the fibrotic lung tissue, we can examine the intra-cluster cell-type heterogeneity that the ecotone suggested, by subdividing each cluster into subclusters according to their cell-type mixture.
 
 ```{r  fgwc_plot-subClust}
-plotFGWC_subClust(heatmap = heatmap, k = 5, clust = 3, m_sfe = sfe, sample_id = "JBO022")
+plotFGWC_subClust(heatmap = heatmap, k = 10, clust = 1, m_sfe = sfe, sample_id = "Fibrotic")
 
 ```
 
@@ -992,10 +1000,10 @@ To understand the composition of each subcluster we can plot a heatmap using the
 
 ```{r  fgwc_plot-subClust-heatmap}
 ## Only plot the sub-cluster heatmap
-plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO022", cluster_no = 4)
+plotFGWC_subHeatmap(heatmap = heatmap, k = 10, markers = markers_final, m_sfe = sfe, sample_id = "Fibrotic", cluster_no = 1, annot_colours = annotation_colours)
 
 ## Save the heatmap as an object
-subHeatmap <- plotFGWC_subHeatmap(heatmap = heatmap, k = 5, markers = markers, m_sfe = sfe, sample_id = "JBO022", cluster_no = 4)
+subHeatmap <- plotFGWC_subHeatmap(heatmap = heatmap, k = 10, markers = markers_final, m_sfe = sfe, sample_id = "Fibrotic", cluster_no = 1, annot_colours = annotation_colours)
 ```
 
 ### References
@@ -1058,22 +1066,29 @@ Some other parameterisation is neccessary and these required parameters (as we h
 
 ```{r 04_set_parameters, eval=FALSE}
 ## Select the sample you would like to perform a GWPCA analysis
-sfe <- getSFE(msfe, "JBO022")
+## Here we will be using the subsetted SFE object from before:
+str(sfe)
+
+## If you are using MSFE objects, then you need to export a single SFE like this:
+# sfe <- getSFE(msfe, "Fibrotic")
+
 ## Get the gene names that are going to be evaluated
-vars = top_hvgs[["JBO022"]]
+vars = top_hvgs[["Fibrotic"]]
 ## Set a fixed bandwidth
 ## bw is an important parameter as it defines the neighbourhood for which the 
 ##  PCA will be calculated. The distance is measured in ultra-high resolution 
 ##  image pixels. The default is 3x the diameter of the Visium spot. Make sure 
 ##  to adjust it if it is too large or too small for your setting.
-bw = 3*sfe@metadata[["spotDiameter"]][["JBO022"]][["spot_diameter_fullres"]]
+## Here the bw is selected as a multiple of the spot diameter. This is due to 
+##  using Visium as an example. You can just input a number.
+bw = 3*sfe@metadata[["spotDiameter"]][["Fibrotic"]][["spot_diameter_fullres"]]
 ## Set the number of components to be retained
 k = 20
 ## Set the kernel to be used
 kernel = "gaussian"
 ## Set the Minkowski distance power: p = 2 --> Euclidean
 p = 2
-## Is the bandwidth adaptive?: No because spots are fixed
+## Is the bandwidth adaptive?: Not in this case because spots are in fixed positions
 adaptive = FALSE
 ## Cross-Validate GWPCA?
 cv = TRUE
@@ -1101,7 +1116,7 @@ The bandwidth defines a radius around each spot - every spot that falls inside t
 
 Here we present the invocation to run GWPCA, however because this process is computationally intensive and time-consuming, we do not suggest running it on posit.cloud. We have pre-computed the result and provide it for you to load.
 
-```{r 04_run_gwpca1, eval=FALSE}
+```{r 04_run_gwpca1}
 # Run GWPCA
 pcagw <- gwpcaSTE(sfe = sfe, 
                   assay = "logcounts",
@@ -1533,7 +1548,6 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
 
 ```
 
-
 ```{r global_geary_vis}
 plotSA_globalSum(sfe,
                  genes = gs,
@@ -1627,7 +1641,6 @@ gs <- getSAGlobalGenes(m_sfe = sfe,
                        stat_thresh = 0.5)
 
 ```
-
 
 ```{r global_getis_vis}
 plotSA_globalSum(sfe,
@@ -1800,7 +1813,7 @@ gwr_stats(gwr)
 
 ```
 
-## Putting it all together
+## Putting it all together {#put-it-together}
 
 For each technology (i.e., Visium, etc.) there are individual vignettes that include the code naked from the majority of commentary.
 

@@ -33,7 +33,7 @@ Welcome to the vignette of STExplorer. STExplorer is a package the performs geog
 
 ## Install/Load package
 
-```{r }
+```{r eval=FALSE}
 ## To install the stable version of the package from Bioconductor run the below:
 # if (!require("BiocManager", quietly = TRUE))
 #     install.packages("BiocManager")
@@ -49,12 +49,11 @@ devtools::install_github("LefterisZ/STExplorer",
                          auth_token = AUTH_TOKEN,
                          force = TRUE)
 
-
-## To load the package use:
-library(STExplorer)
 ```
 
 ```{r setup, echo=FALSE, eval=FALSE, message=FALSE}
+## To load the package use:
+library(STExplorer)
 library(readr)
 # library(SpatialFeatureExperiment)
 # library(tidyverse)
@@ -128,20 +127,14 @@ The `outs` folder and its contents **must** have these names. What will change i
 msfe <- MetaSpatialFeatureExperiment()
 
 ## Prepare vectors with the paths to the data folders
-## NOTE: make sure that the `sampleDir` vector is a named vector with
-##       names the names from the `sampleNames` vector.
-sampleDir <- c("../data/test_data/Visium_Human_Liver/Healthy/JBO022_Results",
-               "../data/test_data/Visium_Human_Liver/Steatotic/JBO019_Results")
+sampleDir <- c(system.file("extdata/visium/lung/Healthy", package = "STExplorer"),
+               system.file("extdata/visium/lung/Fibrotic", package = "STExplorer"))
 
-sampleNames <- c("JBO022", "JBO019")
+sampleNames <- c("Healthy", "Fibrotic")
 
 names(sampleDir) <- sampleNames
 
 ## Load sfe objects inside the msfe
-## The `addSFE` function is appending each sfe to a new slot inside the msfe.
-## For unknown reasons, the for-loop overwrites the msfe instead of appending. 
-## Please check the resulting msfe after running the for-loop. If you are missing 
-## samples, please add them one by one.
 for (i in seq_along(sampleNames)) {
   message("Adding sample: ", sampleNames[i])
   msfe <- addSFE(msfe,
@@ -155,67 +148,23 @@ for (i in seq_along(sampleNames)) {
 }
 
 
-## BEWARE: There is a chance that you get the below error if you run this chunk within RMarkdown:
-## Error in names(xyz) <- names(sfs) <- sids : 
-##  'names' attribute [1] must be the same length as the vector [0]
-##
-## OR:
-## "error in evaluating the argument 'x' in selecting a method for function 'colData': 'names' attribute [1] must be the same length as the vector [0]"
-##
-## If you see this, then it is because of two reasons:
-##    1. You are missing a folder named 'outs' at the end of the pathway you provided earlier. --> add outs folder
-##    2. If path is correct, then try running it in the console -I don't know why it behaves like 
-##       this and it is not even a function from STExplorer. It is from the
-##       'SpatialFeatureExperiment' package.
-
-## NOTE1: when formatting the ground truth table to import it make sure that:
-##      (a) the table includes the column names "Barcode", "sample_id", and "annotation"
-##      (b) the Barcodes are stripped of their suffix if there are multiple samples. 
-##          Probably they will look like this: "ATCGGCTAGCTGAT-1_1". 
-##          Remove the "_1" from the end.
-## NOTE2: make sure at the end to have a separate data frame with annotations per sample.
-##        Below I am loading them into a list.
-ground_truth <- read_table("../data/test_data/Visium_Human_Liver/spotZonationGroup.txt")
-
-gTruth_list <- list(JBO022 = ground_truth[ground_truth$sample_id == "JBO022",],
-                    JBO019 = ground_truth[ground_truth$sample_id == "JBO019",])
+## Load annotations in the environment
+gTruth_list <- list(Fibrotic = read_csv(system.file("extdata/visium/lung/fibrotic_sample_annotation.csv", package = "STExplorer")),
+                    Healthy = read_csv(system.file("extdata/visium/lung/healthy_sample_annotation.csv", package = "STExplorer"))
+                    )
 
 str(gTruth_list)
-## If the data frames in the list are empty, please check you have no typos in the sample ids.
-## Example. the sample_id names in the .txt file are missing the "0". We can solve this by
-## typing the below command:
-##        ground_truth$sample_id <- gsub("JBO", "JBO0", ground_truth$sample_id)
 ```
 
 ## Spot-level Quality Control
-
-Considered quality control (QC) procedures are essential for analysing any high-throughput data in molecular biology. The removal of noise and low quality data from complex datasets can improve the reliability of downstream analyses. STx is no different in this regard, and QC can be undertaken in 2 main places - spot-level and gene-level. Here, we focus on spot-level QC.
-
-Spot-level quality control (sQC) procedures are employed to eliminate low-quality spots before conducting further analyses. Low-quality spots may result from issues during library preparation or other experimental procedures, such as a high percentage of dead cells due to cell damage during library preparation, or low mRNA capture efficiency caused by ineffective reverse transcription or PCR amplification. Keeping these spots usually leads to creating problems during downstream analyses.
-
-We can identify low-quality spots using several characteristics that are also used in cell-level QC for scRNA-sq data, including:
-
-1.  **library size** (total of UMI counts per spot will vary due to sequencing *-like different samples in a bulk RNA-seq-*, or due to number of cells in the spot)
-2.  **number of expressed genes** (i.e. number of genes with non-zero UMI counts per spot)
-3.  **proportion of reads mapping to mitochondrial genes** (a high proportion indicates putative cell damage)
-
-Low library size or low number of expressed features can indicate poor mRNA capture rates, e.g. due to cell damage and missing mRNAs, or low reaction efficiency. A high proportion of mitochondrial reads indicates cell damage, e.g. partial cell lysis leading to leakage and missing cytoplasmic mRNAs, with the resulting reads therefore concentrated on the remaining mitochondrial mRNAs that are relatively protected inside the mitochondrial membrane. Unusually high numbers of cells per spot can indicate problems during cell segmentation.
 
 >**Important consideration:** In this vignette we suggest using quantiles for setting the lower and higher thresholds. This is an attempt to assist in streamlining the QC steps. However, we strongly recomend that you check the QC thresholds individually for each tissue section as it is likely that some of those sections have different QC requirements than the standard suggestions.
 
 >**Important consideration:** Underfiltering can be as bad as overfiltering your dataset.
 
-The idea of using scRNA-seq QC metrics in STx data comes from the fact that if we remove space and effectively treat each spot as a single cell, the two datasets share common features. We need to bear in mind, however, that the expected distributions for high-quality *spots* are different (compared to high-quality *cells* in scRNA-seq), since spots may contain zero, one, or multiple cells.
-
 A few publications for further reading that can help you understand the quality controls: @McCarthy2017Apr and @Amezquita2020Feb.
 
 ### Calculating QC metrics
-
-We will calculate the three main QC metrics described above using methods from the `scater` [@McCarthy2017Apr] package, and investigate their influence on the healthy liver (JBO022) dataset with some plots from `STExplorer`, inspired by `scater` and `ggspavis`. The difference is that `STExplorer` plots are easily modified to the user's likeness.
-
-At present, the dataset contains only on-tissue spots. However, datasets may have the off-tissue spots still present. For any future analysis though we are only interested in the on-tissue spots. Therefore, before we run any calculations we want to remove the off-tissue spots, if existing.
-
-***NOTE***: the on- or off-tissue information for each spot can be found in the `colData` of the `sfe` object and in the `in_tissue` column where *0 = off-tissue* and *1 = on-tissue*.
 
 ```{r 02_keep_on-tissue}
 ## Dataset dimensions before the filtering
@@ -227,7 +176,7 @@ for (id in sampleNames) {
 
 The next thing we need to do before we make decisions on how to quality *"trim"* the dataset is to calculate the percentage per spot of mitochodrial gene expression and store this information inside the `colData`. First of all, find the mitochrondrial genes - their gene names start with "MT-" or "mt-".
 
-Then find what proportion of reads in a spot's library are attributable to the expression of these genes. This uses a function, `addPerCellQC()` from `scater` (which in this instance is actually a wrapper around `scuttle`).
+> **NOTE:** The mitochondiral gene expression levels are used as a standard approach inherited from scRNA-seq analysis pipelines aiming to remove dying cells (or spots comprising of dying cells in our case).
 
 > **NOTE:** we suggest to place the below chunk inside a for-loop and let the 3 `add*` functions work on all samples within the `MSFE` object. Downstream, you will need the basic stats they introduce.
 
@@ -255,7 +204,7 @@ for (id in sampleNames) {
                         samples = sampleDir[id], 
                         sample_id = id, 
                         res = "fullres",
-                        flipped = TRUE)
+                        flipped = FALSE)
   message("\tAdded geometries")
   
   ## Add gene/feature-related statistics
@@ -266,44 +215,12 @@ for (id in sampleNames) {
                        mirror = NULL)
   message("\tAdded gene/feature-related statistics")
 }
-## Keep in-tissue locations
-## Use it only if you have loaded "raw" data and not "filtered"
-# sfe <- filterInTissue(sfe, sample_id = TRUE)
 
-  
+
 head(colData(msfe@sfe_data[["JBO022"]]), 4)
 head(rowData(msfe@sfe_data[["JBO022"]]), 4)
 head(colGeometries(msfe@sfe_data[["JBO022"]]))
 
-## If you get the below error when running the `addGeometries`:
-##
-##    Error in `.rowNamesDF<-`(x, value = value) : invalid 'row.names' length
-##
-## Try changing the `flipped` argument from the default FALSE to TRUE. 
-## 
-## If this is not solving the problem, have a look to see the image resolution 
-## used to generate the diameter. You can find this information stored in the 
-## metadata slot in the SFE object:
-##
-##    metadata(sfe)
-##
-## This should return something like this:
-##
-##    $spotDiameter
-##    $spotDiameter$`V19S23-092-C1`
-##    $spotDiameter$`V19S23-092-C1`$spot_diameter_lowres
-##    [1] 4.705987
-##
-## The "lowres" in the "spot_diameter_*" name means that the low resolution was 
-## used. Therefore, you should provide the 'res' argument in the 'addGeometries' 
-## function with "lowres" instead of the default "fullres".
-##
-## If either of those solve the problem, then please submit an issue on GitHub:
-##
-##    https://github.com/LefterisZ/STExplorer/issues
-##
-## also provide via email the `tissue_positions_list.csv` file for the sample 
-## in question. We will try and solve the issue.
 ```
 
 After calculating a required metric, we need to apply a cut-off threshold for the metric to decide whether or not to keep each spot. It is important to consider an individual dataset on its own merits, as it might need slightly different cut-off values to be applied. As a result we cannot rely on identifying a single value to use every time and we need to rely on plotting these metrics and making a decision on a dataset-by-dataset basis.
@@ -365,42 +282,32 @@ We can plot a histogram of the library sizes across spots. The library size is t
 
 As we can see there are no obvious issues with the library sizes. An example of an issue could be a high frequency of small libraries which would indicate poor experimental output. Generally we do not want to keep spots with too small libraries.
 
-If the dataset we are analysing contains the number of cells that are present in each spot (this one doesn't), then it makes sense to also plot the library sizes against the number of cells per spot. In that way we are making sure that we don't remove any spots that may have biological meaning. In many cases though the datasets do not have such information unless we can generate it using a nuclei segmentation tool to extract this information from the H&E images.
-
-The horizontal red line (argument `threshold` in the `plotQC` function) shows a first guess at a possible filtering threshold for library size based on the above histogram.
-
 ```{r 03_QC_sfe3, warning=FALSE}
 # ----------------------------------------------- #
 ## Density and histogram of library sizes
 plotQC_hist(sfe, metric = "libsize")
-plotQC_hist(sfe, metric = "libsize", limits = c(500, 35000))
-plotQC_hist(sfe, metric = "libsize", limits = c(2000, 36500),
+
+## Select some thresholds to check
+min_t = quantile(sfe@colData$sum, probs = c(.001)) # lower cut-off: 0.1%
+max_t = quantile(sfe@colData$sum, probs = c(.999)) # upper cut-off suggest to skip it --> set to NA
+
+plotQC_hist(sfe, metric = "libsize", limits = c(min_t, max_t))
+plotQC_hist(sfe, metric = "libsize", limits = c(min_t, NA),
             hist_args = list(bins = 100),
             dens_args = list(alpha = 0.5,
                              adjust = 0.5))
-
-## Scatter plot library sizes vs number of cells
-## Use this only if your dataset has information about the number of cells per spot
-
-# plotQC_scat(sfe, metric = "libsize")
 
 ## Map the library sizes
 plotQC_map(sfe, metric = "libsize")
 
 ## Select threshold
 sfe <- setQCthresh_LibSize(sfe, sample_id = TRUE,
-                           min_t = quantile(sfe@colData$sum, probs = c(.15)),
-                           max_t = quantile(sfe@colData$sum, probs = c(.999)))
+                           min_t = min_t,
+                           max_t = NA)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "libsize", sample_id = TRUE)
 
-## An idea to automate the thresholding by Antonis Giakountis
-##
-# msfe@sfe_data[[i]] <- setQCthresh_LibSize(msfe@sfe_data[[i]], 
-#                                           sample_id = TRUE, 
-#                                           min_t = quantile(msfe@sfe_data[[i]]@colData$sum, probs = c(.005)), 
-#                                           max_t = quantile(msfe@sfe_data[[i]]@colData$sum, probs = c(.99)))
 ```
 
 We need to keep in mind here that the threshold is, to an extent, arbitrary. It is therefore important to look at the number of spots that are left out of the dataset by this choice of cut-off value, and also have a look at their putative spatial patterns. If we filtered out spots with biological relevance, then we should observe some patterns on the tissue map that correlate with some of the known biological structures of the tissue. If we do observe such a phenomenon, we have probably set our threshold too high (i.e. not permissive enough).
@@ -411,51 +318,42 @@ As we did with the library sizes, we can plot a histogram of the number of expre
 
 We will follow the same logic for the plots as we did for the library size earlier.
 
-Finally, again as before, we apply the chosen threshold to flag spots with (in this case) fewer than 250 expressed genes.
-
 ```{r 03_QC_sfe4}
 # ----------------------------------------------- #
 ## Density and histogram of expressed genes
 plotQC_hist(sfe, metric = "detected")
-plotQC_hist(sfe, metric = "detected", limits = c(500, NA))
 
-## Scatter plot expressed genes vs number of cells
-## Use this only if your dataset has information about the number of cells per spot
+## Select some thresholds to check
+min_t = quantile(sfe@colData$detected, probs = c(.001)) # lower cut-off: 0.1%
+max_t = quantile(sfe@colData$detected, probs = c(.999)) # upper cut-off suggest to skip it --> set to NA
 
-# plotQC_scat(sfe, metric = "detected")
+plotQC_hist(sfe, metric = "detected", limits = c(min_t, NA))
 
 ## Map the library sizes
 plotQC_map(sfe, metric = "detected")
 
 ## Select threshold
 sfe <- setQCthresh_GenesExpr(sfe, sample_id = TRUE,
-                           min_t = quantile(sfe@colData$sum, probs = c(.15)),
-                           max_t = quantile(sfe@colData$sum, probs = c(.999)))
+                           min_t = min_t,
+                           max_t = NA)
 
 ## Check putative spatial patterns of removed spots
 plotQC_filtered(sfe, metric = "detected", sample_id = TRUE)
 ```
 
-**NOTE:** For reference, remember the ground truth layers in this dataset [that we plotted](#plot-tissue-map) at the beginning of this session.
+>**NOTE:** For reference, remember the ground truth areas in this dataset [that we plotted](#plot-tissue-map) at the beginning of this session.
 
 ### Percentage of mitochondrial expression
 
 As we briefly touched on at the beginning, a high proportion of mitochondrial reads indicates low cell quality, probably due to cell damage.
 
-We calculated this data earlier on in this session, and can now investigate the percentage of mitochondrial expression across spots by looking at the column `subsets_mito_percent` in the `colData`.
-
-In this instance, a higher percentage of mitochondrial expression is the thing to avoid, so the threshold is an upper bound, rather than the lower bounds we have observed so far. Our suggestion this time is to cut-off at 15%. This suggestion comes after inspecting the distribution first.
+Our suggestion this time is to cut-off at 15%. This suggestion comes after inspecting the distribution first.
 
 ```{r 03_QC_sfe5, warning=FALSE}
 # ----------------------------------------------- #
 ## Density and histogram of percentage of mitochondrial expression
 plotQC_hist(sfe, metric = "mito")
 plotQC_hist(sfe, metric = "mito", limits = c(NA, 15))
-
-## Scatter plot % mito expression vs number of cells
-## Use this only if your dataset has information about the number of cells per spot
-
-# plotQC_scat(sfe, metric = "mito")
 
 ## Map the library sizes
 plotQC_map(sfe, metric = "mito")
@@ -504,26 +402,6 @@ We still need to check if there is a spatial pattern to the discarded spots. If 
 
 All the steps so far have flagged spots with potential issues - before proceeding with analysis, we want to remove these spots from our SpatialFeatureExperiment object. Since we have calculated different spot-level QC metrics and selected thresholds for each one, we can combine them to identify a set of low-quality spots, and remove them from our `sfe` object in a single step.
 
-If the dataset has also manual annotation ([remember](#plot-tissue-map))) we see that there are locations that are not annotated (marked with `NA`). We could further remove those locations to reduce potential noise and further increase the quality of the dataset.
-
-Before doing so, it is sensible first to have a look at the areas annotated with `NA`s. In our example (healthy liver sample JBO022) the `NA`s cover almost 1/4 of the tissue. As a result it is not advised to remove them on the basis of their annotation.
-
-However, id we were to do so, we would use the below two code chunks.
-
-```{r 02_notAnnotSpots, eval=FALSE, fig.height=4}
-## Select locations without annotation
-sfe <- setQCthresh_NAs(sfe, sample_id = TRUE)
-```
-
-We can also check once more that the combined set of discarded spots does not correspond to any obvious biologically relevant group of spots.
-
-```{r 02_notAnnotSpotscheck, eval=FALSE, fig.height=4}
-## Check putative spatial patterns of removed spots
-plotQC_filtered(sfe, metric = "NAs", sample_id = TRUE)
-```
-
-Now that we finished setting our thresholds for each individual metric, we can combine them to mark the spots/locations we need to remove. Of course, we need to check that our thresholds combined don't remove any obvious biology. If we are satisfied with our QC, then we can apply our thresholds. This final step, will remove any spots/locations selected for their low quality.
-
 The `setQCtoDiscard_loc` includes the `filters` argument that allows you to select which filters will be taken into account for the final selection. If left to `TRUE` then all filters are used. If, for whatever reason, you want to use only part of the filters from earlier, then you can provide a character vector with the column names of the QC metrics to consider for filtering locations. QC metric columns begin with "qc\_". You can always remind yourself of the column names by typing `colnames(colData(sfe))` in the console.
 
 ```{r 03_QC_sfe6, warning=FALSE}
@@ -547,7 +425,7 @@ As a good practise we suggest to add the quality-controlled `SFE` object back in
 msfe <- addSFE(msfe, sfe)
 ```
 
-> At this point, we suggest you run the preprocess steps for all other samples before you move on.
+> At this point, we suggest you run the preprocess steps for all other samples before you move on. Look in the ["Putting it all together"](#put-it-together) section to find the QC process coded in a for-loop without comments and plots
 
 ## Normalisation of counts
 
@@ -555,18 +433,8 @@ msfe <- addSFE(msfe, sfe)
 
 Normalisation is applied in STx data for the same reason as any other RNA-seq technique - the differences observed in the count data can arise from a range of systematic factors, not just a physiologically-relevant change in expression. The primary systematic effect is that of library size (or in the case of STx, counts/UMIs per spot). `scater` corrects for library size by scaling the sizes across all spots such that the mean library size is 1. Normalized counts are then calculated as a ratio of observed count to library size factor.
 
-Secondly, a log-transformation is applied to the scaled counts - this transformation is commonly applied as it stabilises the variance across the range of transcriptomics data (otherwise the variance is dominated by highly expressed genes) and it facilitates comparisons of expression by rendering positive and negative changes symmetrical and found by subtraction rather than division. Since $log2(0)$ is undefined, a *pseudocount* is added to each observed count to avoid this error - a pseudocount of 1 is typically applied, as $log2(0+1) = 0$.
+> **NOTE:** this is a point of confusion. So far, we have exported a single `SFE` object from the `MSFE`, applied our filters to it and updated it in the `MSFE`. For the gene-level QC and counts normalisation, we suggest you do it using the msfe objects to save you time since it is slightly more standardised. For the visualisations you can always select for which sample you want a plot providing `msfe@sfe-data[["sampleID"]]` instead of an `SFE` object.
 
-Here we will be using methods from the `scater` [@McCarthy2017Apr] and `scran` [@Lun2016Oct] packages that calculate logcounts using library size factors. The library size factors approach is arguably the simplest approach for STx data. Other approaches used in scRNA-seq are more difficult to justify their use in STx because of two main reasons:
-
-1.  Spots can contain multiple cells of different cell-types.
-2.  Datasets can include multiple tissue samples which will lead to different clusterings.
-
-The `STExplorer`'s functions `computeLibSizeFactors` and `normaliseCounts` are wrappers of the `computeLibraryFactors` and `logNormCounts` functions from the `scater` package that enable them to be used with an `SpatialFeatureExperiment` object.
-
-> **NOTE:** this is a point of confusion. So far, we have exported a single `SFE` object from the `MSFE`, applied our filters to it and updated it in the `MSFE`. For the gene-level QC and counts normalisation, we suggest you do it using the msfe objects to save you time since it is slightly more standard. For the visualisations you can always select for which sample you want a plot providing `msfe@sfe-data[["sampleID"]]` instead of an `SFE` object.
-
-> **NOTE:** for future updates, we should change this and let the user run everything from within the `MSFE`. That way it creates less confussion.
 
 ### Log-tranformation of counts
 
@@ -587,8 +455,6 @@ msfe <- computeLibSizeFactors(msfe)
                    metric_lab = "Size factor")
   
   p1 + p2
-
-## NOTE for developer: need to give option to plot size factor distribution for all samples at once too.
 ```
 
 The log-transformation that takes place is a log2-transformation and in order to avoid *- Infinity* values we add a pseudo value of 1. Both the log2- transformation and the pseudocount of 1 are defaults in this method.
@@ -597,8 +463,6 @@ The log-transformation that takes place is a log2-transformation and in order to
 ## Calculate logcounts using library size factors
 msfe <- normaliseCounts(msfe)
 
-## Check that a new assay has been added
-SummarizedExperiment::assayNames(msfe@sfe_data[["JBO022"]])
 ```
 
 ## Gene-level Quality Control
@@ -1804,7 +1668,7 @@ gwr_stats(gwr)
 
 ```
 
-## Putting it all together
+## Putting it all together {#put-it-together}
 
 For each technology (i.e., Visium, etc.) there are individual vignettes that include the code naked from the majority of commentary.
 

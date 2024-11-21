@@ -9,6 +9,7 @@ plotFGWC_multiHeatmap(
   loc_annot = c("annotation", "cluster", "both", "none"),
   order_rows = c("annotation", "cluster", "none"),
   subset_row = NULL,
+  colour = NULL,
   ...
 )
 }
@@ -37,6 +38,9 @@ Defaults to \code{"none"}.}
 
 \item{subset_row}{subset rows (locations) using a boolean vector of length
 equal to the number of locations.}
+
+\item{colour}{The colour parameter passed to the \code{colour} argument in
+\code{pheatmap}.}
 
 \item{...}{Arguments passed to \code{pheatmap}.}
 }
