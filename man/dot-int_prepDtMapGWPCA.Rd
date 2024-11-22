@@ -5,7 +5,7 @@
 \alias{.int_arrayToListGWPCA}
 \title{Internal: prepare Data Map for GWPCA}
 \usage{
-.int_prepDtMapGWPCA(gwpca, locs, genes, comps, type, gene_names)
+.int_prepDtMapGWPCA(gwpca, locs, genes, comps, type, gene_names, absolute)
 
 .int_arrayToListGWPCA(x)
 }
@@ -21,6 +21,10 @@
 \item{type}{Character vector specifying the type of spatial data
 to use. Options are "spot" for spot geometry and "hex"
 for hexagon geometry.}
+
+\item{gene_names}{The gene names}
+
+\item{absolute}{TRUE/FALSE. Absolute leading scores or not?}
 }
 \value{
 A data frame containing leading score gene data prepared for

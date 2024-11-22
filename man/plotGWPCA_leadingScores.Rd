@@ -11,7 +11,8 @@ plotGWPCA_leadingScores(
   type = c("spot", "hex"),
   colours = c("viridis", "custom"),
   col_args = list(),
-  gene_names
+  gene_names,
+  absolute = FALSE
 )
 }
 \arguments{
@@ -42,6 +43,8 @@ you prefer. I.e., \code{list(option = "magma")}.}
 the ENSG IDs you provided in the \code{genes} argument.
 IMPORTANT: the order of names must match that of the ENSG
 IDs.}
+
+\item{absolute}{TRUE/FALSE. Absolute leading scores or not?}
 }
 \description{
 This function plots leading scores for specific genes from a GWPCA object.
