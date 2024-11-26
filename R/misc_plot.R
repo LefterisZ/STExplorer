@@ -261,7 +261,7 @@ plotGeneExpression <- function(m_sfe,
 
   if (length(unique(data$gene)) > 1) {
     p <- p +
-      ggplot2::facet_wrap(~gene, scales = "fixed", ncol = 1)
+      ggplot2::facet_wrap(~gene, scales = "fixed")
   } else {
     p <- p +
       labs(title = unique(data$gene))
