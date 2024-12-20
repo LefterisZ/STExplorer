@@ -4,7 +4,7 @@
 \alias{int_LeadingGene_single}
 \title{Find the single leading gene}
 \usage{
-int_LeadingGene_single(gwpca, pc_no, sfe)
+int_LeadingGene_single(gwpca, pc_no, sfe, sort)
 }
 \arguments{
 \item{gwpca}{a list of class \code{gwpca}.}
@@ -13,6 +13,10 @@ int_LeadingGene_single(gwpca, pc_no, sfe)
 you want to find the leading genes.}
 
 \item{sfe}{a \code{SpatialFeatureExperiment} object.}
+
+\item{sort}{A character indicating whether the absolute or the original
+leading score will be used for sorting. Possible values are "abs" (for
+absolute) or "original"}
 }
 \description{
 A function to find the SINGLE leading gene per principal component in a

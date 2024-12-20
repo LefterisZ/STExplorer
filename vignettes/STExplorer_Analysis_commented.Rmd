@@ -681,6 +681,13 @@ Starting from a binary neighbours list, in which regions are either listed as ne
 
 the latter of which leads to 𝑤𝑖𝑗=0 for all 𝑑𝑖𝑗\>𝑑max. Note that *IDW* weights show extreme behaviour close to 0 and can take on the value infinity. In such cases, the infinite values are replaced by the largest finite weight present in the weights list.
 
+```{r 03_spatial_neighbours_to_sfe}
+## Add a neighbour graph using a weighted distance matrix
+msfe <- addSpatialNeighGraphs(msfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
+
+colGraphs(msfe@sfe_data[["Fibrotic"]])
+```
+
 ### Generate distance matrices
 
 A distance matrix is a mirrored matrix that contains the distance between a spot and every other spot. This distance can be a simple Euclidean distance based on the coordinates of the spots or a weighted distance according to a bandwidth around each spot using a kernel that gives higher scores to distances between spots that are closer together compared to the ones that are farther away. These weighted distance matrices are later used to run geographically weighted (GW) models.
@@ -702,11 +709,6 @@ knitr::include_graphics("images/gwmodel_kernel_graphs.png")
 In the below we choose one of the many possible ways of building a neighbour graph for the fibrotic lung data set. In this example we are using a k-nearest neighbours approach with row-standardised distance-based weights.
 
 ```{r 03_spatial_weights_to_sfe}
-## Add a neighbour graph using a weighted distance matrix
-msfe <- addSpatialNeighGraphs(msfe, sample_id = TRUE, type = "knearneigh", style = "W", distMod = "raw", k = 6)
-
-colGraphs(msfe@sfe_data[["Fibrotic"]])
-
 ## Calculate a simple distance matrix
 msfe <- addDistMat(msfe, p = 2)
 

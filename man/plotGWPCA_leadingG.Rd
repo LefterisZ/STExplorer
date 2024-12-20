@@ -30,8 +30,8 @@ The default is set to FALSE.}
 \item{legend.position}{position of the plot legend. Default is right. Can
 accept "bottom", "top", "right", and "left".}
 
-\item{cutoff}{Numeric. The number of times a gene has to be the leading
-gene in a location to be shown in the plot.}
+\item{cutoff}{Numeric. The number of times a gene (or a gene group) has to
+be the leading gene in a location to be shown in the plot.}
 
 \item{size}{Numeric. The legend text size.}
 

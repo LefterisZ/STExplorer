@@ -7,11 +7,12 @@
 gwpca_LeadingGene(
   gwpca,
   m_sfe,
-  sample_id,
+  sample_id = NULL,
   pc_nos,
   genes_n = 5,
   type = c("single", "multi"),
   method = c("membership", "order"),
+  sort = c("abs", "original"),
   names = c("id", "gene_names")
 )
 }
@@ -39,6 +40,10 @@ location or 'multi' for multiple leading genes per location.}
 
 \item{method}{A character indicating the method to be used for grouping the
 spots together. Possible values are "membership" or "order".}
+
+\item{sort}{A character indicating whether the absolute or the original
+leading score will be used for sorting. Possible values are "abs" (for
+absolute) or "original".}
 
 \item{names}{A character indicating the output format for gene identifiers.
 Possible values are "id" for ENSG IDs or "gene_names" for gene names.}

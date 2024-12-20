@@ -4,7 +4,7 @@
 \alias{int_LeadingGene_multi}
 \title{Find the top-k leading genes}
 \usage{
-int_LeadingGene_multi(gwpca, pc_no, genes_n, sfe, method)
+int_LeadingGene_multi(gwpca, pc_no, genes_n, sfe, method, sort)
 }
 \arguments{
 \item{gwpca}{a list of class \code{gwpca}.}
@@ -18,6 +18,10 @@ you want to find the leading genes.}
 
 \item{method}{takes values either "membership" or "order". Is the method to
 be used for grouping the spots together.}
+
+\item{sort}{A character indicating whether the absolute or the original
+leading score will be used for sorting. Possible values are "abs" (for
+absolute) or "original"}
 }
 \description{
 A function to find the top k leading genes per principal components in a

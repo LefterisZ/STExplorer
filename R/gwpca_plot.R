@@ -154,8 +154,8 @@ plotGWPCA_global <- function(gwpca,
 #' The default is set to FALSE.
 #' @param legend.position position of the plot legend. Default is right. Can
 #' accept "bottom", "top", "right", and "left".
-#' @param cutoff Numeric. The number of times a gene has to be the leading
-#' gene in a location to be shown in the plot.
+#' @param cutoff Numeric. The number of times a gene (or a gene group) has to
+#' be the leading gene in a location to be shown in the plot.
 #' @param size Numeric. The legend text size.
 #' @param ... arguments to be passed to both \code{geom_sf()} outside of the
 #' aesthetic.

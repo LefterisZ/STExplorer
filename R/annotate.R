@@ -426,7 +426,7 @@ createBiomart <- function(organism = "human", attributes, version = NULL,
     inputType <- "no_ensg"
     # assuming all are gene names, check that are present
     isExisting <- genes %in% rowData(sfe)[, "gene_name"]
-    allExisting <- isExisting == length(genes)
+    allExisting <- length(isExisting) == length(genes)
   } else {
     inputType <- "mixed"
   }

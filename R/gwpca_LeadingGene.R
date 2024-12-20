@@ -30,6 +30,10 @@
 #' @param method A character indicating the method to be used for grouping the
 #' spots together. Possible values are "membership" or "order".
 #'
+#' @param sort A character indicating whether the absolute or the original
+#' leading score will be used for sorting. Possible values are "abs" (for
+#' absolute) or "original".
+#'
 #' @param names A character indicating the output format for gene identifiers.
 #' Possible values are "id" for ENSG IDs or "gene_names" for gene names.
 #'
@@ -73,15 +77,17 @@
 #' @export
 gwpca_LeadingGene <- function(gwpca,
                               m_sfe,
-                              sample_id,
+                              sample_id = NULL,
                               pc_nos,
                               genes_n = 5,
                               type = c("single", "multi"),
                               method = c("membership", "order"),
+                              sort = c("abs", "original"),
                               names = c("id", "gene_names")) {
   ## Check valid argument inputs
   type <- match.arg(type)
   method <- match.arg(method)
+  sort <- match.arg(sort)
   names <- match.arg(names)
 
   ## SFE or metaSFE?
@@ -90,11 +96,11 @@ gwpca_LeadingGene <- function(gwpca,
   ## Find the leading genes for multiple principal components
   if (type == "single") {
     leading_genes <- lapply(pc_nos, function(pc_no) {
-      int_LeadingGene_single(gwpca, pc_no, sfe)
+      int_LeadingGene_single(gwpca, pc_no, sfe, sort)
     })
   } else if (type == "multi") {
     leading_genes <- lapply(pc_nos, function(pc_no) {
-      int_LeadingGene_multi(gwpca, pc_no, genes_n, sfe, method)
+      int_LeadingGene_multi(gwpca, pc_no, genes_n, sfe, method, sort)
     })
   }
 
@@ -140,15 +146,22 @@ gwpca_LeadingGene <- function(gwpca,
 #' @param pc_no a numeric value of the principal component number for which
 #' you want to find the leading genes.
 #' @param sfe a \code{SpatialFeatureExperiment} object.
+#' @param sort A character indicating whether the absolute or the original
+#' leading score will be used for sorting. Possible values are "abs" (for
+#' absolute) or "original"
 #'
 #' @importFrom SpatialFeatureExperiment rowData
 #'
-int_LeadingGene_single <- function(gwpca, pc_no, sfe) {
+int_LeadingGene_single <- function(gwpca, pc_no, sfe, sort) {
     pc_name <- paste0("PC", pc_no)
 
     local_loadings <- round(gwpca$loadings[, , pc_no], 4)
 
-    leading_gene_indices <- max.col(abs(local_loadings))
+    if (sort == 'abs') {
+      local_loadings <- abs(local_loadings)
+    }
+
+    leading_gene_indices <- max.col(local_loadings)
     leading_gene_ids <- colnames(local_loadings)[leading_gene_indices]
 
     if (is.null(rowData(sfe)$id)) {
@@ -188,16 +201,23 @@ int_LeadingGene_single <- function(gwpca, pc_no, sfe) {
 #' @param sfe a \code{SpatialFeatureExperiment} object.
 #' @param method takes values either "membership" or "order". Is the method to
 #' be used for grouping the spots together.
+#' @param sort A character indicating whether the absolute or the original
+#' leading score will be used for sorting. Possible values are "abs" (for
+#' absolute) or "original"
 #'
 #' @importFrom SpatialFeatureExperiment rowData
 #'
-int_LeadingGene_multi <- function(gwpca, pc_no, genes_n, sfe, method) {
+int_LeadingGene_multi <- function(gwpca, pc_no, genes_n, sfe, method, sort) {
     pc_names <- paste0("PC", pc_no)
 
     local_loadings <- round(gwpca$loadings[, , pc_no], 4)
 
+    if (sort == 'abs') {
+      local_loadings <- abs(local_loadings)
+    }
+
     ## Order loading scores in decreasing order
-    ordered_indices <- apply(abs(local_loadings), 1, order, decreasing = TRUE)
+    ordered_indices <- apply(local_loadings, 1, order, decreasing = TRUE)
 
     ## Get the top leading genes by membership or order
     top_genes <- apply(ordered_indices[1:genes_n, ], 2, function(indices) {
