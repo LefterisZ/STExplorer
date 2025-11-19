@@ -37,6 +37,9 @@
 #' @param names A character indicating the output format for gene identifiers.
 #' Possible values are "id" for ENSG IDs or "gene_names" for gene names.
 #'
+#' @param geom A character indicating the geometry to be used for the output.
+#' Can be one of: "spot", "hex", or "cntd"
+#'
 #' @details
 #' The function calculates the leading genes in a location based on the
 #' specified principal component numbers. It returns the results as a list of
@@ -83,24 +86,42 @@ gwpca_LeadingGene <- function(gwpca,
                               type = c("single", "multi"),
                               method = c("membership", "order"),
                               sort = c("abs", "original"),
-                              names = c("id", "gene_names")) {
+                              names = c("id", "gene_names"),
+                              geom = c("spot", "hex", "cntd")) {
   ## Check valid argument inputs
   type <- match.arg(type)
   method <- match.arg(method)
   sort <- match.arg(sort)
   names <- match.arg(names)
 
+  ## Check geom argument
+  if (missing(geom)) {
+    geom <- "hex"
+  }
+  if (geom == "hex") {
+    stopifnot("spotHex" %in% names(colGeometries(sfe)))
+    geom <- "spotHex"
+  }
+  if (geom == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+    geom <- "spotPoly"
+  }
+  if (geom == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    geom <- "spotCntd"
+  }
+
   ## SFE or metaSFE?
-  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+  sfe <- STExplorer:::.int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Find the leading genes for multiple principal components
   if (type == "single") {
     leading_genes <- lapply(pc_nos, function(pc_no) {
-      int_LeadingGene_single(gwpca, pc_no, sfe, sort)
+      STExplorer:::int_LeadingGene_single(gwpca, pc_no, sfe, sort)
     })
   } else if (type == "multi") {
     leading_genes <- lapply(pc_nos, function(pc_no) {
-      int_LeadingGene_multi(gwpca, pc_no, genes_n, sfe, method, sort)
+      STExplorer:::int_LeadingGene_multi(gwpca, pc_no, genes_n, sfe, method, sort)
     })
   }
 
@@ -113,7 +134,8 @@ gwpca_LeadingGene <- function(gwpca,
                                                                  pc_nos)
   }
 
-  result$geometry <- colGeometry(sfe, "spotHex")
+
+  result$geometry <- colGeometry(sfe, geom)
 
   ## Select ENSG IDs or gene names to be in the final output
   result <- dplyr::select(result, starts_with(names) | matches("geometry"))

@@ -80,7 +80,7 @@ plotGWR <- function(gwr,
   plot_list <- lapply(seq_along(vars_to_plot),
                       function(x) {
                         Var = vars_to_plot[x]
-                        dt <- .int_getGWRdataToPlot(gwr = gwr, Var = Var)
+                        dt <- STExplorer:::.int_getGWRdataToPlot(gwr = gwr, Var = Var)
                         p <- .int_plotGWRCoeff(gwr_sf = dt, i = x, Var = Var)
                         return(p)
                       })
@@ -100,6 +100,7 @@ plotGWR <- function(gwr,
   p + plot_annotation(title = title,
                       theme = theme(plot.title = element_text(hjust = 0.5)))
 }
+
 
 
 #' Plot Local R-squared from GWR Model
@@ -132,12 +133,12 @@ plotGWR_R2 <- function(gwr) {
 
   ## Plot R-squared
   ggplot(gwr_sf) +
-  geom_sf(aes(geometry = geometry, fill = Local_R2)) +
+    geom_sf(aes(geometry = geometry, fill = Local_R2),
+            colour = NA) +
     scale_fill_viridis_c() +
     labs(fill = expression("R"^2)) +
-  theme_void()
+    theme_void()
 }
-
 
 #---------------------------------------------------------------------------- #
   #  ############# INTERNAL FUNCTIONS ASSOCIATED WITH MISC PLOTS ##############
@@ -192,7 +193,7 @@ plotGWR_R2 <- function(gwr) {
   return(gwr_sf)
 }
 
-#' Internal Function: Plot GWR Coefficients
+#' Internal Function: Plot GWR Coefficients (Visium HD-safe)
 #'
 #' This internal function generates a spatial plot for the coefficients
 #' obtained from a Geographically Weighted Regression (GWR) model. The function
@@ -200,12 +201,14 @@ plotGWR_R2 <- function(gwr) {
 #' provides a visual representation of the intercept or a specified predictor
 #' variable.
 #'
-#' @param gwr_sf A Simple Features (sf) object containing the spatial data and
-#'   the GWR coefficients. This object should include columns for the
-#'   coefficients and their significance, as well as the geometry information.
-#' @param i An integer.
-#' @param Var A character string indicating the variable to be selected for
-#'   plotting.
+#' @param gwr_sf sf with columns: Var, geometry, geom_signif (as created by .int_getGWRdataToPlot)
+#' @param i integer (1 = intercept)
+#' @param Var character, name of coefficient column to plot
+#' @param use_alpha logical, if TRUE use alpha to show significance
+#' @param alpha_range numeric length-2, alpha range for Not-sig → Sig
+#' @param show_stipple logical, add light point stipple for significant loci
+#' @param stipple_size numeric, point size for stipple (small for Visium HD)
+#' @param stipple_alpha numeric in [0,1], opacity for stipple
 #'
 #' @return A `ggplot` object representing the spatial distribution of the
 #'   specified GWR coefficient, with significant areas highlighted.
@@ -231,30 +234,65 @@ plotGWR_R2 <- function(gwr) {
 #'
 #' @importFrom ggplot2 scale_fill_gradient2 alpha
 #'
-.int_plotGWRCoeff <- function(gwr_sf, i, Var) {
+.int_plotGWRCoeff <- function(gwr_sf, i, Var,
+                              use_alpha     = TRUE,
+                              alpha_range   = c(0.35, 1),
+                              show_stipple  = FALSE,
+                              stipple_size  = 0.05,
+                              stipple_alpha = 0.25) {
+
+  # Title (β0 for intercept; β_j otherwise)
   if (i == 1) {
-    tit = expression(""*beta[0]*"")
+    tit <- expression(""*beta[0]*"")
   } else {
     j <- i - 1
-    tit = bquote(beta[.(j)])
+    tit <- bquote(beta[.(j)])
   }
 
-  ### Plot: Map Coefficients
-  ggplot(gwr_sf) +
+  # Derive a lightweight significance flag from 'geom_signif'
+  # ('.int_getGWRdataToPlot' already put the significant geometry there, NA otherwise)
+  if ("geom_signif" %in% names(gwr_sf)) {
+    # sfc supports is.na(); TRUE where significant geometry exists
+    sig_flag <- !is.na(gwr_sf$geom_signif)
+  } else {
+    sig_flag <- rep(TRUE, nrow(gwr_sf))  # fallback: no gating
+  }
+  gwr_sf$..alpha_sig <- if (use_alpha) ifelse(sig_flag, 1, 0) else 1
+
+  # Base coefficient layer, NO outlines
+  p <- ggplot(gwr_sf) +
     geom_sf(aes(geometry = geometry,
-                fill = !!sym(Var)),
+                fill     = !!rlang::sym(Var),
+                alpha    = ..alpha_sig),
             colour = NA) +
-    geom_sf(aes(geometry = geom_signif),
-            fill = alpha("white", 0),
-            colour = "black",
-            linewidth = 0.15) +
-    scale_fill_gradient2(high = "#880A1F",
-                         mid = "#FAFBF7",
-                         low = "#426E92",
+    scale_alpha_continuous(range = alpha_range, guide = "none") +
+    scale_fill_gradient2(high     = "#880A1F",
+                         mid      = "#FAFBF7",
+                         low      = "#426E92",
                          midpoint = 0,
                          n.breaks = 7) +
-    labs(x = "",
-         y = "",
-         fill = tit) +
+    labs(x = NULL, y = NULL, fill = tit) +
     theme_void()
+
+  # Optional: add a very light stipple (points) at significant centroids
+  if (show_stipple && any(sig_flag, na.rm = TRUE) && "geom_signif" %in% names(gwr_sf)) {
+    # Convert significant polygons to points (centroids/surface points)
+    # Keep only rows that are flagged significant
+    sig_rows <- which(sig_flag %in% TRUE)
+    if (length(sig_rows)) {
+      # st_point_on_surface avoids invalid centroids for concave polygons
+      sig_pts <- try(sf::st_point_on_surface(gwr_sf$geometry[sig_rows]), silent = TRUE)
+      if (!inherits(sig_pts, "try-error")) {
+        pts_sf <- sf::st_sf(sig_pt = sig_pts)
+        p <- p + geom_sf(data = pts_sf,
+                         aes(geometry = sig_pt),
+                         inherit.aes = FALSE,
+                         colour = "black",
+                         size   = stipple_size,
+                         alpha  = stipple_alpha)
+      }
+    }
+  }
+
+  p
 }

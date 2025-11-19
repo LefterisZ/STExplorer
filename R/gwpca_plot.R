@@ -348,118 +348,120 @@ plotGWPCA_ptv <- function(gwpca,
                           fill_args = list(),
                           lab_args = list(),
                           ...){
-    ## Checks arguments
-    stopifnot(is(gwpca, "gwpca"))
-    stopifnot(is.numeric(comps))
-    stopifnot(!is.null(gwpca$ptvs))
+  ## Checks arguments
+  stopifnot(is(gwpca, "gwpca"))
+  stopifnot(is.numeric(comps))
+  stopifnot(!is.null(gwpca$ptvs))
 
-    ## Check valid type argument
-    type <- match.arg(type)
+  ## Check valid type argument
+  type <- match.arg(type)
 
-    ## Fetch the data
-    if (type == "violin") {
-        ptvs <- gwpca$ptvs[,!(colnames(gwpca$ptvs) %in% "geometry")] %>%
-            .[, comps] %>%
-            reshape2::melt(data = ., measure.vars = colnames(.))
-    } else if (type == "map") {
-        col_ns <- colnames(gwpca$ptvs)[comps]
-        ptvs <- gwpca$ptvs %>%
-            select(all_of(c(col_ns, "geometry"))) %>%
-            reshape2::melt(data = ., measure.vars = col_ns)
-    }
+  ## Fetch the data
+  if (type == "violin") {
+    ptvs <- gwpca$ptvs[,!(colnames(gwpca$ptvs) %in% "geometry")] %>%
+      .[, comps] %>%
+      reshape2::melt(data = ., measure.vars = colnames(.))
+  } else if (type == "map") {
+    col_ns <- colnames(gwpca$ptvs)[comps]
+    ptvs <- gwpca$ptvs %>%
+      select(all_of(c(col_ns, "geometry"))) %>%
+      reshape2::melt(data = ., measure.vars = col_ns)
+  }
 
-    ## Set some defaults if not provided
-    if (isEmpty(violin_args) & type == "violin") {
-        violin_args <- list(alpha = 0.8,
-                            trim = FALSE)
-    }
-    if (isEmpty(box_args) & type == "violin") {
-        box_args <- list(width = 0.1,
-                         fill = "grey40",
-                         outlier.colour = NA)
-    }
-    if (isEmpty(fill_args)) {
-        fill_args <- list(values = getColours(length(comps)))
-    }
-    if (isEmpty(lab_args) & type == "violin") {
-        labs_args <- list(title = "Local PCs PTV",
-                          x = "",
-                          y = "Percentage of Total Variation (PTV)",
-                          fill = "No. of PCs")
-    } else if (isEmpty(lab_args) & type == "map") {
-        labs_args <- list(title = "Percantage of Total Variation\n(PTV)")
-    }
+  ## Set some defaults if not provided
+  if (isEmpty(violin_args) & type == "violin") {
+    violin_args <- list(alpha = 0.8,
+                        trim = FALSE)
+  }
+  if (isEmpty(box_args) & type == "violin") {
+    box_args <- list(width = 0.1,
+                     fill = "grey40",
+                     outlier.colour = NA)
+  }
+  if (isEmpty(fill_args)) {
+    fill_args <- list(values = getColours(length(comps)))
+  }
+  if (isEmpty(lab_args) & type == "violin") {
+    labs_args <- list(title = "Local PCs PTV",
+                      x = "",
+                      y = "Percentage of Total Variation (PTV)",
+                      fill = "No. of PCs")
+  } else if (isEmpty(lab_args) & type == "map") {
+    labs_args <- list(title = "Percantage of Total Variation\n(PTV)")
+  }
 
-    ## Set some defaults if not priovided
-    if (isEmpty(violin_args) & type == "violin") {
-        violin_args <- list(alpha = 0.8,
-                            trim = FALSE)
-    }
-    if (isEmpty(box_args) & type == "violin") {
-        box_args <- list(width = 0.1,
-                         fill = "grey40",
-                         outlier.colour = NA)
-    }
-    if (isEmpty(fill_args)) {
-        fill_args <- list(values = getColours(length(comps)))
-    }
-    if (isEmpty(lab_args) & type == "violin") {
-        labs_args <- list(title = "Local PCs PTV",
-                          x = "",
-                          y = "Percentage of Total Variation (PTV)",
-                          fill = "No. of PCs")
-    } else if (isEmpty(lab_args) & type == "map") {
-        labs_args <- list(title = "Percantage of Total Variation\n(PTV)")
-    }
+  ## Set some defaults if not priovided
+  if (isEmpty(violin_args) & type == "violin") {
+    violin_args <- list(alpha = 0.8,
+                        trim = FALSE)
+  }
+  if (isEmpty(box_args) & type == "violin") {
+    box_args <- list(width = 0.1,
+                     fill = "grey40",
+                     outlier.colour = NA)
+  }
+  if (isEmpty(fill_args)) {
+    fill_args <- list(values = getColours(length(comps)))
+  }
+  if (isEmpty(lab_args) & type == "violin") {
+    labs_args <- list(title = "Local PCs PTV",
+                      x = "",
+                      y = "Percentage of Total Variation (PTV)",
+                      fill = "No. of PCs")
+  } else if (isEmpty(lab_args) & type == "map") {
+    labs_args <- list(title = "Percantage of Total Variation\n(PTV)")
+  }
 
-    ## List of plots
-    plot_list <- list(
-        violin = function(violin_args, box_args, labs_args, fill_args, ...){
-            ggplot(ptvs, aes(x = .data$variable,
-                             y = .data$value,
-                             fill = .data$variable)) +
-                do.call(geom_violin, c(list(...), violin_args)) +
-                do.call(scale_fill_manual, c(fill_args)) +
-                do.call(geom_boxplot, c(list(...), box_args)) +
-                do.call(labs, labs_args) +
-                ylim(0, 100) +
-                theme_classic() +
-                theme(axis.text.x = element_text(angle = 90,
-                                                 vjust = 0.5,
-                                                 hjust = 1))
-        },
-        map = function(comps, labs_args, ...){
-            ggplot(data = ptvs) +
-                geom_sf(aes(geometry = .data$geometry,
-                            fill = .data$value), ...) +
-                scale_fill_viridis_c(option = "magma", limits = c(0, 100)) +
-                facet_wrap(~variable, ncol = ceiling(sqrt(n_distinct(comps)))) +
-                do.call(labs, labs_args) +
-                theme_void() +
-                theme(legend.position = "right")
-        }
-    )
-
-    ## Get the required plot function
-    plot_fun <- plot_list[[type]]
-
-    ## Fetch appropriate arguments
-    if (type == "violin") {
-        args_list <- list(violin_args = violin_args,
-                          box_args = box_args,
-                          labs_args = labs_args,
-                          fill_args = fill_args)
-    } else if (type == "map") {
-        args_list <- list(comps = comps,
-                          labs_args = labs_args)
+  ## List of plots
+  plot_list <- list(
+    violin = function(violin_args, box_args, labs_args, fill_args, ...){
+      ggplot(ptvs, aes(x = .data$variable,
+                       y = .data$value,
+                       fill = .data$variable)) +
+        do.call(geom_violin, c(list(...), violin_args)) +
+        do.call(scale_fill_manual, c(fill_args)) +
+        do.call(geom_boxplot, c(list(...), box_args)) +
+        do.call(labs, labs_args) +
+        ylim(0, 100) +
+        theme_classic() +
+        theme(axis.text.x = element_text(angle = 90,
+                                         vjust = 0.5,
+                                         hjust = 1))
+    },
+    map = function(comps, labs_args, ...){
+      ggplot(data = ptvs) +
+        geom_sf(aes(geometry = .data$geometry,
+                    fill = .data$value),
+                colour = NA, ...) +
+        scale_fill_viridis_c(option = "magma", limits = c(0, 100)) +
+        facet_wrap(~variable, ncol = ceiling(sqrt(n_distinct(comps)))) +
+        do.call(labs, labs_args) +
+        theme_void() +
+        theme(legend.position = "right")
     }
+  )
 
-    ## Call plot function with appropriate arguments
-    plot <- do.call(plot_fun,
-                    c(list(...), args_list))
+  ## Get the required plot function
+  plot_fun <- plot_list[[type]]
 
-    return(plot)
+  ## Fetch appropriate arguments
+  if (type == "violin") {
+    args_list <- list(violin_args = violin_args,
+                      box_args = box_args,
+                      labs_args = labs_args,
+                      fill_args = fill_args)
+  } else if (type == "map") {
+    args_list <- list(comps = comps,
+                      labs_args = labs_args)
+  }
+
+  ## Call plot function with appropriate arguments
+  plot <- do.call(plot_fun,
+                  c(list(...), args_list))
+
+  return(plot)
 }
+
 
 
 #' Visualise outliers in box-plot or map
@@ -830,7 +832,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
     geom_sf(data = gsea_map,
             aes(geometry = geometry,
                 fill = cluster),
-            colour = "grey30",
+            colour = NA,
             show.legend = TRUE) +
     scale_fill_manual(values = colour_values,
                       breaks = spot_breaks,
@@ -844,7 +846,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
     geom_sf(data = gsea_map,
             aes(geometry = geometry,
                 fill = NES),
-            colour = "grey30",
+            colour = NA,
             show.legend = TRUE) +
     scale_fill_gradient2(high = "#B2182B",
                          mid = "#F7F7F7",
@@ -860,7 +862,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
     geom_sf(data = gsea_map,
             aes(geometry = geometry,
                 fill = -log10(p.adjust)),
-            colour = "grey30",
+            colour = NA,
             show.legend = TRUE) +
     scale_fill_viridis_c(option = "magma",
                          na.value = "grey95") +
@@ -872,7 +874,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
     geom_sf(data = gsea_map,
             aes(geometry = geometry,
                 fill = rank),
-            colour = "grey30",
+            colour = NA,
             show.legend = TRUE) +
     scale_fill_viridis_c(option = "magma",
                          na.value = "grey95") +
@@ -884,7 +886,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
     geom_sf(data = gsea_map,
             aes(geometry = geometry,
                 fill = as.factor(genes_no)),
-            colour = "grey30",
+            colour = NA,
             show.legend = TRUE) +
     scale_fill_viridis_d(option = "magma",
                          na.value = "grey95") +
@@ -897,7 +899,7 @@ plotGWPCA_FuncCLust <- function(gsea_map, count = 5, legend, legend.title) {
     geom_sf(data = gsea_map,
             aes(geometry = geometry,
                 fill = as.factor(setSize)),
-            colour = "grey30",
+            colour = NA,
             show.legend = TRUE) +
     scale_fill_viridis_d(option = "magma",
                          na.value = "grey95") +
@@ -1054,11 +1056,11 @@ plotGWPCA_leadingScores <- function(gwpca,
 #' @rdname dot-int_generate_plot
 #'
 .int_generatePlot <- function(pc.No,
-                               cutoff,
-                               lead.item,
-                               fill,
-                               legend.position,
-                               size) {
+                              cutoff,
+                              lead.item,
+                              fill,
+                              legend.position,
+                              size) {
   ## The Legend labels
   spot_labels <- data.frame(table(lead.item[pc.No])) %>%
     dplyr::rename(LeadingGs = colnames(lead.item)[pc.No],
@@ -1086,7 +1088,7 @@ plotGWPCA_leadingScores <- function(gwpca,
     geom_sf(data = lead.item,
             aes(geometry = .data[["geometry"]][["geometry"]],
                 fill = .data[[pc]]),
-            colour = "grey30",
+            colour = NA,
             show.legend = TRUE) +
     scale_fill_manual(values = colour_values,
                       breaks = spot_breaks,
@@ -1100,6 +1102,58 @@ plotGWPCA_leadingScores <- function(gwpca,
 
   return(p)
 }
+
+plotGWPCA_leadingG <- function(gwpca,
+                               comps,
+                               type = c("single", "multi"),
+                               arrange = FALSE,
+                               legend.position = "right",
+                               cutoff = 12,
+                               size = 8,
+                               ...){
+  ## Checks arguments
+  stopifnot(is(gwpca, "gwpca"))
+  stopifnot(is.numeric(comps))
+
+  ## Check valid type argument
+  type <- match.arg(type)
+
+  ## Fetch the data
+  if (type == "single") {
+    lead.item <- gwpca$leadingGeneSingle
+    fill <- "Leading\nGene"
+  } else if (type == "multi") {
+    lead.item <- gwpca$leadingGeneMulti
+    fill <- "Group of\nLeading\nGenes"
+  }
+
+  ## Create a list of plots for each component
+  plots <- lapply(comps,
+                  .int_generatePlot,
+                  cutoff = cutoff,
+                  lead.item = lead.item,
+                  fill = fill,
+                  legend.position = legend.position,
+                  size = size)
+
+  ## Check if arrange is TRUE and comps length is less than or equal to 4
+  if (arrange) {
+    if (length(comps) <= 4) {
+      n <- length(comps)
+      nrow <- if (n %in% c(1, 2)) 1 else 2
+      ncol <- if (n == 3) 2 else 2
+      do.call(gridExtra::grid.arrange, c(plots, nrow = nrow, ncol = ncol))
+      message("Plots arranged in a ", nrow, "x", ncol, " panel.")
+    } else if (length(comps) > 4) {
+      message("More than 4 components specified.\n",
+              "Returning a list of individual plots.")
+      return(plots)
+    }
+  } else {
+    lapply(plots, print)
+  }
+}
+
 
 
 #' Internal: prepare Data Map for GWPCA

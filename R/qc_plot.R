@@ -869,7 +869,12 @@ plotQC_filtered <- function(m_sfe,
     p <- p +
       ggplot2::geom_sf(data = data,
                        ggplot2::aes(geometry = geometry,
-                                    colour = fill)) +
+                                    fill = fill),
+                       colour   = NA,    # remove outline
+                       linewidth = 0,    # ggplot2 >= 3.4
+                       size      = 0,    # backward compatibility
+                       ...
+      ) +
       ggplot2::scale_colour_manual(values = c("grey95", "red")) +
       ggplot2::labs(colour = fill_label,
                     title = title)
@@ -877,7 +882,12 @@ plotQC_filtered <- function(m_sfe,
     p <- p +
       ggplot2::geom_sf(data = data,
                        ggplot2::aes(geometry = geometry,
-                                    fill = fill)) +
+                                    fill = fill),
+                       colour   = NA,    # remove outline
+                       linewidth = 0,    # ggplot2 >= 3.4
+                       size      = 0,    # backward compatibility
+                       ...
+      ) +
       ggplot2::scale_fill_manual(values = c("grey95", "red")) +
       ggplot2::labs(fill = fill_label,
                     title = title)
@@ -898,6 +908,8 @@ plotQC_filtered <- function(m_sfe,
 
   return(p)
 }
+
+
 
 
 #' Plot Size Factors Histogram and Density in a SpatialFeatureExperiment
@@ -1498,21 +1510,16 @@ plotQC_sizeFactors <- function(m_sfe,
 #'
 #' @rdname dot-int_getImgDt
 #'
-.int_getImgDt <- function(sfe, sample_id = NULL, image_id = "lowres") {
-  ## Fetch image data and transform to raster
-  image_list <- getImg(sfe, sample_id = sample_id, image_id = image_id)
-  if (is.list(image_list)) {
-    raster_list <- lapply(image_list, imgRaster)
-  } else {
-    raster_list <- list()
-    raster_list[[1]] <- imgRaster(image_list)
-  }
+.int_getImgDt <- function(sfe, sample_id = NULL, image_id = NULL) {
+  imgs <- getImg(sfe, sample_id = sample_id, image_id = image_id)
 
-  ## Fetch the required sample IDs
-  sample_id <- .int_getImgSmplIDs(sfe = sfe, sample_id = sample_id)
+  raw_list <- if (is.list(imgs)) imgs else list(imgs)
 
-  ## Add names to list
-  names(raster_list) <- sample_id
+  raster_list <- lapply(raw_list, .int_toSpatrasterRGB)
+
+  sample_ids <- .int_getImgSmplIDs(sfe = sfe, sample_id = sample_id)
+
+  names(raster_list) <- sample_ids
 
   return(raster_list)
 }
@@ -1552,71 +1559,186 @@ plotQC_sizeFactors <- function(m_sfe,
                                image_name,
                                limits_list,
                                sfe,
-                               type,
-                               annotate,
-                               colours,
-                               fill_args,
-                               alpha,
+                               type = "none",
+                               annotate = FALSE,
+                               colours = NULL,
+                               fill_args = list(),
+                               alpha = 1,
                                ...) {
-  ## Identify the RGB value range. It can be 0-1, 0-255 (8-bit), or 0-65536 (16-bit)
-  ## There is a chance the 'range_max' slot to be filled with NaN. We need to
-  ## account for that.
-  max <- image@ptr$range_max[1]
-  if (is.na(max)) {
-    max <- max(image[,,1])
-  }
-  if (max <= 1) {
-    max_col_value <- 1
-  } else if (max <= 255) {
-    max_col_value <- 255
-  } else if (max <= 65536) {
-    max_col_value <- 65536
-  }
 
-  ## To silence the 'coordinate system already present' warning as per:
-  ## https://github.com/tidyverse/ggplot2/issues/2799
-  cf <- coord_fixed()
+  # --- Determine max_col_value robustly (no access to image@ptr) ---
+  max_col_value <- .int_guessMaxColValue(image)
+
+  # --- Build the base plot ---
+  cf <- ggplot2::coord_fixed()
   cf$default <- TRUE
 
-  p <- ggplot() +
-    tidyterra::geom_spatraster_rgb(data = image,
-                                   max_col_value = max_col_value) +
+  # Optional: set extent to match the plotting limits so overlays align
+  if (!is.null(limits_list)) {
+    terra::ext(image) <- terra::ext(
+      limits_list[[1]][1], limits_list[[1]][2],
+      limits_list[[2]][1], limits_list[[2]][2]
+    )
+  }
+
+  p <- ggplot2::ggplot() +
+    tidyterra::geom_spatraster_rgb(data = image, max_col_value = max_col_value) +
     ggplot2::labs(subtitle = image_name) +
-    ggplot2::lims(x = limits_list[[1]],
-                  y = limits_list[[2]]) +
+    ggplot2::lims(x = limits_list[[1]], y = limits_list[[2]]) +
     cf +
     ggplot2::theme_void() +
-    theme(plot.subtitle = ggplot2::element_text(hjust = 0.5))
+    ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust = 0.5))
 
-  ## Put together the data to plot geometries. Choose spots or hexagons too.
-  if (!type == "none") {
-    ids <- image_name
-    data <- .int_dataToPlotAnnot(sfe = sfe, type = type,
-                                 ids = image_name, annotate = annotate)
+  # --- Optional overlays ---
+  if (!identical(type, "none")) {
+    data <- .int_dataToPlotAnnot(
+      sfe = sfe, type = type, ids = image_name, annotate = annotate
+    )
 
-    if (annotate) {
-      ## Plot with annotation
-      ## Fetch colours
+    if (isTRUE(annotate)) {
       annot_cols <- .int_annotColours(sfe = sfe, colours = colours)
-      ## Set some defaults if not provided
       fill_args <- .int_fillArgs(fill_args, annot_cols = annot_cols)
-      ## Plot
-      p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = geometry,
-                                    fill = annotation),
-                                alpha = alpha) +
-        do.call(scale_fill_manual, c(list(...), fill_args)) +
+
+      p <- p +
+        ggplot2::geom_sf(
+          data = data,
+          ggplot2::aes(geometry = geometry, fill = annotation),
+          alpha = alpha
+        ) +
+        do.call(ggplot2::scale_fill_manual, c(list(...), fill_args)) +
         ggplot2::labs(fill = "Annotation")
     } else {
-      ## Plot without annotation
-      p <- p + ggplot2::geom_sf(data = data,
-                                aes(geometry = geometry),
-                                alpha = alpha)
+      p <- p +
+        ggplot2::geom_sf(
+          data = data,
+          ggplot2::aes(geometry = geometry),
+          alpha = alpha
+        )
     }
   }
 
   return(p)
 }
+
+
+.int_toSpatrasterRGB <- function(x, limits_list = NULL) {
+  # --- A) SpatRasterImage (lazy, no values) -> read source file as a real raster ---
+  if (inherits(x, "SpatRasterImage")) {
+    # Try to get the on-disk path; SFE exposes it via imgSource()
+    src <- tryCatch(imgSource(x), error = function(e) NULL)
+    if (is.null(src) || length(src) != 1L || !file.exists(src)) {
+      stop("SpatRasterImage has no readable imgSource() on disk.")
+    }
+
+    # Prefer GDAL via terra; fall back to png::readPNG if needed
+    R <- tryCatch(terra::rast(src), error = function(e) NULL)
+
+    if (inherits(R, "SpatRaster")) {
+      # Drop alpha if present
+      if (terra::nlyr(R) >= 3L) R <- R[[1:3]] else stop("Image file has < 3 bands.")
+      names(R) <- c("red","green","blue")
+      return(R)
+    }
+
+    # Fallback path: use png::readPNG (values in 0..1), then build a SpatRaster
+    if (!requireNamespace("png", quietly = TRUE))
+      stop("Cannot read image via terra; install the 'png' package for fallback.")
+
+    arr <- png::readPNG(src)              # dim: height x width x channels, values 0..1
+    if (length(dim(arr)) < 3L || dim(arr)[3] < 3L)
+      stop("PNG has fewer than 3 channels.")
+
+    r <- terra::rast(arr[, , 1]); g <- terra::rast(arr[, , 2]); b <- terra::rast(arr[, , 3])
+    R <- c(r, g, b); names(R) <- c("red","green","blue")
+    return(R)
+  }
+
+
+  # --- Hex matrix/array (SFE >= 1.9.8) ---
+  if (is.character(x) && (is.matrix(x) || (is.array(x) && length(dim(x)) == 2L))) {
+    mat <- if (is.matrix(x)) x else matrix(x, nrow = dim(x)[1], ncol = dim(x)[2])
+    nr <- nrow(mat); nc <- ncol(mat)
+    rgb_cols <- grDevices::col2rgb(as.vector(mat))
+    r_mat <- matrix(rgb_cols["red",   ], nrow = nr, ncol = nc, byrow = FALSE)
+    g_mat <- matrix(rgb_cols["green", ], nrow = nr, ncol = nc, byrow = FALSE)
+    b_mat <- matrix(rgb_cols["blue",  ], nrow = nr, ncol = nc, byrow = FALSE)
+    out <- c(terra::rast(r_mat), terra::rast(g_mat), terra::rast(b_mat))
+    names(out) <- c("red","green","blue")
+    return(out)
+  }
+
+  # --- 3D numeric array already RGB ---
+  if (is.array(x) && length(dim(x)) == 3L && dim(x)[3] >= 3L) {
+    out <- c(terra::rast(x[, , 1]), terra::rast(x[, , 2]), terra::rast(x[, , 3]))
+    names(out) <- c("red","green","blue")
+    return(out)
+  }
+
+  # --- Try to coerce anything raster-like to SpatRaster (Raster*, stars, custom) ---
+  x_spat <- tryCatch(terra::rast(x), error = function(e) NULL)
+  if (is.null(x_spat)) {
+    stop("Unsupported image payload from getImg(): ", paste(class(x), collapse = ", "))
+  }
+  x <- x_spat
+
+  # Proper 3-layer RGB
+  if (terra::nlyr(x) == 3L) {
+    names(x) <- c("red","green","blue")
+    return(x)
+  }
+
+  # Packed single-layer where columns = 3 * true width (e.g., 481×1800)
+  if (terra::nlyr(x) == 1L && (terra::ncol(x) %% 3L) == 0L) {
+    k  <- terra::ncol(x) / 3L
+    dx <- (terra::xmax(x) - terra::xmin(x)) / terra::ncol(x)
+    ex1 <- terra::ext(terra::xmin(x),               terra::xmin(x) + dx * k,       terra::ymin(x), terra::ymax(x))
+    ex2 <- terra::ext(terra::xmin(x) + dx * k,      terra::xmin(x) + dx * 2L * k,  terra::ymin(x), terra::ymax(x))
+    ex3 <- terra::ext(terra::xmin(x) + dx * 2L * k, terra::xmax(x),                terra::ymin(x), terra::ymax(x))
+    r <- terra::crop(x, ex1); g <- terra::crop(x, ex2); b <- terra::crop(x, ex3)
+    out <- c(r, g, b); names(out) <- c("red","green","blue")
+    return(out)
+  }
+
+  stop(sprintf("Unsupported SpatRaster shape from getImg(): nrow=%d, ncol=%d, nlyr=%d",
+               terra::nrow(x), terra::ncol(x), terra::nlyr(x)))
+}
+
+
+.int_guessMaxColValue <- function(image) {
+  # 1) Force-compute per-layer min/max on disk; handles many lazy sources
+  mm <- tryCatch(terra::minmax(image, force = TRUE), error = function(e) NULL)
+  if (!is.null(mm)) {
+    mx <- suppressWarnings(max(mm[, "max"], na.rm = TRUE))
+    if (is.finite(mx)) {
+      if (mx <= 1) return(1L)
+      if (mx <= 255) return(255L)
+      if (mx <= 65535) return(65535L)
+      return(as.integer(mx))
+    }
+  }
+
+  # 2) Heuristic from data type (fast, no read)
+  dts <- unique(terra::datatype(image))
+  if (any(grepl("^INT2U$", dts))) return(65535L)  # 16-bit unsigned
+  if (any(grepl("^INT1U$", dts))) return(255L)    # 8-bit unsigned
+
+  # 3) Fallback: pull values (can be memory-heavy on huge rasters)
+  vals <- tryCatch(terra::values(image, mat = FALSE), error = function(e) NULL)
+  if (!is.null(vals)) {
+    mx <- suppressWarnings(max(vals, na.rm = TRUE))
+    if (is.finite(mx)) {
+      if (mx <= 1) return(1L)
+      if (mx <= 255) return(255L)
+      if (mx <= 65535) return(65535L)
+      return(as.integer(mx))
+    }
+  }
+
+  # 4) Safe default for RGB
+  255L
+}
+
+
 
 # ---------------------------------------------------------------------------- #
 # ------------------------------- DEPRECATED --------------------------------- #

@@ -18,6 +18,9 @@
 #' @param sample_id In the case of a Meta-SFE object, sample_id argument needs
 #' to be defined with the ID of the sample to be used. Defaults to NULL.
 #'
+#' @param type A character indicating the geometry to be used for the output.
+#' Can be one of: "spot", "hex", or "cntd"
+#'
 #' @return A data frame with columns for the proportional variance explained by
 #' each principal component and the corresponding spot geometries from SFE's
 #' `spotHex`.
@@ -38,9 +41,10 @@
 #' gwpca <- gwpca_PropVar(gwpca, n_comp = 2:10, sfe = sfe)
 #'
 #' @export
-gwpca_PropVar <- function(gwpca, n_comp, m_sfe, sample_id = NULL){
+gwpca_PropVar <- function(gwpca, n_comp, m_sfe, sample_id = NULL,
+                          type = c("spot", "hex", "cntd")){
   ## SFE or metaSFE?
-  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+  sfe <- STExplorer:::.int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Check valid input arguments
   if (!inherits(gwpca, "gwpca")) {
@@ -55,8 +59,25 @@ gwpca_PropVar <- function(gwpca, n_comp, m_sfe, sample_id = NULL){
     stop("sfe must be a SpatialFeatureExperiment object.")
   }
 
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "hex") {
+    stopifnot("spotHex" %in% names(colGeometries(sfe)))
+    type <- "spotHex"
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+    type <- "spotPoly"
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "spotCntd"
+  }
+
   ## apply prop.var() over the n.comp vector
-  ptvs_list <- lapply(n_comp, prop.var, gwpca_var = gwpca$var)
+  ptvs_list <- lapply(n_comp, STExplorer:::prop.var, gwpca_var = gwpca$var)
   ptvs_list <- rlist::list.prepend(ptvs_list,
                                    gwpca$var[,1]/rowSums(gwpca$var) * 100)
 
@@ -72,7 +93,7 @@ gwpca_PropVar <- function(gwpca, n_comp, m_sfe, sample_id = NULL){
 
   ## Add spotHex geometries
   gwpca$ptvs <- dplyr::mutate(ptvs,
-                              geometry = colGeometry(sfe, "spotHex")$geometry)
+                              geometry = colGeometry(sfe, type)$geometry)
 
 
   return(gwpca)

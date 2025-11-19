@@ -18,6 +18,12 @@
 #'
 #' @param bw Bandwidth for the GWR.
 #'
+#' @param assay The assay used to get the gene counts from the m/sfe object.
+#' Defaults to "logcounts".
+#'
+#' @param type A character indicating the geometry to be used for the output.
+#' Can be one of: "spot", "hex", or "cntd".
+#'
 #' @param kernel Function chosen as follows:
 #'   \itemize{
 #'     \item{gaussian}{wgt = exp(-.5*(vdist/bw)^2);}
@@ -126,6 +132,7 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
                    formula,
                    m_sfe,
                    sample_id,
+                   type = c("spot", "hex", "cntr"),
                    bw,
                    kernel = c("bisquare", "gaussian", "exponential",
                               "tricube", "boxcar"),
@@ -150,15 +157,24 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
   ## Check arguments
   method <- match.arg(gwr_method)
 
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "centroid"
+  }
+
   ## Check SFE or MSFE?
-  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+  sfe <- STExplorer:::.int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Select dMat if not provided
   ## Call internal function to select and obtain the distance matrix
-  dMat <- .int_checkDMat(dMat, sfe)
+  dMat <- STExplorer:::.int_checkDMat(dMat, sfe)
 
   ## Prepare data for GWR
-  data <- .int_getGWRdata(sfe, formula = formula, type = "hex", assay = assay)
+  data <- .int_getGWRdata(sfe, formula = formula, type = type, assay = assay)
 
   ## Scale data for Regression
   if (scale) {
@@ -270,6 +286,12 @@ gwrSTE <- function(gwr_method = c("basic", "gtwr",
 #' @param sample_id character string, TRUE or NULL specifying sample/image
 #' identifier(s); here, TRUE is equivalent to all samples/images.
 #'
+#' @param assay The assay used to get the gene counts from the m/sfe object.
+#' Defaults to "logcounts".
+#'
+#' @param type A character indicating the geometry to be used for the output.
+#' Can be one of: "spot", "hex", or "cntd".
+#'
 #' @param approach Approach specified by \code{CV} for cross-validation
 #' approach or by \code{AICc} corrected approach.
 #'
@@ -380,6 +402,8 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
                       formula,
                       m_sfe,
                       sample_id,
+                      type = c("spot", "hex", "cntr"),
+                      assay = "logcounts",
                       approach = c("CV", "AIC"),
                       kernel = c("bisquare", "gaussian", "exponential",
                                  "tricube", "boxcar"),
@@ -402,15 +426,24 @@ gwr_bwSTE <- function(gwr_method = c("basic", "gtwr",
   ## Check arguments
   method <- match.arg(gwr_method)
 
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "centroid"
+  }
+
   ## Check SFE or MSFE?
-  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+  sfe <- STExplorer:::.int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
 
   ## Select dMat if not provided
   ## Call internal function to select and obtain the distance matrix
-  dMat <- .int_checkDMat(dMat, sfe)
+  dMat <- STExplorer:::.int_checkDMat(dMat, sfe)
 
   ## Prepare data for GWR
-  data <- .int_getGWRdata(sfe, type = "hex")
+  data <- .int_getGWRdata(sfe, formula = formula, type = type, assay = assay)
 
   ## Run GWR badnwidth selection
   if (method == "basic") {
@@ -665,7 +698,7 @@ gwr_stats.SF <- function(gwr, stat) {
 #'
 .int_getGWRdata <- function(sfe, formula, type, assay) {
   ## Get geometries
-  polygons <- data.frame(geometry = .int_selectGeom(sfe = sfe, type = type),
+  polygons <- data.frame(geometry = STExplorer:::.int_selectGeom(sfe = sfe, type = type),
                          Barcode = rownames(colGeometries(sfe)[[1]]))
 
   ## Extract values from formula
@@ -679,9 +712,9 @@ gwr_stats.SF <- function(gwr, stat) {
   if (sum(var_gs) > 0 && sum(var_loc) == 0 && sum(var_non_gene_assay) == 0) {
     dt <- .int_getGWRdataGene(sfe = sfe, variables = vars[var_gs], assay = assay)
   } else if (sum(var_loc) > 0 && sum(var_gs) == 0 && sum(var_non_gene_assay) == 0) {
-    dt <- .int_getGWRdataLoc(sfe = sfe, variables = vars[var_loc])
+    dt <- STExplorer:::.int_getGWRdataLoc(sfe = sfe, variables = vars[var_loc])
   } else if (sum(var_non_gene_assay) > 0 && sum(var_gs) == 0 && sum(var_loc) == 0) {
-    dt <- .int_getGWRdataNonGeneAssay(sfe = sfe, variables = vars[var_non_gene_assay], assay = assay)
+    dt <- STExplorer:::.int_getGWRdataNonGeneAssay(sfe = sfe, variables = vars[var_non_gene_assay], assay = assay)
   } else {
     ## Get data for gene (if present)
     dt_gene <- if (sum(var_gs) > 0)
@@ -690,13 +723,13 @@ gwr_stats.SF <- function(gwr, stat) {
                           assay = assay) else NULL
     ## Get data for location (if present)
     dt_loc <- if (sum(var_loc) > 0)
-      .int_getGWRdataLoc(sfe = sfe,
-                         variables = vars[var_loc]) else NULL
+      STExplorer:::.int_getGWRdataLoc(sfe = sfe,
+                                      variables = vars[var_loc]) else NULL
     ## Get data for non-gene variables (if present)
     dt_non_gene_assay <- if (sum(var_non_gene_assay) > 0)
-      .int_getGWRdataNonGeneAssay(sfe = sfe,
-                                  variables = vars[var_non_gene_assay],
-                                  assay = assay) else NULL
+      STExplorer:::.int_getGWRdataNonGeneAssay(sfe = sfe,
+                                               variables = vars[var_non_gene_assay],
+                                               assay = assay) else NULL
 
     ## Filter out NULL values before using Reduce
     dfs <- list(dt_gene, dt_loc, dt_non_gene_assay)
@@ -746,6 +779,8 @@ gwr_stats.SF <- function(gwr, stat) {
   ## Fetch gene counts
   dt <- assay(sfe, assay) %>%
     t() %>%
+    .[, variables, drop = FALSE] %>%
+    as.matrix() %>%
     as.data.frame() %>%
     dplyr::select(variables) %>% # select the genes in the formula
     tibble::rownames_to_column(var = "Barcode") # barcodes from row names to column

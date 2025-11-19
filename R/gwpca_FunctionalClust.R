@@ -92,8 +92,8 @@ getTerm2Gene <- function(user_data = NULL,
     msig_data <- data.table::data.table(msig_data)
     ## Perform subsetting based on "gs_cat" and "gs_subcat"
     if (!is.null(cat) && !is.null(subcat)) {
-      msig_data <- msig_data[msig_data$gs_cat %in% cat &
-                               msig_data$gs_subcat %in% subcat]
+      msig_data <- msig_data[msig_data$gs_collection %in% cat &
+                               msig_data$gs_subcollection %in% subcat]
     }
 
     ## Perform subsetting to select "gs_name" and the appropriate
@@ -109,6 +109,7 @@ getTerm2Gene <- function(user_data = NULL,
          "\nFor the later, we recommend using the 'getMSigDBData' function")
   }
 }
+
 
 
 #' Run Gene Set Enrichment Analysis (GSEA) per location using GWPCA
@@ -238,8 +239,21 @@ gwpca_FunctionalClustering <- function(gwpca,
   genesNo <- genes_no
   NES_thresh <- NES
 
+  ## Check if the gsea data frame is populated. If it is not, the next code
+  ## chunk will error with:
+  # `dplyr::mutate()`:
+  # ℹ In argument: `genes_no = str_count(.data$core_enrichment, "ENSG")`.
+  # Caused by error in `.data$core_enrichment`:
+  #   ! Column `core_enrichment` not found in `.data`.
+  if (sum(is.na(gsea$ID)) == nrow(gsea)) {
+    stop("The GSEA returned no results in any location of the sample.\n",
+         "Please check that gene ids from GWPCA are contained in the \n",
+         "TERM2GENE list you provide. If this is not the source, consider ",
+         "further lowering the pValue threshold.")
+  }
+
   gsea <-  gsea %>%
-    dplyr::mutate(genes_no = str_count(.data$core_enrichment,"ENSG")) %>%
+    dplyr::mutate(genes_no = str_count(.data$core_enrichment,"ENS")) %>%
     dplyr::group_by(.data$Location) %>%
     dplyr::filter(genes_no > genesNo) %>%
     dplyr::filter(abs(NES) > NES_thresh, .by_group = TRUE) %>%
@@ -428,3 +442,111 @@ gwpca_FunctionalClustering <- function(gwpca,
   return(data[order(data, decreasing = TRUE)])
 }
 
+
+
+# additional helpers - not exported
+keepSize_t2g <- function(t2g_df, min_size = 15, max_size = 500) {
+  stopifnot(all(c("term", "gene") %in% names(t2g_df)))
+
+  t2g_df %>%
+    distinct(term, gene) %>%
+    add_count(term, name = "term_size") %>%
+    filter(term_size >= min_size, term_size <= max_size) %>%
+    select(-term_size)
+}
+
+
+# t2g: data.frame with columns term, gene (case-insensitive accepted)
+# keep_patterns / drop_patterns: character vectors of regexes
+# allowed_terms: optional exact term names to keep (vector of strings)
+# size filter applied AFTER pattern filtering
+filter_t2g <- function(t2g,
+                       keep_patterns = character(),
+                       drop_patterns = character(),
+                       allowed_terms = NULL,
+                       min_size = 10,
+                       max_size = Inf) {
+  # normalise columns
+  nm <- tolower(names(t2g))
+  names(t2g) <- nm
+  if (!all(c("term","gene") %in% names(t2g))) {
+    # common fallbacks
+    col_map <- c(gs_name = "term", term_name = "term", pathway = "term", set = "term", name = "term",
+                 gene_symbol = "gene", genesymbol = "gene", symbol = "gene", geneid = "gene",
+                 entrez = "gene", gene_id = "gene")
+    for (k in names(col_map)) if (k %in% names(t2g)) names(t2g)[names(t2g) == k] <- col_map[[k]]
+    stopifnot(all(c("term","gene") %in% names(t2g)))
+  }
+
+  t2g <- t2g %>% distinct(term, gene)
+
+  # If an explicit allow-list is provided, use it (exact match)
+  if (!is.null(allowed_terms)) {
+    t2g <- t2g %>% semi_join(tibble(term = allowed_terms), by = "term")
+  } else {
+    # otherwise apply regex keep/drop
+    any_match <- function(x, patterns, default = TRUE) {
+      if (length(patterns) == 0) return(rep(default, length(x)))
+      str_detect(x, regex(paste(patterns, collapse = "|"), ignore_case = TRUE))
+    }
+    tl <- tolower(t2g$term)
+    keep_flag <- any_match(tl, keep_patterns, default = TRUE)  # TRUE if no keep patterns
+    drop_flag <- any_match(tl, drop_patterns, default = FALSE)
+    t2g <- t2g[keep_flag & !drop_flag, , drop = FALSE]
+  }
+
+  # size limits
+  sizes <- t2g %>% count(term, name = "set_size")
+  keep_terms <- sizes %>% filter(set_size >= min_size, set_size <= max_size) %>% pull(term)
+  t2g %>% semi_join(tibble(term = keep_terms), by = "term")
+}
+
+
+pretty_term_labels <- function(terms,
+                               remove_prefix = TRUE,
+                               title_case = TRUE,
+                               keep_go_id = FALSE) {
+  out <- terms
+
+  if (remove_prefix) {
+    # strip common MSigDB namespaces / collection tags at the start
+    out <- out %>%
+      str_replace("^C[0-9]+[:_]", "") %>%                 # C2_, C5_, etc (rare in names)
+      str_replace("^(GO|GOBP|GOMF|GOCC)[:_]", "") %>%
+      str_replace("^REACTOME[:_]", "") %>%
+      str_replace("^HALLMARK[:_]", "") %>%
+      str_replace("^CP[:_]", "") %>%
+      str_replace("^WP[:_]", "") %>%
+      str_replace("^KEGG[:_]", "") %>%
+      str_replace("^M[0-9]+[:_]", "") %>%                 # M8_, etc
+      str_replace("^MOUSE[:_]", "")
+  }
+
+  # Optionally keep GO ID at the end as "(GO:0001234)" if present in the original
+  if (keep_go_id) {
+    go_id <- str_extract(terms, "GO:\\d{7}")
+    out <- ifelse(!is.na(go_id), paste0(out, " (", go_id, ")"), out)
+  }
+
+  # underscores -> spaces; squeeze whitespace
+  out <- out %>%
+    str_replace_all("_", " ") %>%
+    str_squish()
+
+  if (title_case) {
+    out <- str_to_title(out)
+    # preserve common acronyms
+    fix <- function(x, patt) str_replace_all(x, patt)
+    out <- fix(out, c(
+      "\\bNmda\\b" = "NMDA",
+      "\\bAmpa\\b" = "AMPA",
+      "\\bGaba\\b" = "GABA",
+      "\\bMtorc1\\b" = "mTORC1",
+      "\\bBbb\\b" = "BBB",
+      "\\bDna\\b" = "DNA",
+      "\\bRna\\b" = "RNA"
+    ))
+  }
+
+  out
+}

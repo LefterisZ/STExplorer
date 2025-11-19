@@ -82,6 +82,8 @@ plotFGWC_factorSelection <- function(kErrDiff, font.size = 12) {
 #' @param sample_id The sample ID.
 #' @param colours A vector of colours for the clusters. If NULL, default
 #' colours will be used.
+#' @param type A character indicating the geometry to be used for the output.
+#' Can be one of: "spot", "hex", or "cntd".
 #'
 #' @return A ggplot object.
 #'
@@ -108,12 +110,30 @@ plotFGWC_factorSelection <- function(kErrDiff, font.size = 12) {
 plotFGWC_singleMap <- function(fgwc,
                                m_sfe,
                                sample_id,
+                               type = c("spot", "hex", "cntd"),
                                colours = NULL) {
   ## Check SFE or MSFE?
-  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+  sfe <- STExplorer:::.int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "hex") {
+    stopifnot("spotHex" %in% names(colGeometries(sfe)))
+    type <- "spotHex"
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+    type <- "spotPoly"
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "spotCntd"
+  }
 
   ## Prepare data to plot
-  data <- .int_fgwcPlotDataMap(fgwc = fgwc, sfe = sfe, mode = "single")
+  data <- .int_fgwcPlotDataMap(fgwc = fgwc, sfe = sfe, mode = "single", type = type)
 
   ## Fetch colours
   if (is.null(colours)) {
@@ -123,12 +143,18 @@ plotFGWC_singleMap <- function(fgwc,
     annot_cols <- colours
   }
 
+  if (type == "spotPoly") {
+    colour = NA
+  } else {
+    colour = "grey30"
+  }
+
   ## Plot single cluster
   ggplot() +
     geom_sf(data = data,
             aes(geometry = geometry,
                 fill = as.factor(Cluster)),
-            colour = "grey30",
+            colour = colour,
             show.legend = TRUE) +
     scale_fill_manual(values = annot_cols) +
     labs(title = NULL,
@@ -137,6 +163,7 @@ plotFGWC_singleMap <- function(fgwc,
     theme(legend.position = "right")
 
 }
+
 
 #' Plot Multiple Cluster Results for Fuzzy Geographically Weighted Clustering
 #' (FGWC)
@@ -148,6 +175,8 @@ plotFGWC_singleMap <- function(fgwc,
 #' @param fgwc The result of FGWC clustering.
 #' @param m_sfe The spatial feature experiment (SFE) or metaSFE object.
 #' @param sample_id The sample ID.
+#' @param type A character indicating the geometry to be used for the output.
+#' Can be one of: "spot", "hex", or "cntd".
 #' @param palette The color palette for the cluster memberships.
 #' Default is "YlGnBu".
 #'
@@ -183,21 +212,46 @@ plotFGWC_singleMap <- function(fgwc,
 plotFGWC_multiMap <- function(fgwc,
                               m_sfe,
                               sample_id,
+                              type = c("spot", "hex", "cntd"),
                               palette = "YlGnBu") {
   ## Check SFE or MSFE?
-  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+  sfe <- STExplorer:::.int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "hex") {
+    stopifnot("spotHex" %in% names(colGeometries(sfe)))
+    type <- "spotHex"
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+    type <- "spotPoly"
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "spotCntd"
+  }
 
   ## Prepare data to plot
-  data <- .int_fgwcPlotDataMap(fgwc = fgwc, sfe = sfe, mode = "multi") %>%
+  data <- .int_fgwcPlotDataMap(fgwc = fgwc, sfe = sfe, mode = "multi", type = type) %>%
     tidyr::pivot_longer(cols = !.data$geometry,
                         names_to = "cluster",
                         values_to = "membership")
+
+  ## Prepare outline colours
+  if (type == "spotPoly") {
+    colour = NA
+  } else {
+    colour = "grey30"
+  }
 
   ggplot() +
     geom_sf(data = data,
             aes(geometry = geometry,
                 fill = membership),
-            colour = "grey30",
+            colour = colour,
             show.legend = TRUE) +
     scale_fill_distiller(palette = palette, limits = c(0, 1)) +
     facet_wrap(~cluster) +
@@ -391,6 +445,8 @@ plotFGWC_multiHeatmap <- function(fgwc,
 #' function.
 #' @param m_sfe The SpatialFeatureExperiment (SFE) or metaSFE object.
 #' @param sample_id The sample ID.
+#' @param type A character indicating the geometry to be used for the output.
+#' Can be one of: "spot", "hex", or "cntd".
 #'
 #' @return A ggplot object.
 #'
@@ -410,16 +466,44 @@ plotFGWC_multiHeatmap <- function(fgwc,
 #' @aliases plotFGWC_nmfFactorsMap
 #'
 #' @export
-plotFGWC_nmfFactorsMap <- function(nmf, m_sfe, sample_id = NULL) {
+plotFGWC_nmfFactorsMap <- function(nmf,
+                                   m_sfe,
+                                   sample_id = NULL,
+                                   type = c("spot", "hex", "cntd")) {
   ## Check SFE or MSFE?
-  sfe <- .int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+  sfe <- STExplorer:::.int_sfeORmsfe(m_sfe = m_sfe, sample_id = sample_id)
+
+  ## Check type argument
+  if (missing(type)) {
+    type <- "hex"
+  }
+  if (type == "hex") {
+    stopifnot("spotHex" %in% names(colGeometries(sfe)))
+    type <- "spotHex"
+  }
+  if (type == "spot") {
+    stopifnot("spotPoly" %in% names(colGeometries(sfe)))
+    type <- "spotPoly"
+  }
+  if (type == "cntd") {
+    stopifnot("spotCntd" %in% names(colGeometries(sfe)))
+    type <- "spotCntd"
+  }
 
   ## Prepare data to plot
-  data <- .int_nmfPlotDataMap(nmf = nmf, sfe = sfe)
+  data <- .int_nmfPlotDataMap(nmf = nmf, sfe = sfe, type = type)
+
+  ## Fetch colours
+  if (type == "spotPoly") {
+    colour = NA
+  } else {
+    colour = "grey30"
+  }
 
   ## Plot
   ggplot(data = data) +
-    geom_sf(aes(geometry = geometry, fill = score)) +
+    geom_sf(aes(geometry = geometry, fill = score),
+            colour = colour) +
     facet_wrap(~ Factors) +
     scale_fill_viridis_c() +
     labs(fill = "Factor\nScore") +
@@ -712,8 +796,6 @@ plotFGWC_pie <- function(fgwc,
     data <- left_join(data, annot, by = "Barcode")
   }
 
-
-
   if ("factors" %in% c(pies, donuts)) {
     data <- tidyr::pivot_longer(data,
                                 contains("Factor"),
@@ -751,8 +833,8 @@ plotFGWC_pie <- function(fgwc,
   total <- sum(df$Freq)
   df$start1 <- df$start * 2 * pi/total
   df$end1 <- df$end * 2 * pi/total
-  df$start1 <- df$start1 + start
-  df$end1 <- df$end1 + start
+  df$start1 <- df$start1 + df$start
+  df$end1 <- df$end1 + df$start
   df$focus <- 0
   if (explodePie) {
     df$focus[explode] <- explodePos
@@ -791,8 +873,8 @@ plotFGWC_pie <- function(fgwc,
     df3$start[1] <- 0
     df3$start1 <- df3$start * 2 * pi/total
     df3$end1 <- df3$end * 2 * pi/total
-    df3$start1 <- df3$start1 + start
-    df3$end1 <- df3$end1 + start
+    df3$start1 <- df3$start1 + df3$start
+    df3$end1 <- df3$end1 + df3$start
     df3$mid <- (df3$start1 + df3$end1)/2
     df3$focus <- 0
     if (!is.null(selected)) {
@@ -889,11 +971,11 @@ plotFGWC_pie <- function(fgwc,
                           alpha = pieAlpha,
                           color = color) +
     theme(rect = element_rect(fill = "transparent",
-                                                linewidth = 0),
-                   panel.background = element_rect(fill = "transparent"),
-                   panel.border = element_rect(linewidth = 0),
-                   panel.grid.major = element_blank(),
-                   panel.grid.minor = element_blank()) +
+                              linewidth = 0),
+          panel.background = element_rect(fill = "transparent"),
+          panel.border = element_rect(linewidth = 0),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank()) +
     scale_fill_manual(values = mainColours) +
     xlim(r3 * c(-1, 1)) +
     ylim(r3 * c(-1, 1)) +
@@ -1043,6 +1125,7 @@ plotFGWC_pie <- function(fgwc,
     p1
   }
 }
+
 
 
 
@@ -1478,13 +1561,13 @@ plotFGWC_subHeatmap <- function(heatmap,
 #'
 #' @rdname dot-int_fgwcPlotDataMap
 #'
-.int_fgwcPlotDataMap <- function(fgwc, sfe, mode = c("single", "multi")) {
+.int_fgwcPlotDataMap <- function(fgwc, sfe, mode = c("single", "multi"), type) {
   clusts.number <- 1:ncol(fgwc$membership)
   fgwc_membership <- data.frame(fgwc$membership)
   colnames(fgwc_membership) <- paste0("Cluster_", clusts.number)
   rownames(fgwc_membership) <- colnames(sfe)
   fgwc_membership <- data.frame(fgwc_membership,
-                                geometry = colGeometry(sfe, "spotHex"))
+                                geometry = colGeometry(sfe, type))
   if (mode == "single") {
     fgwc_membership$Cluster <- fgwc$cluster
   } else if (mode == "multi") {
@@ -1584,6 +1667,7 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' `fgwc_nmf` function.
 #' @param sfe A SpatialFeatureExperiment object containing spatial coordinates
 #' and features.
+#' @param type select the geometry to be used for plotting.
 #'
 #' @return A data frame containing information for generating NMF plots.
 #'
@@ -1598,13 +1682,12 @@ plotFGWC_subHeatmap <- function(heatmap,
 #' @keywords FGWC, clustering, spatial coordinates
 #'
 #' @rdname dot-int_nmfPlotDataMap
-#'
-.int_nmfPlotDataMap <- function(nmf, sfe) {
+.int_nmfPlotDataMap <- function(nmf, sfe, type) {
   scores <- (nmf) %>%
     as.data.frame() %>%
     rownames_to_column()
 
-  geoms <- colGeometry(sfe, "spotHex") %>%
+  geoms <- colGeometry(sfe, type) %>%
     rownames_to_column()
 
   # Combine spatial coordinates with scores
